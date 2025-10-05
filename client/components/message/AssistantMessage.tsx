@@ -615,27 +615,50 @@ function NestedToolDisplay({ toolUse }: { toolUse: ToolUseBlock }) {
 
 // Get a one-line summary of a tool's usage
 function getToolSummary(toolUse: ToolUseBlock): string {
-  const input = toolUse.input;
+  try {
+    const input = toolUse.input;
 
-  switch (toolUse.name) {
-    case 'Read':
-      return input.file_path as string || '';
-    case 'Write':
-    case 'Edit':
-      return input.file_path as string || '';
-    case 'Bash':
-      return (input.command as string || '').substring(0, 50);
-    case 'Grep':
-      return `"${input.pattern}" in ${input.path || 'project'}`;
-    case 'Glob':
-      return input.pattern as string || '';
-    case 'WebSearch':
-    case 'WebFetch':
-      return input.query as string || input.url as string || '';
-    case 'Task':
-      return input.subagent_type as string || '';
-    default:
-      return Object.values(input)[0] as string || '';
+    switch (toolUse.name) {
+      case 'Read':
+        return String(input.file_path || '');
+      case 'Write':
+      case 'Edit':
+        return String(input.file_path || '');
+      case 'Bash':
+        return String(input.command || '').substring(0, 50);
+      case 'Grep':
+        return `"${input.pattern}" in ${input.path || 'project'}`;
+      case 'Glob':
+        return String(input.pattern || '');
+      case 'WebSearch':
+      case 'WebFetch':
+        return String(input.query || input.url || '');
+      case 'Task':
+        return String(input.subagent_type || '');
+      case 'TodoWrite':
+        // TodoWrite has an array of todos, show count
+        const todos = input.todos as Array<any> || [];
+        return `${todos.length} task${todos.length !== 1 ? 's' : ''}`;
+      default:
+        // Safely convert any value to string
+        const firstValue = Object.values(input)[0];
+        if (typeof firstValue === 'string') {
+          return firstValue;
+        }
+        if (typeof firstValue === 'number' || typeof firstValue === 'boolean') {
+          return String(firstValue);
+        }
+        if (Array.isArray(firstValue)) {
+          return `${firstValue.length} items`;
+        }
+        if (typeof firstValue === 'object' && firstValue !== null) {
+          return JSON.stringify(firstValue).substring(0, 30);
+        }
+        return '';
+    }
+  } catch (e) {
+    console.error('Error in getToolSummary:', e, toolUse);
+    return '';
   }
 }
 
