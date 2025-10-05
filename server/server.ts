@@ -5,6 +5,7 @@ import { getSystemPrompt } from "./systemPrompt";
 import { AVAILABLE_MODELS } from "../client/config/models";
 import { configureProvider, PROVIDERS, getMaskedApiKey } from "./providers";
 import { getMcpServers, getAllowedMcpTools } from "./mcpServers";
+import { AGENT_REGISTRY } from "./agents";
 import type { ServerWebSocket } from "bun";
 
 // Load environment variables
@@ -110,6 +111,7 @@ const server = Bun.serve({
           console.log(`🔹 API Endpoint: ${providerConfig.baseUrl || 'https://api.anthropic.com (default)'}`);
           console.log(`🔹 API Key: ${getMaskedApiKey(providerConfig.apiKey)}`);
           console.log(`🔹 Available models: ${Object.keys(MODEL_MAP).join(', ')}`);
+          console.log(`🔹 Custom agents: ${Object.keys(AGENT_REGISTRY).join(', ')}`);
           console.log(`🔹 MCP Servers: ${Object.keys(mcpServers).length > 0 ? Object.keys(mcpServers).join(', ') : 'None'}`);
           console.log(`🔹 Allowed MCP Tools: ${allowedMcpTools.length > 0 ? allowedMcpTools.join(', ') : 'None'}`);
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -123,6 +125,7 @@ const server = Bun.serve({
               systemPrompt: getSystemPrompt(providerType),
               permissionMode: 'bypassPermissions', // Enable all tools without restrictions
               includePartialMessages: true,
+              agents: AGENT_REGISTRY, // Register custom agents for spawning
             };
 
             // Add MCP servers and allowed tools if provider has them

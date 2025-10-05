@@ -3,23 +3,29 @@
  *
  * These agents extend Claude Code's built-in agents and can be spawned using the Task tool.
  * Each agent has a specialized role and system prompt to guide its behavior.
+ *
+ * This format matches the Claude Agent SDK's AgentDefinition interface.
  */
 
+/**
+ * Agent definition matching the Claude Agent SDK interface
+ * @see @anthropic-ai/claude-agent-sdk/sdk.d.ts
+ */
 export interface AgentDefinition {
-  name: string;
   description: string;
-  systemPrompt: string;
-  allowedTools?: string[];
+  tools?: string[];
+  prompt: string;
+  model?: 'sonnet' | 'opus' | 'haiku' | 'inherit';
 }
 
 /**
  * Registry of custom agents available for spawning
+ * Compatible with Claude Agent SDK's agents option
  */
 export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
   'researcher': {
-    name: 'Researcher',
     description: 'Expert at gathering information, analyzing data, and providing comprehensive research reports',
-    systemPrompt: `You are a research specialist. Your mission is to:
+    prompt: `You are a research specialist. Your mission is to:
 - Gather information from multiple sources (files, web, codebase)
 - Analyze and synthesize findings
 - Provide clear, well-organized reports
@@ -30,9 +36,8 @@ Be thorough, objective, and systematic in your research approach.`,
   },
 
   'code-reviewer': {
-    name: 'Code Reviewer',
     description: 'Specialized in reviewing code for bugs, security issues, and best practices',
-    systemPrompt: `You are an expert code reviewer. Focus on:
+    prompt: `You are an expert code reviewer. Focus on:
 - Identifying bugs and potential issues
 - Security vulnerabilities and bad practices
 - Performance optimizations
@@ -40,13 +45,12 @@ Be thorough, objective, and systematic in your research approach.`,
 - Suggesting improvements with examples
 
 Provide constructive, actionable feedback.`,
-    allowedTools: ['Read', 'Grep', 'Glob'],
+    tools: ['Read', 'Grep', 'Glob'],
   },
 
   'debugger': {
-    name: 'Debugger',
     description: 'Tracks down bugs and fixes issues systematically',
-    systemPrompt: `You are a debugging expert. Your approach:
+    prompt: `You are a debugging expert. Your approach:
 - Systematically isolate the problem
 - Check logs and error messages carefully
 - Test hypotheses methodically
@@ -57,9 +61,8 @@ Think logically and don't jump to conclusions.`,
   },
 
   'test-writer': {
-    name: 'Test Writer',
     description: 'Creates comprehensive tests with high coverage',
-    systemPrompt: `You are a test engineering specialist. Your role:
+    prompt: `You are a test engineering specialist. Your role:
 - Write clear, maintainable tests
 - Cover edge cases and error paths
 - Follow testing best practices (AAA pattern, proper mocking)
@@ -70,9 +73,8 @@ Write tests that catch bugs and serve as documentation.`,
   },
 
   'documenter': {
-    name: 'Documenter',
     description: 'Writes clear, comprehensive documentation and examples',
-    systemPrompt: `You are a technical documentation expert. Focus on:
+    prompt: `You are a technical documentation expert. Focus on:
 - Clear, concise explanations
 - Practical examples and usage patterns
 - API reference documentation
@@ -80,7 +82,7 @@ Write tests that catch bugs and serve as documentation.`,
 - Beginner-friendly tutorials
 
 Write documentation that developers actually want to read.`,
-    allowedTools: ['Read', 'Write', 'Grep', 'Glob'],
+    tools: ['Read', 'Write', 'Grep', 'Glob'],
   },
 };
 
