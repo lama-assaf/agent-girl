@@ -71,7 +71,329 @@ function ToolIcon({ toolName }: { toolName: string }) {
   return <div className="flex items-center">{getIcon()}</div>;
 }
 
+// Bash-specific tool component matching bash.md design
+function BashToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const input = toolUse.input;
+
+  return (
+    <div className="w-full">
+      <div className="w-full text-sm transition-colors duration-200 bg-white/60 dark:bg-black">
+        {/* Header */}
+        <div className="flex gap-2 justify-between items-center px-4 py-2 w-full bg-white/60 dark:bg-[#0C0E10] shrink-1 border-b border-black/10 dark:border-white/10">
+          <div className="flex overflow-hidden flex-1 gap-2 items-center w-full shrink-1">
+            <div className="flex gap-2 items-center">
+              {/* Terminal icon */}
+              <svg className="size-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" strokeWidth="2">
+                <path d="M282.88 788.48l-35.84-35.84L486.4 512c-42.24-38.4-142.08-130.56-225.28-215.04L243.2 279.04l35.84-35.84 17.92 17.92c107.52 107.52 241.92 230.4 243.2 231.68 5.12 5.12 7.68 11.52 8.96 17.92 0 6.4-2.56 14.08-7.68 19.2L282.88 788.48zM503.04 733.44h281.6v51.2h-281.6v-51.2z" fill="currentColor" />
+              </svg>
+              <span className="text-sm font-medium leading-6 text-black whitespace-nowrap dark:text-white">Shell</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex p-1.5 rounded transition-colors hover:bg-gray-200 dark:hover:bg-gray-700 duration-150 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 shrink-0"
+            title={isExpanded ? "Collapse" : "Expand"}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="3.5"
+              stroke="currentColor"
+              className={`size-3 transition-all ${isExpanded ? 'rotate-180' : ''}`}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div
+          data-expanded={isExpanded}
+          className="font-mono p-4 flex flex-col gap-2 w-full bg-white/60 dark:bg-black/30 text-green-400 dark:text-green-300 data-[expanded=false]:max-h-[128px] data-[expanded=false]:overflow-y-auto"
+        >
+          {/* Command line */}
+          <div>
+            <span className="text-[#2ddc44]">$</span>{' '}
+            <span className="text-black dark:text-white">{input.command}</span>
+          </div>
+
+          {/* Output placeholder - will be populated with tool results */}
+          {input.description && (
+            <div className="text-black/60 dark:text-white/60 text-xs">
+              {input.description}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Web tool component (WebSearch/WebFetch) matching edit-write-update.md design
+function WebToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const input = toolUse.input;
+
+  return (
+    <div className="w-full">
+      {/* Header */}
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+        <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+          {/* Globe icon */}
+          <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="text-sm font-medium leading-6">{toolUse.name}</span>
+          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+            {toolUse.name === 'WebSearch'
+              ? (input.query as string)
+              : (input.url as string)}
+          </span>
+        </div>
+        <div className="flex gap-1 items-center whitespace-nowrap">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-collapsed={!isExpanded}
+            className="p-1.5 rounded-lg transition-all data-[collapsed=true]:-rotate-180"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3.5" stroke="currentColor" className="size-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {isExpanded && (
+        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+          {toolUse.name === 'WebSearch' ? (
+            <>
+              <div>
+                <span className="text-xs font-semibold text-black/60 dark:text-white/60">Query:</span>
+                <div className="text-sm mt-1">{input.query as string}</div>
+              </div>
+              {input.allowed_domains && (input.allowed_domains as string[]).length > 0 && (
+                <div>
+                  <span className="text-xs font-semibold text-black/60 dark:text-white/60">Allowed Domains:</span>
+                  <div className="text-sm mt-1">{(input.allowed_domains as string[]).join(', ')}</div>
+                </div>
+              )}
+              {input.blocked_domains && (input.blocked_domains as string[]).length > 0 && (
+                <div>
+                  <span className="text-xs font-semibold text-black/60 dark:text-white/60">Blocked Domains:</span>
+                  <div className="text-sm mt-1">{(input.blocked_domains as string[]).join(', ')}</div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div>
+                <span className="text-xs font-semibold text-black/60 dark:text-white/60">URL:</span>
+                <div className="text-sm mt-1 break-all font-mono">{input.url as string}</div>
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-black/60 dark:text-white/60">Prompt:</span>
+                <div className="text-sm mt-1">{input.prompt as string}</div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Edit/Write tool component matching edit-write-update.md design
+function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const input = toolUse.input;
+
+  // Detect language from file extension
+  const getLanguageFromPath = (filePath: string): string => {
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    const languageMap: Record<string, string> = {
+      'ts': 'typescript',
+      'tsx': 'tsx',
+      'js': 'javascript',
+      'jsx': 'jsx',
+      'py': 'python',
+      'rb': 'ruby',
+      'go': 'go',
+      'rs': 'rust',
+      'java': 'java',
+      'c': 'c',
+      'cpp': 'cpp',
+      'css': 'css',
+      'scss': 'scss',
+      'html': 'html',
+      'json': 'json',
+      'yaml': 'yaml',
+      'yml': 'yaml',
+      'md': 'markdown',
+      'sh': 'bash',
+      'sql': 'sql',
+    };
+    return languageMap[ext || ''] || 'text';
+  };
+
+  const language = getLanguageFromPath((input.file_path as string) || '');
+
+  // Calculate stats for Edit
+  const calculateStats = () => {
+    if (toolUse.name === 'Edit') {
+      const oldLines = (input.old_string as string)?.split('\n').length || 0;
+      const newLines = (input.new_string as string)?.split('\n').length || 0;
+      return {
+        added: newLines,
+        removed: oldLines,
+      };
+    } else if (toolUse.name === 'Write') {
+      const contentLines = (input.content as string)?.split('\n').length || 0;
+      return {
+        added: contentLines,
+        removed: 0,
+      };
+    }
+    return { added: 0, removed: 0 };
+  };
+
+  const stats = calculateStats();
+
+  return (
+    <div className="w-full">
+      {/* Header */}
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+        <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+          {/* Code icon */}
+          <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g clipPath="url(#clip0_1981_4166)">
+              <path d="M5.33398 4.33301L1.33398 8.47707L5.33398 12.333" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10.666 4.33301L14.666 8.47707L10.666 12.333" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M9.33333 1.33301L7 14.6663" stroke="currentColor" strokeLinecap="round" />
+            </g>
+            <defs>
+              <clipPath id="clip0_1981_4166">
+                <rect width="16" height="16" fill="white" />
+              </clipPath>
+            </defs>
+          </svg>
+          <span className="text-sm font-medium leading-6">{toolUse.name}</span>
+          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+            {input.file_path as string}
+          </span>
+        </div>
+        <div className="flex gap-1 items-center whitespace-nowrap">
+          <span className="text-green-500">+ {stats.added}</span>
+          {' / '}
+          <span className="text-red-500">- {stats.removed}</span>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-collapsed={!isExpanded}
+            className="p-1.5 rounded-lg transition-all data-[collapsed=true]:-rotate-180"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3.5" stroke="currentColor" className="size-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Diff Viewer */}
+      {isExpanded && (
+        <div className="max-h-[124px] overflow-auto bg-white/60 dark:bg-black/30">
+          {/* Deleted chunk (old_string) */}
+          {input.old_string && (
+            <div className="bg-red-500/10 border-l-2 border-red-500">
+              <SyntaxHighlighter
+                language={language}
+                style={vscDarkPlus as any}
+                PreTag="div"
+                customStyle={{
+                  margin: 0,
+                  padding: '0.5rem',
+                  background: 'transparent',
+                  fontSize: '0.75rem',
+                  lineHeight: '1.5',
+                }}
+                showLineNumbers={false}
+                wrapLines={true}
+                lineProps={(lineNumber) => ({
+                  style: {
+                    textDecoration: 'line-through',
+                    opacity: 0.7,
+                    display: 'flex',
+                  },
+                })}
+                codeTagProps={{
+                  style: {
+                    fontFamily: 'monospace',
+                  },
+                }}
+              >
+                {input.old_string as string}
+              </SyntaxHighlighter>
+            </div>
+          )}
+
+          {/* Added/New content (new_string or content) */}
+          {(input.new_string || input.content) && (
+            <div className="bg-green-500/10 border-l-2 border-green-500">
+              <SyntaxHighlighter
+                language={language}
+                style={vscDarkPlus as any}
+                PreTag="div"
+                showLineNumbers={true}
+                customStyle={{
+                  margin: 0,
+                  padding: '0.5rem',
+                  background: 'transparent',
+                  fontSize: '0.75rem',
+                  lineHeight: '1.5',
+                }}
+                lineNumberStyle={{
+                  minWidth: '2.5em',
+                  paddingRight: '1em',
+                  color: '#10b981',
+                  userSelect: 'none',
+                }}
+                codeTagProps={{
+                  style: {
+                    fontFamily: 'monospace',
+                  },
+                }}
+              >
+                {(input.new_string || input.content) as string}
+              </SyntaxHighlighter>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  // Use BashToolComponent for Bash tools
+  if (toolUse.name === 'Bash') {
+    return <BashToolComponent toolUse={toolUse} />;
+  }
+
+  // Use EditToolComponent for Edit/Write tools
+  if (toolUse.name === 'Edit' || toolUse.name === 'Write' || toolUse.name === 'MultiEdit') {
+    return <EditToolComponent toolUse={toolUse} />;
+  }
+
+  // Use WebToolComponent for WebSearch/WebFetch tools
+  if (toolUse.name === 'WebSearch' || toolUse.name === 'WebFetch') {
+    return <WebToolComponent toolUse={toolUse} />;
+  }
+
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Format tool parameters based on tool type
@@ -100,96 +422,13 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             )}
           </div>
         );
-        
+
       case 'Write':
-        return (
-          <div className="space-y-1">
-            <div className="flex">
-              <span className="text-xs text-gray-600 font-semibold mr-2">File:</span>
-              <span className="text-xs text-gray-900 font-mono">{input.file_path}</span>
-            </div>
-            <div>
-              <span className="text-xs text-gray-600 font-semibold">Content:</span>
-              <pre className="text-xs bg-white p-1 mt-1 border border-gray-200 overflow-x-auto font-mono max-h-32 overflow-y-auto">
-                {input.content && input.content.length > 500 ? input.content.substring(0, 500) + '...' : input.content || ''}
-              </pre>
-            </div>
-          </div>
-        );
-        
       case 'Edit':
       case 'MultiEdit':
-        return (
-          <div className="space-y-1">
-            <div className="flex">
-              <span className="text-xs text-gray-600 font-semibold mr-2">File:</span>
-              <span className="text-xs text-gray-900 font-mono">{input.file_path}</span>
-            </div>
-            {toolUse.name === 'Edit' ? (
-              <>
-                {input.replace_all && (
-                  <div className="text-xs text-amber-600">Replace all occurrences</div>
-                )}
-                <div className="space-y-1">
-                  <div className="text-xs text-gray-600 font-semibold">Replace:</div>
-                  <pre className="text-xs bg-red-50 p-1 border border-red-200 overflow-x-auto font-mono max-h-24 overflow-y-auto">
-                    {input.old_string}
-                  </pre>
-                  <div className="text-xs text-gray-600 font-semibold">With:</div>
-                  <pre className="text-xs bg-green-50 p-1 border border-green-200 overflow-x-auto font-mono max-h-24 overflow-y-auto">
-                    {input.new_string}
-                  </pre>
-                </div>
-              </>
-            ) : (
-              <div className="space-y-1">
-                <span className="text-xs text-gray-600 font-semibold">
-                  {input.edits?.length || 0} edits
-                </span>
-                {input.edits?.slice(0, 3).map((edit: ToolEdit, i: number) => (
-                  <div key={i} className="pl-2 border-l-2 border-gray-300">
-                    <div className="text-xs text-gray-500">Edit {i + 1}:</div>
-                    {edit.replace_all && (
-                      <div className="text-xs text-amber-600">Replace all</div>
-                    )}
-                    <div className="text-xs text-gray-600">Old: {edit.old_string.substring(0, 50)}{edit.old_string.length > 50 ? '...' : ''}</div>
-                    <div className="text-xs text-gray-600">New: {edit.new_string.substring(0, 50)}{edit.new_string.length > 50 ? '...' : ''}</div>
-                  </div>
-                ))}
-                {(input.edits?.length ?? 0) > 3 && (
-                  <div className="text-xs text-gray-500 pl-2">
-                    ... and {(input.edits?.length ?? 0) - 3} more edits
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-        
       case 'Bash':
-        return (
-          <div className="space-y-1">
-            <div>
-              <span className="text-xs text-gray-600 font-semibold">Command:</span>
-              <pre className="text-xs bg-gray-900 text-green-400 p-1 mt-1 border border-gray-700 overflow-x-auto font-mono">
-                {input.command}
-              </pre>
-            </div>
-            {input.description && (
-              <div className="text-xs text-gray-600">
-                <span className="font-semibold">Description:</span> {input.description}
-              </div>
-            )}
-            {input.run_in_background && (
-              <div className="text-xs text-amber-600">Running in background</div>
-            )}
-            {input.timeout && (
-              <div className="text-xs text-gray-600">
-                <span className="font-semibold">Timeout:</span> {input.timeout}ms
-              </div>
-            )}
-          </div>
-        );
+        // These are handled in custom components
+        return null;
         
       case 'Grep':
         return (
@@ -239,37 +478,12 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             )}
           </div>
         );
-        
+
       case 'WebSearch':
-        return (
-          <div className="space-y-1">
-            <div className="flex">
-              <span className="text-xs text-gray-600 font-semibold mr-2">Query:</span>
-              <span className="text-xs text-gray-900">{input.query}</span>
-            </div>
-            {input.allowed_domains && input.allowed_domains.length > 0 && (
-              <div className="flex">
-                <span className="text-xs text-gray-600 font-semibold mr-2">Domains:</span>
-                <span className="text-xs text-gray-900">{input.allowed_domains.join(', ')}</span>
-              </div>
-            )}
-          </div>
-        );
-        
       case 'WebFetch':
-        return (
-          <div className="space-y-1">
-            <div className="flex">
-              <span className="text-xs text-gray-600 font-semibold mr-2">URL:</span>
-              <span className="text-xs text-gray-900 font-mono break-all">{input.url}</span>
-            </div>
-            <div>
-              <span className="text-xs text-gray-600 font-semibold">Prompt:</span>
-              <div className="text-xs text-gray-900 mt-1">{input.prompt}</div>
-            </div>
-          </div>
-        );
-        
+        // These are handled in WebToolComponent
+        return null;
+
       case 'Task':
         return (
           <div className="space-y-1">
