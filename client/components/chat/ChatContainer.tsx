@@ -98,7 +98,7 @@ export function ChatContainer() {
     }
   };
 
-  const { isConnected, sendMessage } = useWebSocket({
+  const { isConnected, sendMessage, stopGeneration } = useWebSocket({
     url: 'ws://localhost:3001/ws',
     onMessage: (message) => {
       // Handle incoming WebSocket messages
@@ -221,6 +221,11 @@ export function ChatContainer() {
     setInputValue('');
   };
 
+  const handleStop = () => {
+    stopGeneration();
+    setIsLoading(false);
+  };
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -268,10 +273,10 @@ export function ChatContainer() {
                 <div className="flex justify-between items-center w-full">
                   <div className="flex items-center gap-2 overflow-hidden">
                     {!isSidebarOpen && (
-                      <img src="/client/agent-boy.svg" alt="Agent Boy" className="header-icon" />
+                      <img src="/client/agent-boy.svg" alt="Agent Girl" className="header-icon" />
                     )}
-                    <div className="header-title">
-                      Agent Boy
+                    <div className="header-title text-gradient">
+                      Agent Girl
                     </div>
                   </div>
                 </div>
@@ -297,7 +302,9 @@ export function ChatContainer() {
             inputValue={inputValue}
             onInputChange={setInputValue}
             onSubmit={handleSubmit}
+            onStop={handleStop}
             disabled={!isConnected || isLoading}
+            isGenerating={isLoading}
           />
         ) : (
           // Chat Interface
@@ -311,7 +318,9 @@ export function ChatContainer() {
               value={inputValue}
               onChange={setInputValue}
               onSubmit={handleSubmit}
+              onStop={handleStop}
               disabled={!isConnected || isLoading}
+              isGenerating={isLoading}
             />
           </>
         )}

@@ -1,18 +1,33 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, Plus, X } from 'lucide-react';
+import { Send, Plus, X, Square } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 
 interface NewChatWelcomeProps {
   inputValue: string;
   onInputChange: (value: string) => void;
   onSubmit: (files?: FileAttachment[]) => void;
+  onStop?: () => void;
   disabled?: boolean;
+  isGenerating?: boolean;
 }
 
-export function NewChatWelcome({ inputValue, onInputChange, onSubmit, disabled }: NewChatWelcomeProps) {
+const CAPABILITIES = [
+  "I can build websites for you",
+  "I can research anything you want",
+  "I can debug and fix your code",
+  "I can automate repetitive tasks",
+  "I can analyze data and files"
+];
+
+export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating }: NewChatWelcomeProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
+
+  // Typewriter effect state
+  const [currentCapabilityIndex, setCurrentCapabilityIndex] = useState(0);
+  const [displayedText, setDisplayedText] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
 
   // Auto-focus on mount with slight delay to ensure DOM is ready
   useEffect(() => {
@@ -21,6 +36,38 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, disabled }
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Typewriter effect
+  useEffect(() => {
+    const currentText = CAPABILITIES[currentCapabilityIndex];
+
+    if (isTyping) {
+      if (displayedText.length < currentText.length) {
+        const timer = setTimeout(() => {
+          setDisplayedText(currentText.slice(0, displayedText.length + 1));
+        }, 50);
+        return () => clearTimeout(timer);
+      } else {
+        // Finished typing, wait before erasing
+        const timer = setTimeout(() => {
+          setIsTyping(false);
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      // Erasing
+      if (displayedText.length > 0) {
+        const timer = setTimeout(() => {
+          setDisplayedText(displayedText.slice(0, -1));
+        }, 30);
+        return () => clearTimeout(timer);
+      } else {
+        // Finished erasing, move to next capability
+        setCurrentCapabilityIndex((prev) => (prev + 1) % CAPABILITIES.length);
+        setIsTyping(true);
+      }
+    }
+  }, [displayedText, isTyping, currentCapabilityIndex]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -89,9 +136,16 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, disabled }
         {/* Greeting */}
         <div className="flex flex-col gap-1 justify-center items-center mb-8">
           <div className="flex flex-row justify-center gap-3 w-fit px-5">
-            <div className="text-[40px] font-semibold line-clamp-1">
-              <span>Hi, </span>
-              <span className="text-gradient">Ken Kai</span>
+            <div className="text-[40px] font-semibold line-clamp-1 text-gradient">
+              Hi, Ken Kai. I'm Agent girl
+            </div>
+          </div>
+
+          {/* Typewriter capabilities */}
+          <div className="flex justify-center items-center mt-2 h-8">
+            <div className="text-lg text-gray-600 dark:text-gray-400 font-medium flex items-center">
+              <span>{displayedText}</span>
+              <span className="inline-block w-[3px] h-[18px] bg-gray-600 dark:bg-gray-400 ml-0.5 animate-blink"></span>
             </div>
           </div>
         </div>
@@ -192,16 +246,27 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, disabled }
                   </div>
                 </div>
 
-                {/* Send Button */}
+                {/* Send/Stop Button */}
                 <div className="flex self-end space-x-1 shrink-0">
-                  <button
-                    type="submit"
-                    disabled={disabled || !inputValue.trim()}
-                    className="text-white bg-gray-200 dark:text-white/40 dark:bg-gray-500 disabled:opacity-50 transition rounded-lg p-2 self-center hover:bg-gray-300 dark:hover:bg-gray-600 disabled:cursor-not-allowed"
-                    aria-label="Send Message"
-                  >
-                    <Send className="size-4" />
-                  </button>
+                  {isGenerating ? (
+                    <button
+                      type="button"
+                      onClick={onStop}
+                      className="text-white bg-gray-200 dark:text-white/40 dark:bg-gray-500 transition rounded-lg p-2 self-center hover:bg-gray-300 dark:hover:bg-gray-600"
+                      aria-label="Stop Generating"
+                    >
+                      <Square className="size-4" fill="currentColor" />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={disabled || !inputValue.trim()}
+                      className="text-white bg-gray-200 dark:text-white/40 dark:bg-gray-500 disabled:opacity-50 transition rounded-lg p-2 self-center hover:bg-gray-300 dark:hover:bg-gray-600 disabled:cursor-not-allowed"
+                      aria-label="Send Message"
+                    >
+                      <Send className="size-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

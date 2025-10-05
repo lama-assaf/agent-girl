@@ -1,9 +1,10 @@
 import { watch } from "fs";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { sessionDb } from "./database";
-import { SYSTEM_PROMPT } from "./systemPrompt";
+import { getSystemPrompt } from "./systemPrompt";
 import { AVAILABLE_MODELS } from "../client/config/models";
 import { configureProvider, PROVIDERS, getMaskedApiKey } from "./providers";
+import { getMcpServers, getAllowedMcpTools } from "./mcpServers";
 import type { ServerWebSocket } from "bun";
 
 // Load environment variables
@@ -95,6 +96,10 @@ const server = Bun.serve({
           // Get provider config for logging
           const providerConfig = PROVIDERS[providerType];
 
+          // Get MCP servers for this provider
+          const mcpServers = getMcpServers(providerType);
+          const allowedMcpTools = getAllowedMcpTools(providerType);
+
           // Comprehensive diagnostic logging
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
           console.log('📨 Incoming Request');
@@ -105,20 +110,31 @@ const server = Bun.serve({
           console.log(`🔹 API Endpoint: ${providerConfig.baseUrl || 'https://api.anthropic.com (default)'}`);
           console.log(`🔹 API Key: ${getMaskedApiKey(providerConfig.apiKey)}`);
           console.log(`🔹 Available models: ${Object.keys(MODEL_MAP).join(', ')}`);
+          console.log(`🔹 MCP Servers: ${Object.keys(mcpServers).length > 0 ? Object.keys(mcpServers).join(', ') : 'None'}`);
+          console.log(`🔹 Allowed MCP Tools: ${allowedMcpTools.length > 0 ? allowedMcpTools.join(', ') : 'None'}`);
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
           let assistantResponse = '';
 
           try {
+            // Build query options with provider-specific system prompt
+            const queryOptions: any = {
+              model: apiModelId,
+              systemPrompt: getSystemPrompt(providerType),
+              permissionMode: 'bypassPermissions', // Enable all tools without restrictions
+              includePartialMessages: true,
+            };
+
+            // Add MCP servers and allowed tools if provider has them
+            if (Object.keys(mcpServers).length > 0) {
+              queryOptions.mcpServers = mcpServers;
+              queryOptions.allowedTools = allowedMcpTools;
+            }
+
             // Query using the SDK (env vars already configured)
             const result = query({
               prompt,
-              options: {
-                model: apiModelId,
-                systemPrompt: SYSTEM_PROMPT,
-                permissionMode: 'bypassPermissions', // Enable all tools without restrictions
-                includePartialMessages: true,
-              }
+              options: queryOptions
             });
 
             console.log(`✅ Query initialized successfully`);

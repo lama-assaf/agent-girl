@@ -113,6 +113,15 @@ export function useWebSocket({
     setIsConnected(false);
   }, []);
 
+  const stopGeneration = useCallback(() => {
+    // Close the connection temporarily to stop generation
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    // Will auto-reconnect via onclose handler
+  }, []);
+
   // Initialize connection
   useEffect(() => {
     connect();
@@ -127,5 +136,6 @@ export function useWebSocket({
     sendMessage,
     disconnect,
     reconnect: connect,
+    stopGeneration,
   };
 }

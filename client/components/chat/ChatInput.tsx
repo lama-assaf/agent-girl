@@ -1,16 +1,18 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, Plus, X } from 'lucide-react';
+import { Send, Plus, X, Square } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (files?: FileAttachment[]) => void;
+  onStop?: () => void;
   disabled?: boolean;
+  isGenerating?: boolean;
   placeholder?: string;
 }
 
-export function ChatInput({ value, onChange, onSubmit, disabled, placeholder }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
@@ -189,17 +191,28 @@ export function ChatInput({ value, onChange, onSubmit, disabled, placeholder }: 
               </div>
             </div>
 
-            {/* Right side - Send button */}
+            {/* Right side - Send/Stop button */}
             <div className="input-controls-right">
-              <button
-                onClick={handleSubmit}
-                disabled={disabled || !value.trim()}
-                className="send-button"
-                title="Send message"
-                type="submit"
-              >
-                <Send size={17} />
-              </button>
+              {isGenerating ? (
+                <button
+                  onClick={onStop}
+                  className="send-button"
+                  title="Stop generating"
+                  type="button"
+                >
+                  <Square size={17} fill="currentColor" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  disabled={disabled || !value.trim()}
+                  className="send-button"
+                  title="Send message"
+                  type="submit"
+                >
+                  <Send size={17} />
+                </button>
+              )}
             </div>
           </div>
         </div>

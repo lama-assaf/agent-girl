@@ -17,6 +17,26 @@ function formatTimestamp(timestamp: string): string {
 // Tool icon component based on tool type
 function ToolIcon({ toolName }: { toolName: string }) {
   const getIcon = () => {
+    // MCP tools (e.g., mcp__web-search-prime__search)
+    if (toolName.startsWith('mcp__')) {
+      const server = toolName.split('__')[1] || '';
+      // Use globe icon for web-search, generic MCP icon for others
+      if (server === 'web-search-prime') {
+        return (
+          <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        );
+      }
+      return (
+        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v2.25A2.25 2.25 0 0 0 6 10.5Zm0 9.75h2.25A2.25 2.25 0 0 0 10.5 18v-2.25a2.25 2.25 0 0 0-2.25-2.25H6a2.25 2.25 0 0 0-2.25 2.25V18A2.25 2.25 0 0 0 6 20.25Zm9.75-9.75H18a2.25 2.25 0 0 0 2.25-2.25V6A2.25 2.25 0 0 0 18 3.75h-2.25A2.25 2.25 0 0 0 13.5 6v2.25a2.25 2.25 0 0 0 2.25 2.25Z" />
+        </svg>
+      );
+    }
+
     switch (toolName) {
       case 'TodoWrite':
         return (
@@ -78,55 +98,56 @@ function BashToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
   return (
     <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
-      <div className="w-full text-sm transition-colors duration-200 bg-white/60 dark:bg-black">
-        {/* Header */}
-        <div className="flex gap-2 justify-between items-center px-4 py-2 w-full bg-white/60 dark:bg-[#0C0E10] shrink-1 border-b border-black/10 dark:border-white/10">
-          <div className="flex overflow-hidden flex-1 gap-2 items-center w-full shrink-1">
-            <div className="flex gap-2 items-center">
-              {/* Terminal icon */}
-              <svg className="size-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" strokeWidth="2">
-                <path d="M282.88 788.48l-35.84-35.84L486.4 512c-42.24-38.4-142.08-130.56-225.28-215.04L243.2 279.04l35.84-35.84 17.92 17.92c107.52 107.52 241.92 230.4 243.2 231.68 5.12 5.12 7.68 11.52 8.96 17.92 0 6.4-2.56 14.08-7.68 19.2L282.88 788.48zM503.04 733.44h281.6v51.2h-281.6v-51.2z" fill="currentColor" />
-              </svg>
-              <span className="text-sm font-medium leading-6 text-black whitespace-nowrap dark:text-white">Shell</span>
-            </div>
-          </div>
+      {/* Header */}
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+        <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+          {/* Terminal icon */}
+          <svg className="size-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" strokeWidth="2">
+            <path d="M282.88 788.48l-35.84-35.84L486.4 512c-42.24-38.4-142.08-130.56-225.28-215.04L243.2 279.04l35.84-35.84 17.92 17.92c107.52 107.52 241.92 230.4 243.2 231.68 5.12 5.12 7.68 11.52 8.96 17.92 0 6.4-2.56 14.08-7.68 19.2L282.88 788.48zM503.04 733.44h281.6v51.2h-281.6v-51.2z" fill="currentColor" />
+          </svg>
+          <span className="text-sm font-medium leading-6">Shell</span>
+          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+            {input.command as string}
+          </span>
+        </div>
+        <div className="flex gap-1 items-center whitespace-nowrap">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex p-1.5 rounded transition-colors hover:bg-gray-200 dark:hover:bg-gray-700 duration-150 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 shrink-0"
-            title={isExpanded ? "Collapse" : "Expand"}
+            data-collapsed={!isExpanded}
+            className="p-1.5 rounded-lg transition-all data-[collapsed=true]:-rotate-180"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="3.5"
-              stroke="currentColor"
-              className={`size-3 transition-all ${isExpanded ? 'rotate-180' : ''}`}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3.5" stroke="currentColor" className="size-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
             </svg>
           </button>
         </div>
+      </div>
 
-        {/* Content */}
-        <div
-          data-expanded={isExpanded}
-          className="font-mono p-4 flex flex-col gap-2 w-full bg-white/60 dark:bg-black/30 text-green-400 dark:text-green-300 data-[expanded=false]:max-h-[128px] data-[expanded=false]:overflow-y-auto"
-        >
-          {/* Command line */}
+      {/* Content */}
+      {isExpanded && (
+        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
           <div>
-            <span className="text-[#2ddc44]">$</span>{' '}
-            <span className="text-black dark:text-white">{input.command}</span>
+            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Command:</span>
+            <div className="font-mono text-sm mt-1 bg-black/5 dark:bg-black/20 px-2 py-1 rounded">
+              <span className="text-[#2ddc44]">$</span>{' '}
+              <span className="text-black dark:text-white">{input.command}</span>
+            </div>
           </div>
-
-          {/* Output placeholder - will be populated with tool results */}
           {input.description && (
-            <div className="text-black/60 dark:text-white/60 text-xs">
-              {input.description}
+            <div>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Description:</span>
+              <div className="text-sm mt-1">{input.description as string}</div>
+            </div>
+          )}
+          {input.timeout && (
+            <div>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Timeout:</span>
+              <div className="text-sm mt-1">{input.timeout as number}ms</div>
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -448,6 +469,100 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   );
 }
 
+// MCP tool component (for tools like mcp__web-search-prime__search)
+function McpToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const input = toolUse.input;
+
+  // Parse MCP tool name: mcp__server-name__tool-name -> { server: "server-name", tool: "tool-name" }
+  const parseMcpName = (name: string) => {
+    const parts = name.split('__');
+    if (parts.length >= 3 && parts[0] === 'mcp') {
+      return {
+        server: parts[1],
+        tool: parts.slice(2).join('__'),
+      };
+    }
+    return { server: 'unknown', tool: name };
+  };
+
+  const { server, tool } = parseMcpName(toolUse.name);
+
+  // Get display name for tool
+  const getDisplayName = () => {
+    if (server === 'web-search-prime') return 'Web Search';
+    return tool.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  // Get main parameter to display
+  const getMainParam = () => {
+    if (input.query) return input.query as string;
+    if (input.url) return input.url as string;
+    if (input.search_query) return input.search_query as string;
+    return JSON.stringify(input);
+  };
+
+  return (
+    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+      {/* Header */}
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+        <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+          {/* Globe icon for web search, default icon for others */}
+          {server === 'web-search-prime' ? (
+            <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v2.25A2.25 2.25 0 0 0 6 10.5Zm0 9.75h2.25A2.25 2.25 0 0 0 10.5 18v-2.25a2.25 2.25 0 0 0-2.25-2.25H6a2.25 2.25 0 0 0-2.25 2.25V18A2.25 2.25 0 0 0 6 20.25Zm9.75-9.75H18a2.25 2.25 0 0 0 2.25-2.25V6A2.25 2.25 0 0 0 18 3.75h-2.25A2.25 2.25 0 0 0 13.5 6v2.25a2.25 2.25 0 0 0 2.25 2.25Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+          <span className="text-sm font-medium leading-6">{getDisplayName()}</span>
+          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+            {getMainParam()}
+          </span>
+        </div>
+        <div className="flex gap-1 items-center whitespace-nowrap">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-collapsed={!isExpanded}
+            className="p-1.5 rounded-lg transition-all data-[collapsed=true]:-rotate-180"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3.5" stroke="currentColor" className="size-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {isExpanded && (
+        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+          <div>
+            <span className="text-xs font-semibold text-black/60 dark:text-white/60">MCP Server:</span>
+            <div className="text-sm mt-1">{server}</div>
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Tool:</span>
+            <div className="text-sm mt-1">{tool}</div>
+          </div>
+          {Object.entries(input).map(([key, value]) => (
+            <div key={key}>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">{key}:</span>
+              <div className="text-sm mt-1 break-all">
+                {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Edit/Write tool component matching edit-write-update.md design
 function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -619,6 +734,11 @@ function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 }
 
 function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  // Use McpToolComponent for MCP tools (e.g., mcp__web-search-prime__search)
+  if (toolUse.name.startsWith('mcp__')) {
+    return <McpToolComponent toolUse={toolUse} />;
+  }
+
   // Use BashToolComponent for Bash tools
   if (toolUse.name === 'Bash') {
     return <BashToolComponent toolUse={toolUse} />;
@@ -848,6 +968,27 @@ function TextComponent({ text }: { text: TextBlock }) {
 
 export function AssistantMessage({ message }: AssistantMessageProps) {
   const [showMetadata, setShowMetadata] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Extract text content from message for copying
+  const getTextContent = () => {
+    return message.content
+      .filter(block => block.type === 'text')
+      .map(block => (block as TextBlock).text)
+      .join('\n');
+  };
+
+  // Handle copy to clipboard
+  const handleCopy = async () => {
+    const text = getTextContent();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   return (
     <div className="message-container group">
@@ -858,11 +999,11 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
             <img
               src="/client/agent-boy.svg"
               className="message-assistant-avatar"
-              alt="Agent Boy"
+              alt="Agent Girl"
             />
             <div className="message-assistant-name-container">
               <span className="message-assistant-name">
-                {message.metadata?.model || 'Agent Boy'}
+                {message.metadata?.model || 'Agent Girl'}
               </span>
               <span className="message-assistant-timestamp invisible group-hover:visible">
                 {formatTimestamp(message.timestamp)}
@@ -888,23 +1029,21 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
             {/* Action buttons */}
             <div className="message-assistant-actions">
               <button
+                onClick={handleCopy}
                 className="message-action-btn"
-                aria-label="Copy"
-                title="Copy response"
+                aria-label={copied ? "Copied!" : "Copy"}
+                title={copied ? "Copied!" : "Copy response"}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18" strokeWidth="1.5" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.875 4.66161V2.92944C4.875 2.34696 5.3472 1.87476 5.92969 1.87476H15.0703C15.6528 1.87476 16.125 2.34696 16.125 2.92944V12.0701C16.125 12.6526 15.6528 13.1248 15.0703 13.1248H13.3186" />
-                  <path strokeLinejoin="round" d="M12.0703 4.87476H2.92969C2.3472 4.87476 1.875 5.34696 1.875 5.92944V15.0701C1.875 15.6526 2.3472 16.1248 2.92969 16.1248H12.0703C12.6528 16.1248 13.125 15.6526 13.125 15.0701V5.92944C13.125 5.34696 12.6528 4.87476 12.0703 4.87476Z" />
-                </svg>
-              </button>
-              <button
-                className="message-action-btn"
-                aria-label="Regenerate"
-                title="Regenerate response"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
+                {copied ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.875 4.66161V2.92944C4.875 2.34696 5.3472 1.87476 5.92969 1.87476H15.0703C15.6528 1.87476 16.125 2.34696 16.125 2.92944V12.0701C16.125 12.6526 15.6528 13.1248 15.0703 13.1248H13.3186" />
+                    <path strokeLinejoin="round" d="M12.0703 4.87476H2.92969C2.3472 4.87476 1.875 5.34696 1.875 5.92944V15.0701C1.875 15.6526 2.3472 16.1248 2.92969 16.1248H12.0703C12.6528 16.1248 13.125 15.6526 13.125 15.0701V5.92944C13.125 5.34696 12.6528 4.87476 12.0703 4.87476Z" />
+                  </svg>
+                )}
               </button>
               {message.metadata && (
                 <button
