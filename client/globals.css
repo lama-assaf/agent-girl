@@ -547,8 +547,9 @@
 /* Loading animation */
 .loading-dots {
   display: flex;
-  gap: 0.25rem;
-  padding: 1rem 0;
+  gap: 0.375rem;
+  padding: 0.5rem 0;
+  align-items: center;
 }
 
 .loading-dot {
@@ -556,25 +557,29 @@
   height: 0.5rem;
   border-radius: 50%;
   background-color: rgb(var(--text-secondary));
-  animation: pulse 1.4s infinite ease-in-out;
+  animation: dotShimmer 1.4s infinite ease-in-out;
 }
 
 .loading-dot:nth-child(1) {
-  animation-delay: -0.32s;
+  animation-delay: 0s;
 }
 
 .loading-dot:nth-child(2) {
-  animation-delay: -0.16s;
+  animation-delay: 0.15s;
 }
 
-@keyframes pulse {
-  0%, 80%, 100% {
-    opacity: 0.4;
+.loading-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dotShimmer {
+  0%, 100% {
+    opacity: 0.3;
     transform: scale(1);
   }
-  40% {
+  50% {
     opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1.2);
   }
 }
 
