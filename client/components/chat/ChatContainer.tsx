@@ -161,21 +161,25 @@ export function ChatContainer() {
           if (lastMessage && lastMessage.type === 'assistant') {
             const content = Array.isArray(lastMessage.content) ? lastMessage.content : [];
 
-            // Find the last Task tool in content
-            let lastTaskIndex = -1;
+            // Find all active Task tools (Tasks without a text block after them)
+            const activeTaskIndices: number[] = [];
+            let foundTextBlockAfterLastTask = false;
+
             for (let i = content.length - 1; i >= 0; i--) {
-              if (content[i].type === 'tool_use' && content[i].name === 'Task') {
-                lastTaskIndex = i;
-                break;
-              }
-              // Stop looking if we hit a text block (new context)
               if (content[i].type === 'text') {
-                break;
+                foundTextBlockAfterLastTask = true;
+              }
+              if (content[i].type === 'tool_use' && content[i].name === 'Task') {
+                if (!foundTextBlockAfterLastTask) {
+                  activeTaskIndices.unshift(i); // Add to beginning to maintain order
+                } else {
+                  break; // Stop looking once we hit a text block context boundary
+                }
               }
             }
 
-            // If this is a Task tool OR we found no Task to nest under, add normally
-            if (message.toolName === 'Task' || lastTaskIndex === -1) {
+            // If this is a Task tool OR we found no active Tasks to nest under, add normally
+            if (message.toolName === 'Task' || activeTaskIndices.length === 0) {
               const updatedMessage = {
                 ...lastMessage,
                 content: [...content, toolUseBlock]
@@ -183,9 +187,18 @@ export function ChatContainer() {
               return [...prev.slice(0, -1), updatedMessage];
             }
 
-            // Otherwise, nest this tool under the last Task
+            // Distribute tools across active Tasks using round-robin
+            // Use total nested tool count as a counter for distribution
+            const totalNestedTools = activeTaskIndices.reduce((sum, idx) => {
+              const block = content[idx];
+              return sum + (block.type === 'tool_use' ? (block.nestedTools?.length || 0) : 0);
+            }, 0);
+
+            const targetTaskIndex = activeTaskIndices[totalNestedTools % activeTaskIndices.length];
+
+            // Nest this tool under the selected Task
             const updatedContent = content.map((block, index) => {
-              if (index === lastTaskIndex && block.type === 'tool_use') {
+              if (index === targetTaskIndex && block.type === 'tool_use') {
                 return {
                   ...block,
                   nestedTools: [...(block.nestedTools || []), toolUseBlock]

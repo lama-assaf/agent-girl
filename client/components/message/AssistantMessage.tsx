@@ -419,11 +419,11 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const input = toolUse.input;
   const nestedToolsCount = toolUse.nestedTools?.length || 0;
 
-  // Hash agent name to deterministically pick a gradient (1-10)
-  const getAgentGradientClass = (agentName: string): string => {
+  // Hash tool ID to randomly pick a gradient (1-10) - each spawn gets unique color
+  const getAgentGradientClass = (toolId: string): string => {
     let hash = 0;
-    for (let i = 0; i < agentName.length; i++) {
-      hash = ((hash << 5) - hash) + agentName.charCodeAt(i);
+    for (let i = 0; i < toolId.length; i++) {
+      hash = ((hash << 5) - hash) + toolId.charCodeAt(i);
       hash = hash & hash; // Convert to 32bit integer
     }
     const gradientNum = (Math.abs(hash) % 10) + 1;
@@ -431,7 +431,7 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   };
 
   const agentName = input.subagent_type as string || 'Unknown Agent';
-  const gradientClass = getAgentGradientClass(agentName);
+  const gradientClass = getAgentGradientClass(toolUse.id);
 
   return (
     <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
