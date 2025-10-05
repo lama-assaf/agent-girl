@@ -5,11 +5,14 @@
  * Add new models here to make them available in the UI.
  */
 
+export type ProviderType = 'anthropic' | 'z-ai';
+
 export interface ModelConfig {
   id: string;
   name: string;
   description: string;
-  apiModelId?: string;
+  apiModelId: string;
+  provider: ProviderType;
 }
 
 /**
@@ -21,8 +24,16 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
   {
     id: 'sonnet',
     name: 'Claude Sonnet 4.5',
-    description: 'Anthropic\'s most intelligent model for complex agents and coding (September 29, 2025)',
+    description: 'Anthropic\'s most intelligent model for complex agents and coding',
     apiModelId: 'claude-sonnet-4-5-20250929',
+    provider: 'anthropic',
+  },
+  {
+    id: 'glm-4.6',
+    name: 'GLM 4.6',
+    description: 'Z.AI\'s flagship model for powerful reasoning and coding',
+    apiModelId: 'glm-4.6',
+    provider: 'z-ai',
   },
 ];
 

@@ -2,6 +2,8 @@ import { watch } from "fs";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { sessionDb } from "./database";
 import { SYSTEM_PROMPT } from "./systemPrompt";
+import { AVAILABLE_MODELS } from "../client/config/models";
+import { configureProvider, PROVIDERS, getMaskedApiKey } from "./providers";
 import type { ServerWebSocket } from "bun";
 
 // Load environment variables
@@ -34,10 +36,14 @@ watch('./client', { recursive: true }, (_eventType, filename) => {
   }
 });
 
-// Model mapping
-const MODEL_MAP: Record<string, string> = {
-  'sonnet': 'claude-sonnet-4-5-20250929',
-};
+// Build model mapping from configuration
+const MODEL_MAP: Record<string, { apiModelId: string; provider: string }> = {};
+AVAILABLE_MODELS.forEach(model => {
+  MODEL_MAP[model.id] = {
+    apiModelId: model.apiModelId,
+    provider: model.provider,
+  };
+});
 
 const server = Bun.serve({
   port: 3001,
@@ -78,32 +84,44 @@ const server = Bun.serve({
 
           const prompt = conversationHistory;
 
-          // Use Claude Agent SDK
-          const modelId = MODEL_MAP[model] || MODEL_MAP['sonnet'];
+          // Get model configuration
+          const modelConfig = MODEL_MAP[model] || MODEL_MAP['sonnet'];
+          const { apiModelId, provider } = modelConfig;
 
-          // Diagnostic logging
+          // Configure provider (sets ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars)
+          const providerType = provider as 'anthropic' | 'z-ai';
+          configureProvider(providerType);
+
+          // Get provider config for logging
+          const providerConfig = PROVIDERS[providerType];
+
+          // Comprehensive diagnostic logging
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          console.log('📨 Incoming request:');
-          console.log(`   - Model from client: "${model}"`);
-          console.log(`   - Mapped to API model: "${modelId}"`);
-          console.log(`   - Available models: ${Object.keys(MODEL_MAP).join(', ')}`);
+          console.log('📨 Incoming Request');
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log(`🔹 Model from client: "${model}"`);
+          console.log(`🔹 API Model ID: "${apiModelId}"`);
+          console.log(`🔹 Provider: ${providerConfig.name} (${provider})`);
+          console.log(`🔹 API Endpoint: ${providerConfig.baseUrl || 'https://api.anthropic.com (default)'}`);
+          console.log(`🔹 API Key: ${getMaskedApiKey(providerConfig.apiKey)}`);
+          console.log(`🔹 Available models: ${Object.keys(MODEL_MAP).join(', ')}`);
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
           let assistantResponse = '';
 
           try {
-            // Query Claude using the SDK
+            // Query using the SDK (env vars already configured)
             const result = query({
               prompt,
               options: {
-                model: modelId,
+                model: apiModelId,
                 systemPrompt: SYSTEM_PROMPT,
                 permissionMode: 'bypassPermissions', // Enable all tools without restrictions
                 includePartialMessages: true,
               }
             });
 
-            console.log(`✅ Query initialized with model: ${modelId}`);
+            console.log(`✅ Query initialized successfully`);
 
             // Stream the response - query() is an AsyncGenerator
             for await (const message of result) {
