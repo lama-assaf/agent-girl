@@ -140,6 +140,19 @@ class SessionDatabase {
       [id, sessionId, type, content, timestamp]
     );
 
+    // Auto-generate title from first user message
+    if (type === 'user') {
+      const session = this.getSession(sessionId);
+      if (session && session.title === 'New Chat') {
+        // Generate title from first user message (max 60 chars)
+        let title = content.trim().substring(0, 60);
+        if (content.length > 60) {
+          title += '...';
+        }
+        this.renameSession(sessionId, title);
+      }
+    }
+
     // Update session's updated_at
     this.db.run("UPDATE sessions SET updated_at = ? WHERE id = ?", [
       timestamp,
