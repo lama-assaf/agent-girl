@@ -90,8 +90,8 @@ const server = Bun.serve({
               prompt,
               options: {
                 model: modelId,
-                systemPrompt: 'You are a helpful AI assistant. Provide clear, accurate, and helpful responses.',
-                permissionMode: 'default',
+                systemPrompt: 'You are a helpful AI assistant with access to various tools. You can search the web, read/write files, run bash commands, and more. Use these tools to provide comprehensive, accurate responses.',
+                permissionMode: 'bypassPermissions', // Enable all tools without restrictions
                 includePartialMessages: true,
               }
             });
