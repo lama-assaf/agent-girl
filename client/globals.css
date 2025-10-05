@@ -243,6 +243,46 @@
   height: 1.0625rem;
 }
 
+/* Send button active state with shimmer */
+.send-button-active {
+  background: linear-gradient(
+    90deg,
+    #A8C7FA 0%,
+    #DAEEFF 25%,
+    #ffffff 50%,
+    #DAEEFF 75%,
+    #A8C7FA 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+  color: #000000;
+  opacity: 1;
+}
+
+.send-button-active:hover {
+  opacity: 0.9;
+}
+
+/* Stop button active state with red shimmer */
+.stop-button-active {
+  background: linear-gradient(
+    90deg,
+    #FF3333 0%,
+    #FF6666 25%,
+    #FF9999 50%,
+    #FF6666 75%,
+    #FF3333 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+  color: #ffffff;
+  opacity: 1;
+}
+
+.stop-button-active:hover {
+  opacity: 0.9;
+}
+
 /* Header */
 .header {
   position: sticky;

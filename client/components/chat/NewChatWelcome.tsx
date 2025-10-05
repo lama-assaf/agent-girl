@@ -252,7 +252,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                     <button
                       type="button"
                       onClick={onStop}
-                      className="text-white bg-gray-200 dark:text-white/40 dark:bg-gray-500 transition rounded-lg p-2 self-center hover:bg-gray-300 dark:hover:bg-gray-600"
+                      className="stop-button-active transition rounded-lg p-2 self-center"
                       aria-label="Stop Generating"
                     >
                       <Square className="size-4" fill="currentColor" />
@@ -261,7 +261,11 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                     <button
                       type="submit"
                       disabled={disabled || !inputValue.trim()}
-                      className="text-white bg-gray-200 dark:text-white/40 dark:bg-gray-500 disabled:opacity-50 transition rounded-lg p-2 self-center hover:bg-gray-300 dark:hover:bg-gray-600 disabled:cursor-not-allowed"
+                      className={`transition rounded-lg p-2 self-center ${
+                        !disabled && inputValue.trim()
+                          ? 'send-button-active'
+                          : 'bg-gray-200 dark:bg-gray-500 text-white dark:text-white/40 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
                       aria-label="Send Message"
                     >
                       <Send className="size-4" />

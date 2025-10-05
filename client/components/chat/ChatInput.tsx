@@ -196,7 +196,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
               {isGenerating ? (
                 <button
                   onClick={onStop}
-                  className="send-button"
+                  className="send-button stop-button-active"
                   title="Stop generating"
                   type="button"
                 >
@@ -206,7 +206,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                 <button
                   onClick={handleSubmit}
                   disabled={disabled || !value.trim()}
-                  className="send-button"
+                  className={`send-button ${!disabled && value.trim() ? 'send-button-active' : ''}`}
                   title="Send message"
                   type="submit"
                 >
