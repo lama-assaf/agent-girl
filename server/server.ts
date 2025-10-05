@@ -1,6 +1,7 @@
 import { watch } from "fs";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { sessionDb } from "./database";
+import { SYSTEM_PROMPT } from "./systemPrompt";
 import type { ServerWebSocket } from "bun";
 
 // Load environment variables
@@ -96,7 +97,7 @@ const server = Bun.serve({
               prompt,
               options: {
                 model: modelId,
-                systemPrompt: 'You are a helpful AI assistant with access to various tools. You can search the web, read/write files, run bash commands, and more. Use these tools to provide comprehensive, accurate responses.',
+                systemPrompt: SYSTEM_PROMPT,
                 permissionMode: 'bypassPermissions', // Enable all tools without restrictions
                 includePartialMessages: true,
               }
@@ -209,7 +210,7 @@ const server = Bun.serve({
     }
 
     if (url.pathname === '/api/sessions' && req.method === 'POST') {
-      const body = await req.json();
+      const body = await req.json() as { title?: string };
       const session = sessionDb.createSession(body.title || 'New Chat');
       return new Response(JSON.stringify(session), {
         headers: { 'Content-Type': 'application/json' },
@@ -243,7 +244,7 @@ const server = Bun.serve({
 
     if (url.pathname.match(/^\/api\/sessions\/[^/]+$/) && req.method === 'PATCH') {
       const sessionId = url.pathname.split('/').pop()!;
-      const body = await req.json();
+      const body = await req.json() as { title: string };
       const success = sessionDb.renameSession(sessionId, body.title);
 
       return new Response(JSON.stringify({ success }), {
