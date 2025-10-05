@@ -153,16 +153,50 @@ export function ChatContainer() {
             id: message.toolId,
             name: message.toolName,
             input: message.toolInput,
+            // Initialize nestedTools array for Task tools
+            ...(message.toolName === 'Task' ? { nestedTools: [] } : {}),
           };
 
-          // If last message is assistant, append tool to it
+          // If last message is assistant, check for Task tool nesting
           if (lastMessage && lastMessage.type === 'assistant') {
+            const content = Array.isArray(lastMessage.content) ? lastMessage.content : [];
+
+            // Find the last Task tool in content
+            let lastTaskIndex = -1;
+            for (let i = content.length - 1; i >= 0; i--) {
+              if (content[i].type === 'tool_use' && content[i].name === 'Task') {
+                lastTaskIndex = i;
+                break;
+              }
+              // Stop looking if we hit a text block (new context)
+              if (content[i].type === 'text') {
+                break;
+              }
+            }
+
+            // If this is a Task tool OR we found no Task to nest under, add normally
+            if (message.toolName === 'Task' || lastTaskIndex === -1) {
+              const updatedMessage = {
+                ...lastMessage,
+                content: [...content, toolUseBlock]
+              };
+              return [...prev.slice(0, -1), updatedMessage];
+            }
+
+            // Otherwise, nest this tool under the last Task
+            const updatedContent = content.map((block, index) => {
+              if (index === lastTaskIndex && block.type === 'tool_use') {
+                return {
+                  ...block,
+                  nestedTools: [...(block.nestedTools || []), toolUseBlock]
+                };
+              }
+              return block;
+            });
+
             const updatedMessage = {
               ...lastMessage,
-              content: [
-                ...(Array.isArray(lastMessage.content) ? lastMessage.content : []),
-                toolUseBlock
-              ]
+              content: updatedContent
             };
             return [...prev.slice(0, -1), updatedMessage];
           }

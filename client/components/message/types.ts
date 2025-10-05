@@ -66,6 +66,8 @@ export interface ToolUseBlock {
     edit_mode?: string;
     plan?: string;
   };
+  // For Task tools: nested tool calls from spawned agents
+  nestedTools?: ToolUseBlock[];
 }
 
 export interface TextBlock {

@@ -649,6 +649,107 @@
   animation: blink 1s step-end infinite;
 }
 
+/* Agent Name Gradients - 10 vibrant colors for dark backgrounds */
+.agent-gradient-1 {
+  background: linear-gradient(90deg, #00D4FF 0%, #0099FF 25%, #00D4FF 50%, #0099FF 75%, #00D4FF 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.agent-gradient-2 {
+  background: linear-gradient(90deg, #FF0099 0%, #CC00FF 25%, #FF0099 50%, #CC00FF 75%, #FF0099 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.agent-gradient-3 {
+  background: linear-gradient(90deg, #CCFF00 0%, #99FF00 25%, #CCFF00 50%, #99FF00 75%, #CCFF00 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.agent-gradient-4 {
+  background: linear-gradient(90deg, #FF9900 0%, #FF3300 25%, #FF9900 50%, #FF3300 75%, #FF9900 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.agent-gradient-5 {
+  background: linear-gradient(90deg, #9933FF 0%, #FF33CC 25%, #9933FF 50%, #FF33CC 75%, #9933FF 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.agent-gradient-6 {
+  background: linear-gradient(90deg, #00FFCC 0%, #0066FF 25%, #00FFCC 50%, #0066FF 75%, #00FFCC 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.agent-gradient-7 {
+  background: linear-gradient(90deg, #FFFF00 0%, #FFAA00 25%, #FFFF00 50%, #FFAA00 75%, #FFFF00 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.agent-gradient-8 {
+  background: linear-gradient(90deg, #00FF66 0%, #00FFCC 25%, #00FF66 50%, #00FFCC 75%, #00FF66 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.agent-gradient-9 {
+  background: linear-gradient(90deg, #FF66CC 0%, #FF9933 25%, #FF66CC 50%, #FF9933 75%, #FF66CC 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.agent-gradient-10 {
+  background: linear-gradient(90deg, #6699FF 0%, #9966FF 25%, #6699FF 50%, #9966FF 75%, #6699FF 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
 /* Thinking Block */
 .thinking-block {
   display: flex;

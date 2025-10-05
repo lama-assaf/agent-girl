@@ -417,20 +417,37 @@ function GlobToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const input = toolUse.input;
+  const nestedToolsCount = toolUse.nestedTools?.length || 0;
+
+  // Hash agent name to deterministically pick a gradient (1-10)
+  const getAgentGradientClass = (agentName: string): string => {
+    let hash = 0;
+    for (let i = 0; i < agentName.length; i++) {
+      hash = ((hash << 5) - hash) + agentName.charCodeAt(i);
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    const gradientNum = (Math.abs(hash) % 10) + 1;
+    return `agent-gradient-${gradientNum}`;
+  };
+
+  const agentName = input.subagent_type as string || 'Unknown Agent';
+  const gradientClass = getAgentGradientClass(agentName);
 
   return (
     <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
       <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
-          {/* Sparkle/Agent icon */}
+          {/* Robot icon */}
           <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 9.75A.75.75 0 1 1 9 8.25.75.75 0 0 1 9 9.75zM15 9.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5z" fill="currentColor"/>
+            <path d="M12 2.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75zM7.5 6h9A2.25 2.25 0 0 1 18.75 8.25v7.5A2.25 2.25 0 0 1 16.5 18h-9a2.25 2.25 0 0 1-2.25-2.25v-7.5A2.25 2.25 0 0 1 7.5 6zM6 19.5h12M8.25 19.5v1.5a.75.75 0 0 0 .75.75h6a.75.75 0 0 0 .75-.75v-1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 12.75h6a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span className="text-sm font-medium leading-6">Task</span>
+          <span className={`text-sm leading-6 ${gradientClass}`}>{agentName}</span>
           <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
           <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
-            {input.subagent_type as string}
+            {nestedToolsCount > 0 ? `Used ${nestedToolsCount} tool${nestedToolsCount !== 1 ? 's' : ''}` : 'Running...'}
           </span>
         </div>
         <div className="flex gap-1 items-center whitespace-nowrap">
@@ -448,7 +465,7 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-3">
           <div>
             <span className="text-xs font-semibold text-black/60 dark:text-white/60">Agent Type:</span>
             <div className="text-sm mt-1">{input.subagent_type as string}</div>
@@ -463,10 +480,63 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
               {input.prompt as string}
             </div>
           </div>
+
+          {/* Nested tools from spawned agent */}
+          {nestedToolsCount > 0 && (
+            <div>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Tools Used by Agent:</span>
+              <div className="mt-2 space-y-2">
+                {toolUse.nestedTools?.map((nestedTool, index) => (
+                  <NestedToolDisplay key={nestedTool.id || index} toolUse={nestedTool} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+// Nested tool display (simplified version for tools within Task)
+function NestedToolDisplay({ toolUse }: { toolUse: ToolUseBlock }) {
+  return (
+    <div className="border border-black/5 dark:border-white/5 rounded-lg bg-black/5 dark:bg-white/5 p-2">
+      <div className="flex items-center gap-2">
+        <ToolIcon toolName={toolUse.name} />
+        <span className="text-xs font-medium">{toolUse.name}</span>
+        <span className="text-xs text-black/40 dark:text-white/40">
+          {getToolSummary(toolUse)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Get a one-line summary of a tool's usage
+function getToolSummary(toolUse: ToolUseBlock): string {
+  const input = toolUse.input;
+
+  switch (toolUse.name) {
+    case 'Read':
+      return input.file_path as string || '';
+    case 'Write':
+    case 'Edit':
+      return input.file_path as string || '';
+    case 'Bash':
+      return (input.command as string || '').substring(0, 50);
+    case 'Grep':
+      return `"${input.pattern}" in ${input.path || 'project'}`;
+    case 'Glob':
+      return input.pattern as string || '';
+    case 'WebSearch':
+    case 'WebFetch':
+      return input.query as string || input.url as string || '';
+    case 'Task':
+      return input.subagent_type as string || '';
+    default:
+      return Object.values(input)[0] as string || '';
+  }
 }
 
 // MCP tool component (for tools like mcp__web-search-prime__search)
