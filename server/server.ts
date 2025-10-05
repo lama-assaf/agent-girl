@@ -35,9 +35,7 @@ watch('./client', { recursive: true }, (_eventType, filename) => {
 
 // Model mapping
 const MODEL_MAP: Record<string, string> = {
-  'opus': 'claude-opus-4-20250514',
   'sonnet': 'claude-sonnet-4-5-20250929',
-  'haiku': 'claude-3-5-haiku-20241022',
 };
 
 const server = Bun.serve({
@@ -82,6 +80,14 @@ const server = Bun.serve({
           // Use Claude Agent SDK
           const modelId = MODEL_MAP[model] || MODEL_MAP['sonnet'];
 
+          // Diagnostic logging
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('📨 Incoming request:');
+          console.log(`   - Model from client: "${model}"`);
+          console.log(`   - Mapped to API model: "${modelId}"`);
+          console.log(`   - Available models: ${Object.keys(MODEL_MAP).join(', ')}`);
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
           let assistantResponse = '';
 
           try {
@@ -95,6 +101,8 @@ const server = Bun.serve({
                 includePartialMessages: true,
               }
             });
+
+            console.log(`✅ Query initialized with model: ${modelId}`);
 
             // Stream the response - query() is an AsyncGenerator
             for await (const message of result) {
@@ -111,6 +119,13 @@ const server = Bun.serve({
                   }));
                 }
               } else if (message.type === 'assistant') {
+                // Log assistant message details
+                console.log('📝 Assistant message received:', {
+                  type: message.type,
+                  model: message.message?.model || 'unknown',
+                  role: message.message?.role || 'unknown',
+                });
+
                 // Handle tool use from complete assistant message
                 const content = message.message.content;
 
@@ -133,6 +148,9 @@ const server = Bun.serve({
             if (assistantResponse) {
               sessionDb.addMessage(sessionId, 'assistant', assistantResponse);
             }
+
+            console.log(`✅ Response completed. Length: ${assistantResponse.length} chars`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
             // Send completion signal
             ws.send(JSON.stringify({ type: 'result', success: true }));

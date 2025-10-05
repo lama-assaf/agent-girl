@@ -9,7 +9,7 @@ A modern chat interface powered by the Claude Agent SDK, built with React, Bun, 
 - 🗂️ **Session Management** - Persistent chat sessions with SQLite
 - 🎨 **Modern UI** - Clean, responsive interface with Radix UI components
 - ⚡ **Hot Reload** - Instant development feedback
-- 🔧 **Multiple Models** - Support for Opus, Sonnet, and Haiku
+- 🤖 **Claude Sonnet 4.5** - Powered by Anthropic's most intelligent model
 
 ## Prerequisites
 
@@ -109,12 +109,12 @@ bun run build
 
 ## Configuration
 
-### Model Selection
+### Model
 
-The UI supports three Claude models:
-- **Opus** - `claude-opus-4-20250514` (Most capable)
-- **Sonnet** - `claude-sonnet-4-5-20250929` (Balanced)
-- **Haiku** - `claude-3-5-haiku-20241022` (Fastest)
+Uses Claude Sonnet 4.5:
+- **Model ID**: `claude-sonnet-4-5-20250929`
+- **Released**: September 29, 2025
+- **Best for**: Complex agents, coding, and intelligent reasoning
 
 ### Claude Agent SDK Options
 

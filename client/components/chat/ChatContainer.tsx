@@ -22,7 +22,7 @@ export function ChatContainer() {
 
   // Model selection
   const [selectedModel, setSelectedModel] = useState<string>(() => {
-    return localStorage.getItem('agent-boy-model') || 'opus';
+    return localStorage.getItem('agent-boy-model') || 'sonnet';
   });
 
   const sessionAPI = useSessionAPI();

@@ -19,16 +19,10 @@ export interface ModelConfig {
  */
 export const AVAILABLE_MODELS: ModelConfig[] = [
   {
-    id: 'opus',
-    name: 'Claude Opus 4.1',
-    description: 'Most advanced model, excelling in all-round tasks',
-    apiModelId: 'claude-opus-4-1',
-  },
-  {
     id: 'sonnet',
     name: 'Claude Sonnet 4.5',
-    description: 'Balanced performance for general use',
-    apiModelId: 'claude-sonnet-4-5',
+    description: 'Anthropic\'s most intelligent model for complex agents and coding (September 29, 2025)',
+    apiModelId: 'claude-sonnet-4-5-20250929',
   },
 ];
 
