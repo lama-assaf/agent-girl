@@ -421,17 +421,21 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
   // Hash tool ID to randomly pick a gradient (1-10) - each spawn gets unique color
   const getAgentGradientClass = (toolId: string): string => {
-    let hash = 0;
-    for (let i = 0; i < toolId.length; i++) {
-      hash = ((hash << 5) - hash) + toolId.charCodeAt(i);
-      hash = hash & hash; // Convert to 32bit integer
+    try {
+      let hash = 0;
+      for (let i = 0; i < toolId.length; i++) {
+        hash = ((hash << 5) - hash) + toolId.charCodeAt(i);
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      const gradientNum = (Math.abs(hash) % 10) + 1;
+      return `agent-gradient-${gradientNum}`;
+    } catch (e) {
+      return 'agent-gradient-1';
     }
-    const gradientNum = (Math.abs(hash) % 10) + 1;
-    return `agent-gradient-${gradientNum}`;
   };
 
-  const agentName = input.subagent_type as string || 'Unknown Agent';
-  const gradientClass = getAgentGradientClass(toolUse.id);
+  const agentName = String(input.subagent_type || 'Unknown Agent');
+  const gradientClass = getAgentGradientClass(toolUse.id || 'default');
 
   return (
     <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
@@ -466,25 +470,34 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
       {/* Content */}
       {isExpanded && (
         <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-3">
-          <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Agent Type:</span>
-            <div className="text-sm mt-1">{input.subagent_type as string}</div>
-          </div>
-          <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Description:</span>
-            <div className="text-sm mt-1">{input.description as string}</div>
-          </div>
-          <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Prompt:</span>
-            <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-white/60 dark:bg-black/20 p-2 rounded">
-              {input.prompt as string}
+          {input.subagent_type && (
+            <div>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Agent Type:</span>
+              <div className="text-sm mt-1">{String(input.subagent_type)}</div>
             </div>
-          </div>
+          )}
+          {input.description && (
+            <div>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Description:</span>
+              <div className="text-sm mt-1">{String(input.description)}</div>
+            </div>
+          )}
+          {input.prompt && (
+            <div>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Prompt:</span>
+              <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-white/60 dark:bg-black/20 p-2 rounded whitespace-pre-wrap break-words">
+                {String(input.prompt).substring(0, 5000)}
+                {String(input.prompt).length > 5000 && (
+                  <span className="text-xs text-black/40 dark:text-white/40"> (truncated)</span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Nested tools from spawned agent */}
           {nestedToolsCount > 0 && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Tools Used by Agent:</span>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Tools Used ({nestedToolsCount}):</span>
               <div className="mt-2 space-y-2">
                 {toolUse.nestedTools?.map((nestedTool, index) => (
                   <NestedToolDisplay key={nestedTool.id || index} toolUse={nestedTool} />
