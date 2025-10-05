@@ -119,23 +119,13 @@ const server = Bun.serve({
           let assistantResponse = '';
 
           try {
-            // Transform agent registry to SDK format
-            const sdkAgents: Record<string, any> = {};
-            for (const [key, agent] of Object.entries(AGENT_REGISTRY)) {
-              sdkAgents[key] = {
-                description: agent.description,
-                prompt: agent.systemPrompt,
-                tools: agent.allowedTools,
-              };
-            }
-
-            // Build query options with provider-specific system prompt
+            // Build query options with provider-specific system prompt (including agent list)
             const queryOptions: any = {
               model: apiModelId,
-              systemPrompt: getSystemPrompt(providerType),
+              systemPrompt: getSystemPrompt(providerType, AGENT_REGISTRY),
               permissionMode: 'bypassPermissions', // Enable all tools without restrictions
               includePartialMessages: true,
-              agents: sdkAgents, // Register custom agents with their configurations
+              agents: AGENT_REGISTRY, // Register custom agents (already in SDK format)
             };
 
             // Add MCP servers and allowed tools if provider has them

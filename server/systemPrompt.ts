@@ -1,4 +1,5 @@
 import type { ProviderType } from '../client/config/models';
+import type { AgentDefinition } from './agents';
 
 const BASE_PROMPT = `
 You are Agent Girl, an AI assistant with access to powerful tools including file operations, bash commands, and more.
@@ -21,14 +22,41 @@ Use mcp__web-search-prime__search for all web-related queries and information ga
 `.trim();
 
 /**
- * Get system prompt based on provider
+ * Build agent instructions from agent registry
+ */
+function buildAgentInstructions(agents: Record<string, AgentDefinition>): string {
+  const agentList = Object.entries(agents)
+    .map(([key, agent]) => `  - ${key}: ${agent.description}`)
+    .join('\n');
+
+  return `
+**AVAILABLE SPECIALIZED AGENTS:**
+You can spawn specialized agents using the Task tool with the following subagent types:
+
+${agentList}
+
+Use these agents when their specialization matches the task at hand.
+`.trim();
+}
+
+/**
+ * Get system prompt based on provider and available agents
  * GLM models get additional instructions about using MCP web search
  */
-export function getSystemPrompt(provider: ProviderType): string {
-  if (provider === 'z-ai') {
-    return `${BASE_PROMPT}\n\n${GLM_WEB_SEARCH_INSTRUCTIONS}`;
+export function getSystemPrompt(provider: ProviderType, agents?: Record<string, AgentDefinition>): string {
+  let prompt = BASE_PROMPT;
+
+  // Add agent instructions if agents are provided
+  if (agents && Object.keys(agents).length > 0) {
+    prompt = `${prompt}\n\n${buildAgentInstructions(agents)}`;
   }
-  return BASE_PROMPT;
+
+  // Add provider-specific instructions
+  if (provider === 'z-ai') {
+    prompt = `${prompt}\n\n${GLM_WEB_SEARCH_INSTRUCTIONS}`;
+  }
+
+  return prompt;
 }
 
 // Keep original export for backwards compatibility
