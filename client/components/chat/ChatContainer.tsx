@@ -293,6 +293,7 @@ export function ChatContainer() {
         {messages.length === 0 ? (
           // New Chat Welcome Screen
           <NewChatWelcome
+            key={currentSessionId || 'welcome'}
             inputValue={inputValue}
             onInputChange={setInputValue}
             onSubmit={handleSubmit}
@@ -306,6 +307,7 @@ export function ChatContainer() {
 
             {/* Input */}
             <ChatInput
+              key={currentSessionId || 'new-chat'}
               value={inputValue}
               onChange={setInputValue}
               onSubmit={handleSubmit}

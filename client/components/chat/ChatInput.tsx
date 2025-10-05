@@ -15,9 +15,12 @@ export function ChatInput({ value, onChange, onSubmit, disabled, placeholder }: 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
 
-  // Auto-focus on mount
+  // Auto-focus on mount with slight delay to ensure DOM is ready
   useEffect(() => {
-    textareaRef.current?.focus();
+    const timer = setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

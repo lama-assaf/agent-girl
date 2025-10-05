@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Send, Plus, X } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 
@@ -11,7 +11,16 @@ interface NewChatWelcomeProps {
 
 export function NewChatWelcome({ inputValue, onInputChange, onSubmit, disabled }: NewChatWelcomeProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
+
+  // Auto-focus on mount with slight delay to ensure DOM is ready
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -147,6 +156,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, disabled }
               {/* Textarea */}
               <div className="overflow-hidden relative px-2.5">
                 <textarea
+                  ref={textareaRef}
                   id="chat-input"
                   rows={3}
                   value={inputValue}
