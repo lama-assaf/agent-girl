@@ -416,26 +416,55 @@ function GlobToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 // Task tool component
 function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const input = toolUse.input;
-  const nestedToolsCount = toolUse.nestedTools?.length || 0;
+  const [error, setError] = useState<Error | null>(null);
 
-  // Hash tool ID to randomly pick a gradient (1-10) - each spawn gets unique color
-  const getAgentGradientClass = (toolId: string): string => {
-    try {
-      let hash = 0;
-      for (let i = 0; i < toolId.length; i++) {
-        hash = ((hash << 5) - hash) + toolId.charCodeAt(i);
-        hash = hash & hash; // Convert to 32bit integer
+  // Defensive data access with logging
+  let input, nestedToolsCount, agentName, gradientClass;
+
+  try {
+    input = toolUse.input || {};
+    nestedToolsCount = toolUse.nestedTools?.length || 0;
+
+    // Hash tool ID to randomly pick a gradient (1-10) - each spawn gets unique color
+    const getAgentGradientClass = (toolId: string): string => {
+      try {
+        let hash = 0;
+        for (let i = 0; i < toolId.length; i++) {
+          hash = ((hash << 5) - hash) + toolId.charCodeAt(i);
+          hash = hash & hash; // Convert to 32bit integer
+        }
+        const gradientNum = (Math.abs(hash) % 10) + 1;
+        return `agent-gradient-${gradientNum}`;
+      } catch (e) {
+        console.error('Error in getAgentGradientClass:', e);
+        return 'agent-gradient-1';
       }
-      const gradientNum = (Math.abs(hash) % 10) + 1;
-      return `agent-gradient-${gradientNum}`;
-    } catch (e) {
-      return 'agent-gradient-1';
-    }
-  };
+    };
 
-  const agentName = String(input.subagent_type || 'Unknown Agent');
-  const gradientClass = getAgentGradientClass(toolUse.id || 'default');
+    agentName = String(input.subagent_type || 'Unknown Agent');
+    gradientClass = getAgentGradientClass(toolUse.id || 'default');
+  } catch (e) {
+    console.error('Error initializing TaskToolComponent:', e);
+    console.error('toolUse data:', JSON.stringify(toolUse, null, 2));
+    setError(e as Error);
+  }
+
+  // Error state rendering
+  if (error) {
+    return (
+      <div className="w-full border border-red-500/30 rounded-xl my-3 p-4 bg-red-50 dark:bg-red-900/20">
+        <div className="text-sm text-red-600 dark:text-red-400">
+          <strong>Task Tool Error:</strong> {error.message}
+        </div>
+        <details className="mt-2 text-xs">
+          <summary className="cursor-pointer">View Details</summary>
+          <pre className="mt-2 p-2 bg-black/10 dark:bg-black/30 rounded overflow-auto max-h-40">
+            {error.stack}
+          </pre>
+        </details>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
@@ -456,7 +485,16 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
         </div>
         <div className="flex gap-1 items-center whitespace-nowrap">
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={() => {
+              try {
+                console.log('TaskTool expand clicked. Current state:', isExpanded);
+                console.log('Nested tools count:', nestedToolsCount);
+                setIsExpanded(!isExpanded);
+              } catch (e) {
+                console.error('Error toggling expand:', e);
+                setError(e as Error);
+              }
+            }}
             data-collapsed={!isExpanded}
             className="p-1.5 rounded-lg transition-all data-[collapsed=true]:-rotate-180"
           >
@@ -470,41 +508,66 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
       {/* Content */}
       {isExpanded && (
         <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-3">
-          {input.subagent_type && (
-            <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Agent Type:</span>
-              <div className="text-sm mt-1">{String(input.subagent_type)}</div>
-            </div>
-          )}
-          {input.description && (
-            <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Description:</span>
-              <div className="text-sm mt-1">{String(input.description)}</div>
-            </div>
-          )}
-          {input.prompt && (
-            <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Prompt:</span>
-              <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-white/60 dark:bg-black/20 p-2 rounded whitespace-pre-wrap break-words">
-                {String(input.prompt).substring(0, 5000)}
-                {String(input.prompt).length > 5000 && (
-                  <span className="text-xs text-black/40 dark:text-white/40"> (truncated)</span>
-                )}
-              </div>
-            </div>
-          )}
+          {(() => {
+            try {
+              console.log('Rendering expanded Task tool content');
+              return (
+                <>
+                  {input.subagent_type && (
+                    <div>
+                      <span className="text-xs font-semibold text-black/60 dark:text-white/60">Agent Type:</span>
+                      <div className="text-sm mt-1">{String(input.subagent_type)}</div>
+                    </div>
+                  )}
+                  {input.description && (
+                    <div>
+                      <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Description:</span>
+                      <div className="text-sm mt-1">{String(input.description)}</div>
+                    </div>
+                  )}
+                  {input.prompt && (
+                    <div>
+                      <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Prompt:</span>
+                      <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-white/60 dark:bg-black/20 p-2 rounded whitespace-pre-wrap break-words">
+                        {String(input.prompt).substring(0, 5000)}
+                        {String(input.prompt).length > 5000 && (
+                          <span className="text-xs text-black/40 dark:text-white/40"> (truncated)</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
-          {/* Nested tools from spawned agent */}
-          {nestedToolsCount > 0 && (
-            <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Tools Used ({nestedToolsCount}):</span>
-              <div className="mt-2 space-y-2">
-                {toolUse.nestedTools?.map((nestedTool, index) => (
-                  <NestedToolDisplay key={nestedTool.id || index} toolUse={nestedTool} />
-                ))}
-              </div>
-            </div>
-          )}
+                  {/* Nested tools from spawned agent */}
+                  {nestedToolsCount > 0 && (
+                    <div>
+                      <span className="text-xs font-semibold text-black/60 dark:text-white/60">Tools Used ({nestedToolsCount}):</span>
+                      <div className="mt-2 space-y-2">
+                        {toolUse.nestedTools?.map((nestedTool, index) => {
+                          try {
+                            return <NestedToolDisplay key={nestedTool.id || index} toolUse={nestedTool} />;
+                          } catch (e) {
+                            console.error('Error rendering nested tool:', e, nestedTool);
+                            return (
+                              <div key={index} className="text-xs text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                                Error rendering tool: {(e as Error).message}
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            } catch (e) {
+              console.error('Error rendering Task tool expanded content:', e);
+              return (
+                <div className="text-sm text-red-600 dark:text-red-400">
+                  Error rendering content: {(e as Error).message}
+                </div>
+              );
+            }
+          })()}
         </div>
       )}
     </div>
@@ -513,17 +576,41 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
 // Nested tool display (simplified version for tools within Task)
 function NestedToolDisplay({ toolUse }: { toolUse: ToolUseBlock }) {
-  return (
-    <div className="border border-black/5 dark:border-white/5 rounded-lg bg-black/5 dark:bg-white/5 p-2">
-      <div className="flex items-center gap-2">
-        <ToolIcon toolName={toolUse.name} />
-        <span className="text-xs font-medium">{toolUse.name}</span>
-        <span className="text-xs text-black/40 dark:text-white/40">
-          {getToolSummary(toolUse)}
-        </span>
+  try {
+    console.log('Rendering NestedToolDisplay:', toolUse.name, toolUse.id);
+
+    if (!toolUse || !toolUse.name) {
+      console.error('Invalid toolUse in NestedToolDisplay:', toolUse);
+      return (
+        <div className="border border-red-500/30 rounded-lg bg-red-50 dark:bg-red-900/20 p-2">
+          <div className="text-xs text-red-600 dark:text-red-400">
+            Invalid tool data
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="border border-black/5 dark:border-white/5 rounded-lg bg-black/5 dark:bg-white/5 p-2">
+        <div className="flex items-center gap-2">
+          <ToolIcon toolName={toolUse.name} />
+          <span className="text-xs font-medium">{toolUse.name}</span>
+          <span className="text-xs text-black/40 dark:text-white/40">
+            {getToolSummary(toolUse)}
+          </span>
+        </div>
       </div>
-    </div>
-  );
+    );
+  } catch (e) {
+    console.error('Error in NestedToolDisplay:', e, toolUse);
+    return (
+      <div className="border border-red-500/30 rounded-lg bg-red-50 dark:bg-red-900/20 p-2">
+        <div className="text-xs text-red-600 dark:text-red-400">
+          Error: {(e as Error).message}
+        </div>
+      </div>
+    );
+  }
 }
 
 // Get a one-line summary of a tool's usage
