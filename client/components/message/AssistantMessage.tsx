@@ -418,7 +418,7 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Defensive data access with logging
+  // Defensive data access
   let input, nestedToolsCount, agentName, gradientClass;
 
   try {
@@ -436,7 +436,6 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
         const gradientNum = (Math.abs(hash) % 10) + 1;
         return `agent-gradient-${gradientNum}`;
       } catch (e) {
-        console.error('Error in getAgentGradientClass:', e);
         return 'agent-gradient-1';
       }
     };
@@ -444,8 +443,6 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
     agentName = String(input.subagent_type || 'Unknown Agent');
     gradientClass = getAgentGradientClass(toolUse.id || 'default');
   } catch (e) {
-    console.error('Error initializing TaskToolComponent:', e);
-    console.error('toolUse data:', JSON.stringify(toolUse, null, 2));
     setError(e as Error);
   }
 
@@ -487,11 +484,8 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
           <button
             onClick={() => {
               try {
-                console.log('TaskTool expand clicked. Current state:', isExpanded);
-                console.log('Nested tools count:', nestedToolsCount);
                 setIsExpanded(!isExpanded);
               } catch (e) {
-                console.error('Error toggling expand:', e);
                 setError(e as Error);
               }
             }}
@@ -510,7 +504,6 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
         <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-3">
           {(() => {
             try {
-              console.log('Rendering expanded Task tool content');
               return (
                 <>
                   {input.subagent_type && (
@@ -546,7 +539,6 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                           try {
                             return <NestedToolDisplay key={nestedTool.id || index} toolUse={nestedTool} />;
                           } catch (e) {
-                            console.error('Error rendering nested tool:', e, nestedTool);
                             return (
                               <div key={index} className="text-xs text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded">
                                 Error rendering tool: {(e as Error).message}
@@ -560,7 +552,6 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                 </>
               );
             } catch (e) {
-              console.error('Error rendering Task tool expanded content:', e);
               return (
                 <div className="text-sm text-red-600 dark:text-red-400">
                   Error rendering content: {(e as Error).message}
@@ -577,10 +568,7 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 // Nested tool display (simplified version for tools within Task)
 function NestedToolDisplay({ toolUse }: { toolUse: ToolUseBlock }) {
   try {
-    console.log('Rendering NestedToolDisplay:', toolUse.name, toolUse.id);
-
     if (!toolUse || !toolUse.name) {
-      console.error('Invalid toolUse in NestedToolDisplay:', toolUse);
       return (
         <div className="border border-red-500/30 rounded-lg bg-red-50 dark:bg-red-900/20 p-2">
           <div className="text-xs text-red-600 dark:text-red-400">
@@ -602,7 +590,6 @@ function NestedToolDisplay({ toolUse }: { toolUse: ToolUseBlock }) {
       </div>
     );
   } catch (e) {
-    console.error('Error in NestedToolDisplay:', e, toolUse);
     return (
       <div className="border border-red-500/30 rounded-lg bg-red-50 dark:bg-red-900/20 p-2">
         <div className="text-xs text-red-600 dark:text-red-400">
@@ -657,7 +644,6 @@ function getToolSummary(toolUse: ToolUseBlock): string {
         return '';
     }
   } catch (e) {
-    console.error('Error in getToolSummary:', e, toolUse);
     return '';
   }
 }
