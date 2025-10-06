@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
 import path from "path";
 import fs from "fs";
-import { getDefaultWorkingDirectory, expandPath, validateDirectory } from "./directoryUtils";
+import { getDefaultWorkingDirectory, expandPath, validateDirectory, getAppDataDirectory } from "./directoryUtils";
 
 export interface Session {
   id: string;
@@ -25,7 +25,18 @@ export interface SessionMessage {
 class SessionDatabase {
   private db: Database;
 
-  constructor(dbPath: string = "./data/sessions.db") {
+  constructor(dbPath?: string) {
+    // Use app data directory if no path provided
+    if (!dbPath) {
+      const appDataDir = getAppDataDirectory();
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(appDataDir)) {
+        fs.mkdirSync(appDataDir, { recursive: true });
+        console.log('📁 Created app data directory:', appDataDir);
+      }
+      dbPath = path.join(appDataDir, 'sessions.db');
+    }
+
     this.db = new Database(dbPath, { create: true });
     this.initialize();
   }

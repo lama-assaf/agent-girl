@@ -18,6 +18,17 @@ export function getDefaultWorkingDirectory(): string {
 }
 
 /**
+ * Get the app data directory for storing database and app files
+ * Cross-platform: ~/Documents/agent-girl-app
+ */
+export function getAppDataDirectory(): string {
+  const homeDir = os.homedir();
+  const appDataDir = path.join(homeDir, 'Documents', 'agent-girl-app');
+
+  return appDataDir;
+}
+
+/**
  * Expand tilde (~) in path to actual home directory
  * Works cross-platform
  */

@@ -1,4 +1,5 @@
 import { watch } from "fs";
+import path from "path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { sessionDb } from "./database";
 import { getSystemPrompt } from "./systemPrompt";
@@ -12,6 +13,19 @@ import type { ServerWebSocket } from "bun";
 import postcss from 'postcss';
 import tailwindcss from '@tailwindcss/postcss';
 import autoprefixer from 'autoprefixer';
+
+// Determine if running in standalone mode
+const IS_STANDALONE = process.env.STANDALONE_BUILD === 'true';
+
+// Get the directory where the binary/script is located
+const getBinaryDir = () => {
+  if (IS_STANDALONE) {
+    return path.dirname(process.execPath);
+  }
+  return process.cwd();
+};
+
+const BINARY_DIR = getBinaryDir();
 
 // Load environment variables
 import "dotenv/config";
@@ -32,7 +46,7 @@ interface ChatWebSocketData {
 }
 
 // Store active queries for mid-stream control
-const activeQueries = new Map<string, unknown>();
+const activeQueries = new Map<string, any>();
 
 const hotReloadClients = new Set<HotReloadClient>();
 
@@ -181,13 +195,19 @@ const server = Bun.serve({
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             // Build query options with provider-specific system prompt (including agent list)
-            const queryOptions: unknown = {
+            const queryOptions: any = {
               model: apiModelId,
               systemPrompt: getSystemPrompt(providerType, AGENT_REGISTRY),
               permissionMode: session.permission_mode || 'bypassPermissions', // Use session's permission mode
               includePartialMessages: true,
               agents: AGENT_REGISTRY, // Register custom agents (already in SDK format)
             };
+
+            // In standalone mode, point to the CLI in the binary directory
+            if (IS_STANDALONE) {
+              queryOptions.pathToClaudeCodeExecutable = path.join(BINARY_DIR, 'cli.js');
+              console.log('🔧 Using Claude Code CLI at:', queryOptions.pathToClaudeCodeExecutable);
+            }
 
             // Add MCP servers and allowed tools if provider has them
             if (Object.keys(mcpServers).length > 0) {
@@ -247,7 +267,7 @@ const server = Bun.serve({
                         waitingForPlanApproval = true;
                         ws.send(JSON.stringify({
                           type: 'exit_plan_mode',
-                          plan: block.input?.plan || 'No plan provided',
+                          plan: (block.input as any)?.plan || 'No plan provided',
                         }));
                       }
 
@@ -591,7 +611,7 @@ const server = Bun.serve({
 
     // Static file serving
     if (url.pathname === '/') {
-      const file = Bun.file('./client/index.html');
+      const file = Bun.file(path.join(BINARY_DIR, 'client/index.html'));
       let html = await file.text();
 
       // Inject hot reload script
@@ -622,7 +642,7 @@ const server = Bun.serve({
     }
 
     if (url.pathname.startsWith('/client/') && url.pathname.endsWith('.css')) {
-      const filePath = `.${url.pathname}`;
+      const filePath = path.join(BINARY_DIR, url.pathname);
       const file = Bun.file(filePath);
 
       if (await file.exists()) {
@@ -649,7 +669,7 @@ const server = Bun.serve({
     }
 
     if (url.pathname.startsWith('/client/') && (url.pathname.endsWith('.tsx') || url.pathname.endsWith('.ts'))) {
-      const filePath = `.${url.pathname}`;
+      const filePath = path.join(BINARY_DIR, url.pathname);
       const file = Bun.file(filePath);
 
       if (await file.exists()) {
@@ -681,7 +701,7 @@ const server = Bun.serve({
 
     // Serve SVG files
     if (url.pathname.startsWith('/client/') && url.pathname.endsWith('.svg')) {
-      const filePath = `.${url.pathname}`;
+      const filePath = path.join(BINARY_DIR, url.pathname);
       const file = Bun.file(filePath);
 
       if (await file.exists()) {
