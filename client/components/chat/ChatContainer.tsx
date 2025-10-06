@@ -53,12 +53,39 @@ export function ChatContainer() {
     const sessionMessages = await sessionAPI.fetchSessionMessages(sessionId);
 
     // Convert session messages to Message format
-    const convertedMessages: Message[] = sessionMessages.map(msg => ({
-      id: msg.id,
-      type: msg.type as 'user' | 'assistant',
-      content: msg.type === 'user' ? msg.content : [{ type: 'text' as const, text: msg.content }],
-      timestamp: msg.timestamp,
-    }));
+    const convertedMessages: Message[] = sessionMessages.map(msg => {
+      if (msg.type === 'user') {
+        return {
+          id: msg.id,
+          type: 'user' as const,
+          content: msg.content,
+          timestamp: msg.timestamp,
+        };
+      } else {
+        // For assistant messages, try to parse content as JSON
+        let content;
+        try {
+          // Try parsing as JSON (new format with full content blocks)
+          const parsed = JSON.parse(msg.content);
+          if (Array.isArray(parsed)) {
+            content = parsed;
+          } else {
+            // If not an array, wrap as text block
+            content = [{ type: 'text' as const, text: msg.content }];
+          }
+        } catch {
+          // If parse fails, treat as plain text (legacy format)
+          content = [{ type: 'text' as const, text: msg.content }];
+        }
+
+        return {
+          id: msg.id,
+          type: 'assistant' as const,
+          content,
+          timestamp: msg.timestamp,
+        };
+      }
+    });
 
     setMessages(convertedMessages);
   };

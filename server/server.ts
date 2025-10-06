@@ -142,6 +142,9 @@ const server = Bun.serve({
 
             console.log(`✅ Query initialized successfully`);
 
+            // Track full message content structure for saving to database
+            let fullMessageContent: any[] = [];
+
             // Stream the response - query() is an AsyncGenerator
             for await (const message of result) {
               if (message.type === 'stream_event') {
@@ -164,10 +167,12 @@ const server = Bun.serve({
                   role: message.message?.role || 'unknown',
                 });
 
-                // Handle tool use from complete assistant message
+                // Capture full message content structure for database storage
                 const content = message.message.content;
-
                 if (Array.isArray(content)) {
+                  fullMessageContent = content;
+
+                  // Handle tool use from complete assistant message
                   for (const block of content) {
                     if (block.type === 'tool_use') {
                       ws.send(JSON.stringify({
@@ -182,9 +187,13 @@ const server = Bun.serve({
               }
             }
 
-            // Save assistant response to database
-            if (assistantResponse) {
-              sessionDb.addMessage(sessionId, 'assistant', assistantResponse);
+            // Save assistant response to database with full content structure
+            if (fullMessageContent.length > 0) {
+              // Save the full content blocks as JSON to preserve tool_use, thinking, etc.
+              sessionDb.addMessage(sessionId, 'assistant', JSON.stringify(fullMessageContent));
+            } else if (assistantResponse) {
+              // Fallback to text-only if no full content (shouldn't happen normally)
+              sessionDb.addMessage(sessionId, 'assistant', JSON.stringify([{ type: 'text', text: assistantResponse }]));
             }
 
             console.log(`✅ Response completed. Length: ${assistantResponse.length} chars`);
