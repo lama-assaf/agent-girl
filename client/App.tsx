@@ -9,14 +9,11 @@ const App: React.FC = () => {
       <Toaster
         position="bottom-right"
         toastOptions={{
+          className: 'sonner-toast',
           style: {
-            background: 'rgb(31, 41, 55)',
-            color: '#ffffff',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
             fontSize: '14px',
             fontFamily: 'var(--font-sans)',
           },
-          className: 'sonner-toast',
         }}
       />
     </>

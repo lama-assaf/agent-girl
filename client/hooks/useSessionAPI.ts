@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 
 export interface Session {
   id: string;
@@ -44,7 +44,7 @@ export function useSessionAPI() {
       if (data.warning) {
         console.warn('⚠️  Directory warning:', data.warning);
         // Show toast notification to user
-        toast.warning(`${data.warning}`, {
+        toast.success(`${data.warning}`, {
           description: 'Some chat folders were missing and have been recreated.',
           duration: 5000,
         });
