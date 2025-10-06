@@ -5,6 +5,7 @@ import { NewChatWelcome } from './NewChatWelcome';
 import { Sidebar } from '../sidebar/Sidebar';
 import { ModelSelector } from '../header/ModelSelector';
 import { WorkingDirectoryDisplay } from '../header/WorkingDirectoryDisplay';
+import { AboutButton } from '../header/AboutButton';
 import { PlanApprovalModal } from '../plan/PlanApprovalModal';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useSessionAPI, type Session } from '../../hooks/useSessionAPI';
@@ -529,6 +530,8 @@ export function ChatContainer() {
                   onChangeDirectory={handleChangeDirectory}
                 />
               )}
+              {/* About Button */}
+              <AboutButton />
             </div>
           </div>
         </div>

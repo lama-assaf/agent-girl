@@ -743,6 +743,20 @@ const server = Bun.serve({
       }
     }
 
+    // Serve MP3 files
+    if (url.pathname.endsWith('.mp3')) {
+      const filePath = path.join(BINARY_DIR, url.pathname.slice(1)); // Remove leading slash
+      const file = Bun.file(filePath);
+
+      if (await file.exists()) {
+        return new Response(file, {
+          headers: {
+            'Content-Type': 'audio/mpeg',
+          },
+        });
+      }
+    }
+
     // Serve SVG files
     if (url.pathname.startsWith('/client/') && url.pathname.endsWith('.svg')) {
       const filePath = path.join(BINARY_DIR, url.pathname);

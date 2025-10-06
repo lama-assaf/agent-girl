@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Folder, FolderOpen } from 'lucide-react';
+import { FolderOpen } from 'lucide-react';
 import { toast } from '../../utils/toast';
 
 interface WorkingDirectoryDisplayProps {
@@ -54,8 +54,6 @@ export function WorkingDirectoryDisplay({ directory, sessionId, onChangeDirector
 
   return (
     <div className="flex items-center gap-2 py-2 text-xs group" title={directory}>
-      <Folder className="w-3.5 h-3.5" style={{ color: 'rgb(var(--text-secondary))' }} />
-      <span style={{ color: 'rgb(var(--text-secondary))' }}>›</span>
       <span
         className="font-mono"
         style={{ color: 'rgb(var(--text-secondary))' }}
