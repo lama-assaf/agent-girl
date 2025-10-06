@@ -7,6 +7,7 @@ import { configureProvider, PROVIDERS, getMaskedApiKey } from "./providers";
 import { getMcpServers, getAllowedMcpTools } from "./mcpServers";
 import { AGENT_REGISTRY } from "./agents";
 import { getDefaultWorkingDirectory, ensureDirectory, getPlatformInfo, validateDirectory } from "./directoryUtils";
+import { openDirectoryPicker } from "./directoryPicker";
 import type { ServerWebSocket } from "bun";
 
 // Load environment variables
@@ -421,6 +422,43 @@ const server = Bun.serve({
       }), {
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    // Open directory picker dialog
+    if (url.pathname === '/api/pick-directory' && req.method === 'POST') {
+      console.log('📂 API: Opening directory picker dialog...');
+
+      try {
+        const selectedPath = await openDirectoryPicker();
+
+        if (selectedPath) {
+          console.log('✅ Directory selected:', selectedPath);
+          return new Response(JSON.stringify({
+            success: true,
+            path: selectedPath
+          }), {
+            headers: { 'Content-Type': 'application/json' },
+          });
+        } else {
+          console.log('⚠️  Directory picker cancelled');
+          return new Response(JSON.stringify({
+            success: false,
+            cancelled: true
+          }), {
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('❌ Directory picker error:', errorMessage);
+        return new Response(JSON.stringify({
+          success: false,
+          error: errorMessage
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Static file serving

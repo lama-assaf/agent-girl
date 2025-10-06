@@ -19,13 +19,29 @@ export function WorkingDirectoryDisplay({ directory, sessionId, onChangeDirector
   const handleChangeDirectory = async () => {
     if (!sessionId || !onChangeDirectory) return;
 
-    const newPath = prompt('Enter custom working directory path:\n\n(Use ~ for home directory, or full path)', directory);
-
-    if (!newPath || newPath === directory) return;
-
     setIsChanging(true);
     try {
-      await onChangeDirectory(sessionId, newPath);
+      // Call server to open native directory picker
+      const response = await fetch('http://localhost:3001/api/pick-directory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const result = await response.json() as { success: boolean; path?: string; cancelled?: boolean; error?: string };
+
+      if (result.success && result.path) {
+        // User selected a directory
+        await onChangeDirectory(sessionId, result.path);
+      } else if (result.cancelled) {
+        // User cancelled the dialog - do nothing
+        console.log('Directory picker cancelled');
+      } else {
+        // Error occurred
+        alert(result.error || 'Failed to open directory picker');
+      }
+    } catch (error) {
+      console.error('Failed to open directory picker:', error);
+      alert('Failed to open directory picker');
     } finally {
       setIsChanging(false);
     }
