@@ -5,6 +5,7 @@ import { NewChatWelcome } from './NewChatWelcome';
 import { Sidebar } from '../sidebar/Sidebar';
 import { ModelSelector } from '../header/ModelSelector';
 import { WorkingDirectoryDisplay } from '../header/WorkingDirectoryDisplay';
+import { PlanApprovalModal } from '../plan/PlanApprovalModal';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useSessionAPI, type Session } from '../../hooks/useSessionAPI';
 import { Menu, Edit3 } from 'lucide-react';
@@ -25,6 +26,12 @@ export function ChatContainer() {
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     return localStorage.getItem('agent-boy-model') || 'sonnet';
   });
+
+  // Permission mode (simplified to just plan mode on/off)
+  const [isPlanMode, setIsPlanMode] = useState<boolean>(false);
+
+  // Plan approval
+  const [pendingPlan, setPendingPlan] = useState<string | null>(null);
 
   const sessionAPI = useSessionAPI();
 
@@ -49,6 +56,13 @@ export function ChatContainer() {
   // Handle session switching
   const handleSessionSelect = async (sessionId: string) => {
     setCurrentSessionId(sessionId);
+
+    // Load session details to get permission mode
+    const sessions = await sessionAPI.fetchSessions();
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      setIsPlanMode(session.permission_mode === 'plan');
+    }
 
     // Load messages for this session
     const sessionMessages = await sessionAPI.fetchSessionMessages(sessionId);
@@ -99,6 +113,11 @@ export function ChatContainer() {
       setCurrentSessionId(newSession.id);
       setMessages([]);
       setInputValue('');
+
+      // Apply current permission mode to new session
+      const mode = isPlanMode ? 'plan' : 'bypassPermissions';
+      await sessionAPI.updatePermissionMode(newSession.id, mode);
+
       await loadSessions(); // Reload sessions to include the new one
     }
   };
@@ -139,6 +158,72 @@ export function ChatContainer() {
     } else {
       alert(result.error || 'Failed to change working directory');
     }
+  };
+
+  // Handle plan mode toggle
+  const handleTogglePlanMode = async () => {
+    const newPlanMode = !isPlanMode;
+    const mode = newPlanMode ? 'plan' : 'bypassPermissions';
+
+    // Always update local state
+    setIsPlanMode(newPlanMode);
+
+    // If session exists, update it in the database
+    if (currentSessionId) {
+      const result = await sessionAPI.updatePermissionMode(currentSessionId, mode);
+
+      // If query is active, send WebSocket message to switch mode mid-stream
+      if (result.success && isLoading) {
+        sendMessage({
+          type: 'set_permission_mode',
+          sessionId: currentSessionId,
+          mode
+        });
+      }
+    }
+    // If no session exists yet, the mode will be applied when session is created
+  };
+
+  // Handle plan approval
+  const handleApprovePlan = () => {
+    if (!currentSessionId) return;
+
+    // Send approval to server to switch mode
+    sendMessage({
+      type: 'approve_plan',
+      sessionId: currentSessionId
+    });
+
+    // Close modal
+    setPendingPlan(null);
+
+    // Immediately send continuation message to start execution
+    setIsLoading(true);
+
+    // Add a user message indicating approval
+    const approvalMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: 'Approved. Please proceed with the plan.',
+      timestamp: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, approvalMessage]);
+
+    // Send the continuation message to trigger execution
+    setTimeout(() => {
+      sendMessage({
+        type: 'chat',
+        content: 'Approved. Please proceed with the plan.',
+        sessionId: currentSessionId,
+        model: selectedModel,
+      });
+    }, 100); // Small delay to ensure mode is switched
+  };
+
+  // Handle plan rejection
+  const handleRejectPlan = () => {
+    setPendingPlan(null);
+    setIsLoading(false);
   };
 
   const { isConnected, sendMessage, stopGeneration } = useWebSocket({
@@ -290,6 +375,13 @@ export function ChatContainer() {
         ]);
       } else if (message.type === 'user_message') {
         // Echo back user message if needed
+      } else if (message.type === 'exit_plan_mode') {
+        // Handle plan mode exit - show approval modal and auto-deactivate plan mode
+        setPendingPlan(message.plan || 'No plan provided');
+        setIsPlanMode(false); // Auto-deactivate plan mode when ExitPlanMode is triggered
+      } else if (message.type === 'permission_mode_changed') {
+        // Handle permission mode change confirmation
+        setIsPlanMode(message.mode === 'plan');
       }
     },
   });
@@ -305,6 +397,11 @@ export function ChatContainer() {
 
       sessionId = newSession.id;
       setCurrentSessionId(sessionId);
+
+      // Apply current permission mode to new session
+      const mode = isPlanMode ? 'plan' : 'bypassPermissions';
+      await sessionAPI.updatePermissionMode(sessionId, mode);
+
       await loadSessions();
     }
 
@@ -437,6 +534,8 @@ export function ChatContainer() {
             onStop={handleStop}
             disabled={!isConnected || isLoading}
             isGenerating={isLoading}
+            isPlanMode={isPlanMode}
+            onTogglePlanMode={handleTogglePlanMode}
           />
         ) : (
           // Chat Interface
@@ -453,10 +552,21 @@ export function ChatContainer() {
               onStop={handleStop}
               disabled={!isConnected || isLoading}
               isGenerating={isLoading}
+              isPlanMode={isPlanMode}
+              onTogglePlanMode={handleTogglePlanMode}
             />
           </>
         )}
       </div>
+
+      {/* Plan Approval Modal */}
+      {pendingPlan && (
+        <PlanApprovalModal
+          plan={pendingPlan}
+          onApprove={handleApprovePlan}
+          onReject={handleRejectPlan}
+        />
+      )}
     </div>
   );
 }

@@ -10,9 +10,11 @@ interface ChatInputProps {
   disabled?: boolean;
   isGenerating?: boolean;
   placeholder?: string;
+  isPlanMode?: boolean;
+  onTogglePlanMode?: () => void;
 }
 
-export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
@@ -171,7 +173,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
             {/* Left side */}
             <div className="input-controls-left">
               {/* Plus button */}
-              <div className="flex">
+              <div className="flex gap-1">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -188,6 +190,23 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                 >
                   <Plus size={20} />
                 </button>
+
+                {/* Plan Mode toggle button */}
+                {onTogglePlanMode && (
+                  <button
+                    onClick={onTogglePlanMode}
+                    className={isPlanMode ? 'send-button-active' : 'btn-icon'}
+                    title={isPlanMode ? "Plan Mode Active - Click to deactivate" : "Activate Plan Mode"}
+                    type="button"
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      padding: '0.375rem 0.75rem',
+                    }}
+                  >
+                    Plan Mode
+                  </button>
+                )}
               </div>
             </div>
 

@@ -5,6 +5,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { AssistantMessage as AssistantMessageType, ToolUseBlock, TextBlock, ToolEdit, TodoItem } from './types';
 import { ThinkingBlock } from './ThinkingBlock';
+import { Shield } from 'lucide-react';
 
 interface AssistantMessageProps {
   message: AssistantMessageType;
@@ -742,6 +743,110 @@ function McpToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   );
 }
 
+// ExitPlanMode tool component with blue theme and markdown rendering
+function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  const [isExpanded, setIsExpanded] = useState(true); // Expanded by default
+  const input = toolUse.input;
+
+  return (
+    <div className="w-full border-2 border-blue-500/40 rounded-xl my-3 overflow-hidden bg-blue-500/5">
+      {/* Header */}
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-blue-500/10 border-b-2 border-blue-500/40">
+        <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+          {/* Shield icon */}
+          <Shield size={16} style={{ color: 'rgb(59, 130, 246)' }} />
+          <span className="text-sm font-medium leading-6" style={{ color: 'rgb(59, 130, 246)' }}>Implementation Plan</span>
+          <div className="bg-blue-500/20 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate" style={{ color: 'rgb(59, 130, 246)' }}>
+            Review and approve to execute
+          </span>
+        </div>
+        <div className="flex gap-1 items-center whitespace-nowrap">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-collapsed={!isExpanded}
+            className="p-1.5 rounded-lg transition-all data-[collapsed=true]:-rotate-180"
+            style={{ color: 'rgb(59, 130, 246)' }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3.5" stroke="currentColor" className="size-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Plan Content */}
+      {isExpanded && (
+        <div className="p-4 bg-blue-500/5 text-sm">
+          <div className="prose prose-base max-w-none prose-invert">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ node, ...props }) => (
+                  <a {...props} style={{ color: 'rgb(59, 130, 246)' }} className="hover:opacity-80 underline transition-opacity" />
+                ),
+                code: ({ node, className, children, ...props }: any) => {
+                  const match = /language-(\w+)/.exec(className || '');
+                  const language = match ? match[1] : '';
+                  const inline = !className;
+
+                  return !inline ? (
+                    <SyntaxHighlighter
+                      style={vscDarkPlus as any}
+                      language={language || 'text'}
+                      PreTag="div"
+                      customStyle={{
+                        margin: '1rem 0',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                      }}
+                      {...props}
+                    >
+                      {String(children).replace(/\n$/, '')}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: 'rgb(var(--text-primary))' }} {...props}>
+                      {children}
+                    </code>
+                  );
+                },
+                h1: ({ node, ...props }) => (
+                  <h1 className="text-2xl font-bold mt-6 mb-4" style={{ color: 'rgb(59, 130, 246)' }} {...props} />
+                ),
+                h2: ({ node, ...props }) => (
+                  <h2 className="text-xl font-bold mt-5 mb-3" style={{ color: 'rgb(59, 130, 246)' }} {...props} />
+                ),
+                h3: ({ node, ...props }) => (
+                  <h3 className="text-lg font-semibold mt-4 mb-2" style={{ color: 'rgb(59, 130, 246)' }} {...props} />
+                ),
+                ul: ({ node, ...props }) => (
+                  <ul className="list-disc pl-6 space-y-2 marker:text-blue-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol className="list-decimal pl-6 space-y-2 marker:text-blue-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+                ),
+                li: ({ node, ...props }) => (
+                  <li className="leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+                ),
+                p: ({ node, ...props }) => (
+                  <p className="mb-4 leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+                ),
+                strong: ({ node, ...props }) => (
+                  <strong className="font-bold" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+                ),
+              }}
+            >
+              {input.plan as string || 'No plan provided'}
+            </ReactMarkdown>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Edit/Write tool component matching edit-write-update.md design
 function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -913,6 +1018,11 @@ function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 }
 
 function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  // Use ExitPlanModeComponent for ExitPlanMode tool
+  if (toolUse.name === 'ExitPlanMode') {
+    return <ExitPlanModeComponent toolUse={toolUse} />;
+  }
+
   // Use McpToolComponent for MCP tools (e.g., mcp__web-search-prime__search)
   if (toolUse.name.startsWith('mcp__')) {
     return <McpToolComponent toolUse={toolUse} />;
@@ -1030,17 +1140,7 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             </div>
           </div>
         );
-        
-      case 'ExitPlanMode':
-        return (
-          <div className="space-y-1">
-            <div className="text-xs text-gray-600 font-semibold">Plan:</div>
-            <div className="text-xs text-gray-900 bg-blue-50 p-2 border border-blue-200 max-h-32 overflow-y-auto">
-              {input.plan}
-            </div>
-          </div>
-        );
-        
+
       default:
         // Fallback to raw JSON for unknown tools
         return (

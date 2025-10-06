@@ -8,6 +8,7 @@ export interface Session {
   updated_at: string;
   message_count: number;
   working_directory: string;
+  permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
 }
 
 export interface SessionMessage {
@@ -238,6 +239,40 @@ export function useSessionAPI() {
     }
   }, []);
 
+  /**
+   * Update permission mode for a session
+   */
+  const updatePermissionMode = useCallback(async (
+    sessionId: string,
+    mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan'
+  ): Promise<{ success: boolean; session?: Session; error?: string }> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/sessions/${sessionId}/mode`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mode }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json() as { success: boolean; session?: Session; error?: string };
+      return result;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to update permission mode';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     error,
@@ -248,5 +283,6 @@ export function useSessionAPI() {
     renameSession,
     updateWorkingDirectory,
     validateDirectory,
+    updatePermissionMode,
   };
 }

@@ -28,6 +28,9 @@ interface ChatWebSocketData {
   sessionId?: string;
 }
 
+// Store active queries for mid-stream control
+const activeQueries = new Map<string, any>();
+
 const hotReloadClients = new Set<HotReloadClient>();
 
 // Watch for file changes (hot reload)
@@ -178,7 +181,7 @@ const server = Bun.serve({
             const queryOptions: any = {
               model: apiModelId,
               systemPrompt: getSystemPrompt(providerType, AGENT_REGISTRY),
-              permissionMode: 'bypassPermissions', // Enable all tools without restrictions
+              permissionMode: session.permission_mode || 'bypassPermissions', // Use session's permission mode
               includePartialMessages: true,
               agents: AGENT_REGISTRY, // Register custom agents (already in SDK format)
             };
@@ -195,10 +198,14 @@ const server = Bun.serve({
               options: queryOptions
             });
 
+            // Store query instance for mid-stream control
+            activeQueries.set(sessionId, result);
+
             console.log(`✅ Query initialized successfully`);
 
             // Track full message content structure for saving to database
             let fullMessageContent: any[] = [];
+            let waitingForPlanApproval = false;
 
             // Stream the response - query() is an AsyncGenerator
             for await (const message of result) {
@@ -231,6 +238,16 @@ const server = Bun.serve({
                   // Handle tool use from complete assistant message
                   for (const block of content) {
                     if (block.type === 'tool_use') {
+                      // Check if this is ExitPlanMode tool
+                      if (block.name === 'ExitPlanMode') {
+                        console.log('🛡️ ExitPlanMode detected, sending plan to client');
+                        waitingForPlanApproval = true;
+                        ws.send(JSON.stringify({
+                          type: 'exit_plan_mode',
+                          plan: block.input?.plan || 'No plan provided',
+                        }));
+                      }
+
                       ws.send(JSON.stringify({
                         type: 'tool_use',
                         toolId: block.id,
@@ -255,6 +272,13 @@ const server = Bun.serve({
             console.log(`✅ Response completed. Length: ${assistantResponse.length} chars`);
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
+            // Clean up active query - but NOT if waiting for plan approval
+            if (!waitingForPlanApproval) {
+              activeQueries.delete(sessionId);
+            } else {
+              console.log('⏸️ Query kept active - waiting for plan approval');
+            }
+
             // Send completion signal
             ws.send(JSON.stringify({ type: 'result', success: true }));
 
@@ -269,6 +293,76 @@ const server = Bun.serve({
             process.chdir(originalCwd);
             console.log('↩️  Restored to original directory:', process.cwd());
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+          }
+        } else if (data.type === 'approve_plan') {
+          // Handle plan approval - switch mode to bypassPermissions and continue
+          const { sessionId } = data;
+
+          if (!sessionId) {
+            ws.send(JSON.stringify({ type: 'error', error: 'Missing sessionId' }));
+            return;
+          }
+
+          try {
+            console.log('✅ Plan approved, switching to bypassPermissions mode');
+
+            // Update database to bypassPermissions mode
+            sessionDb.updatePermissionMode(sessionId, 'bypassPermissions');
+
+            // Send confirmation to client
+            ws.send(JSON.stringify({
+              type: 'permission_mode_changed',
+              mode: 'bypassPermissions'
+            }));
+
+            // Clean up any stale query reference
+            activeQueries.delete(sessionId);
+
+            // Send a continuation message to the user to trigger execution
+            ws.send(JSON.stringify({
+              type: 'plan_approved_continue',
+              message: 'Plan approved. Proceeding with implementation...'
+            }));
+
+            console.log('✅ Plan approved, ready to continue with next user message');
+          } catch (error) {
+            console.error('Failed to handle plan approval:', error);
+            ws.send(JSON.stringify({
+              type: 'error',
+              error: 'Failed to approve plan'
+            }));
+          }
+        } else if (data.type === 'set_permission_mode') {
+          // Handle permission mode change request
+          const { sessionId, mode } = data;
+
+          if (!sessionId || !mode) {
+            ws.send(JSON.stringify({ type: 'error', error: 'Missing sessionId or mode' }));
+            return;
+          }
+
+          const activeQuery = activeQueries.get(sessionId);
+
+          try {
+            // If there's an active query, update it mid-stream
+            if (activeQuery) {
+              console.log(`🔄 Switching permission mode mid-stream: ${mode}`);
+              await activeQuery.setPermissionMode(mode);
+            }
+
+            // Always update database
+            sessionDb.updatePermissionMode(sessionId, mode);
+
+            ws.send(JSON.stringify({
+              type: 'permission_mode_changed',
+              mode
+            }));
+          } catch (error) {
+            console.error('Failed to update permission mode:', error);
+            ws.send(JSON.stringify({
+              type: 'error',
+              error: 'Failed to update permission mode'
+            }));
           }
         }
       } catch (error) {
@@ -407,6 +501,31 @@ const server = Bun.serve({
         });
       } else {
         return new Response(JSON.stringify({ success: false, error: 'Invalid directory or session not found' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Update permission mode for a session
+    if (url.pathname.match(/^\/api\/sessions\/[^/]+\/mode$/) && req.method === 'PATCH') {
+      const sessionId = url.pathname.split('/')[3];
+      const body = await req.json() as { mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' };
+
+      console.log('🔐 API: Update permission mode request:', {
+        sessionId,
+        mode: body.mode
+      });
+
+      const success = sessionDb.updatePermissionMode(sessionId, body.mode);
+
+      if (success) {
+        const session = sessionDb.getSession(sessionId);
+        return new Response(JSON.stringify({ success: true, session }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else {
+        return new Response(JSON.stringify({ success: false, error: 'Session not found' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
         });

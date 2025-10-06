@@ -11,6 +11,7 @@ export interface Session {
   updated_at: string;
   message_count: number;
   working_directory: string;
+  permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
 }
 
 export interface SessionMessage {
@@ -60,6 +61,9 @@ class SessionDatabase {
 
     // Migration: Add working_directory column if it doesn't exist
     this.migrateWorkingDirectory();
+
+    // Migration: Add permission_mode column if it doesn't exist
+    this.migratePermissionMode();
   }
 
   private migrateWorkingDirectory() {
@@ -99,6 +103,34 @@ class SessionDatabase {
     }
   }
 
+  private migratePermissionMode() {
+    try {
+      // Check if permission_mode column exists
+      const columns = this.db.query<{ name: string }, []>(
+        "PRAGMA table_info(sessions)"
+      ).all();
+
+      const hasPermissionMode = columns.some(col => col.name === 'permission_mode');
+
+      if (!hasPermissionMode) {
+        console.log('📦 Migrating database: Adding permission_mode column');
+
+        // Add the column with default value
+        this.db.run(`
+          ALTER TABLE sessions
+          ADD COLUMN permission_mode TEXT NOT NULL DEFAULT 'bypassPermissions'
+        `);
+
+        console.log('✅ permission_mode column added successfully');
+      } else {
+        console.log('✅ permission_mode column already exists');
+      }
+    } catch (error) {
+      console.error('❌ Database migration failed:', error);
+      throw error;
+    }
+  }
+
   // Session operations
   createSession(title: string = "New Chat", workingDirectory?: string): Session {
     const id = randomUUID();
@@ -126,8 +158,8 @@ class SessionDatabase {
     console.log('📁 Creating session with working directory:', finalWorkingDir);
 
     this.db.run(
-      "INSERT INTO sessions (id, title, created_at, updated_at, working_directory) VALUES (?, ?, ?, ?, ?)",
-      [id, title, now, now, finalWorkingDir]
+      "INSERT INTO sessions (id, title, created_at, updated_at, working_directory, permission_mode) VALUES (?, ?, ?, ?, ?, ?)",
+      [id, title, now, now, finalWorkingDir, 'bypassPermissions']
     );
 
     return {
@@ -137,6 +169,7 @@ class SessionDatabase {
       updated_at: now,
       message_count: 0,
       working_directory: finalWorkingDir,
+      permission_mode: 'bypassPermissions',
     };
   }
 
@@ -171,6 +204,7 @@ class SessionDatabase {
           s.created_at,
           s.updated_at,
           s.working_directory,
+          s.permission_mode,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -208,6 +242,7 @@ class SessionDatabase {
           s.created_at,
           s.updated_at,
           s.working_directory,
+          s.permission_mode,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -250,6 +285,32 @@ class SessionDatabase {
       return success;
     } catch (error) {
       console.error('❌ Failed to update working directory:', error);
+      return false;
+    }
+  }
+
+  updatePermissionMode(sessionId: string, mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan'): boolean {
+    try {
+      console.log('🔐 Updating permission mode:', {
+        session: sessionId,
+        mode
+      });
+
+      const result = this.db.run(
+        "UPDATE sessions SET permission_mode = ?, updated_at = ? WHERE id = ?",
+        [mode, new Date().toISOString(), sessionId]
+      );
+
+      const success = result.changes > 0;
+      if (success) {
+        console.log('✅ Permission mode updated successfully');
+      } else {
+        console.warn('⚠️  No session found to update');
+      }
+
+      return success;
+    } catch (error) {
+      console.error('❌ Failed to update permission mode:', error);
       return false;
     }
   }

@@ -9,6 +9,8 @@ interface NewChatWelcomeProps {
   onStop?: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
+  isPlanMode?: boolean;
+  onTogglePlanMode?: () => void;
 }
 
 const CAPABILITIES = [
@@ -19,7 +21,7 @@ const CAPABILITIES = [
   "I can analyze data and files"
 ];
 
-export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating }: NewChatWelcomeProps) {
+export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating, isPlanMode, onTogglePlanMode }: NewChatWelcomeProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
@@ -226,7 +228,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
               <div className="flex justify-between items-center mx-3.5 mt-1.5 mb-3.5 max-w-full">
                 <div className="self-end flex items-center gap-1.5">
                   {/* File Upload */}
-                  <div className="flex">
+                  <div className="flex gap-1">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -243,6 +245,24 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                     >
                       <Plus className="size-5" />
                     </button>
+
+                    {/* Plan Mode toggle button */}
+                    {onTogglePlanMode && (
+                      <button
+                        onClick={onTogglePlanMode}
+                        type="button"
+                        className={`${isPlanMode ? 'send-button-active' : 'border border-black/10 dark:border-white/10 bg-transparent text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800'} rounded-lg transition outline-none focus:outline-none`}
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          padding: '0.375rem 0.75rem',
+                        }}
+                        title={isPlanMode ? "Plan Mode Active - Click to deactivate" : "Activate Plan Mode"}
+                        aria-label={isPlanMode ? "Deactivate Plan Mode" : "Activate Plan Mode"}
+                      >
+                        Plan Mode
+                      </button>
+                    )}
                   </div>
                 </div>
 
