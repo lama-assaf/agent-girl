@@ -330,7 +330,7 @@
 
 .header-center {
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
   max-width: 100%;
   padding: 0.125rem 0; /* py-0.5 */
 }

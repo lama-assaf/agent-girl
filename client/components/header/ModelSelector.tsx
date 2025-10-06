@@ -59,7 +59,7 @@ export function ModelSelector({ selectedModel, onModelChange }: ModelSelectorPro
         <div
           style={{
             position: 'absolute',
-            right: 0,
+            left: 0,
             top: '100%',
             marginTop: '0.5rem',
             background: 'rgb(var(--bg-input))',
