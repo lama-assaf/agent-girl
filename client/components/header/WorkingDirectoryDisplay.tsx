@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Folder, Edit2 } from 'lucide-react';
+import { Folder, FolderOpen } from 'lucide-react';
 
 interface WorkingDirectoryDisplayProps {
   directory: string;
@@ -61,11 +61,11 @@ export function WorkingDirectoryDisplay({ directory, sessionId, onChangeDirector
         <button
           onClick={handleChangeDirectory}
           disabled={isChanging}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded"
+          className="p-1 hover:bg-white/10 rounded transition-colors"
           aria-label="Change working directory"
-          title="Change to custom directory"
+          title="Select custom directory"
         >
-          <Edit2 className="w-3 h-3" style={{ color: 'rgb(var(--text-secondary))' }} />
+          <FolderOpen className="w-3 h-3" style={{ color: 'rgb(var(--text-secondary))' }} />
         </button>
       )}
     </div>
