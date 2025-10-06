@@ -10,6 +10,7 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { useSessionAPI, type Session } from '../../hooks/useSessionAPI';
 import { Menu, Edit3 } from 'lucide-react';
 import type { Message } from '../message/types';
+import { toast } from '../../utils/toast';
 
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -359,6 +360,11 @@ export function ChatContainer() {
         // Handle error messages from server
         setIsLoading(false);
         const errorMessage = message.message || message.error || 'An error occurred';
+
+        // Show toast notification
+        toast.error('Error', {
+          description: errorMessage
+        });
 
         // Display error as assistant message
         setMessages((prev) => [

@@ -7,15 +7,26 @@ import { AVAILABLE_MODELS } from "../client/config/models";
 import { configureProvider, PROVIDERS, getMaskedApiKey } from "./providers";
 import { getMcpServers, getAllowedMcpTools } from "./mcpServers";
 import { AGENT_REGISTRY } from "./agents";
-import { getDefaultWorkingDirectory, ensureDirectory, getPlatformInfo, validateDirectory } from "./directoryUtils";
+import { getDefaultWorkingDirectory, ensureDirectory, validateDirectory } from "./directoryUtils";
 import { openDirectoryPicker } from "./directoryPicker";
 import type { ServerWebSocket } from "bun";
-import postcss from 'postcss';
-import tailwindcss from '@tailwindcss/postcss';
-import autoprefixer from 'autoprefixer';
 
 // Determine if running in standalone mode
 const IS_STANDALONE = process.env.STANDALONE_BUILD === 'true';
+
+// Conditionally import PostCSS only in dev mode (not standalone)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let postcss: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let tailwindcss: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let autoprefixer: any = null;
+
+if (!IS_STANDALONE) {
+  postcss = (await import('postcss')).default;
+  tailwindcss = (await import('@tailwindcss/postcss')).default;
+  autoprefixer = (await import('autoprefixer')).default;
+}
 
 // Get the directory where the binary/script is located
 const getBinaryDir = () => {
@@ -46,23 +57,25 @@ interface ChatWebSocketData {
 }
 
 // Store active queries for mid-stream control
-const activeQueries = new Map<string, any>();
+const activeQueries = new Map<string, unknown>();
 
 const hotReloadClients = new Set<HotReloadClient>();
 
-// Watch for file changes (hot reload)
-watch('./client', { recursive: true }, (_eventType, filename) => {
-  if (filename && (filename.endsWith('.tsx') || filename.endsWith('.ts') || filename.endsWith('.css') || filename.endsWith('.html'))) {
-    // Notify all hot reload clients
-    hotReloadClients.forEach(client => {
-      try {
-        client.send(JSON.stringify({ type: 'reload' }));
-      } catch {
-        hotReloadClients.delete(client);
-      }
-    });
-  }
-});
+// Watch for file changes (hot reload) - only in dev mode
+if (!IS_STANDALONE) {
+  watch('./client', { recursive: true }, (_eventType, filename) => {
+    if (filename && (filename.endsWith('.tsx') || filename.endsWith('.ts') || filename.endsWith('.css') || filename.endsWith('.html'))) {
+      // Notify all hot reload clients
+      hotReloadClients.forEach(client => {
+        try {
+          client.send(JSON.stringify({ type: 'reload' }));
+        } catch {
+          hotReloadClients.delete(client);
+        }
+      });
+    }
+  });
+}
 
 // Build model mapping from configuration
 const MODEL_MAP: Record<string, { apiModelId: string; provider: string }> = {};
@@ -118,7 +131,19 @@ const server = Bun.serve({
 
           // Configure provider (sets ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars)
           const providerType = provider as 'anthropic' | 'z-ai';
-          configureProvider(providerType);
+
+          // Validate API key before proceeding
+          try {
+            configureProvider(providerType);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            console.error('❌ Provider configuration error:', errorMessage);
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: errorMessage
+            }));
+            return;
+          }
 
           // Get provider config for logging
           const providerConfig = PROVIDERS[providerType];
@@ -195,7 +220,7 @@ const server = Bun.serve({
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             // Build query options with provider-specific system prompt (including agent list)
-            const queryOptions: any = {
+            const queryOptions: Record<string, unknown> = {
               model: apiModelId,
               systemPrompt: getSystemPrompt(providerType, AGENT_REGISTRY),
               permissionMode: session.permission_mode || 'bypassPermissions', // Use session's permission mode
@@ -267,7 +292,7 @@ const server = Bun.serve({
                         waitingForPlanApproval = true;
                         ws.send(JSON.stringify({
                           type: 'exit_plan_mode',
-                          plan: (block.input as any)?.plan || 'No plan provided',
+                          plan: (block.input as Record<string, unknown>)?.plan || 'No plan provided',
                         }));
                       }
 
@@ -370,7 +395,7 @@ const server = Bun.serve({
             // If there's an active query, update it mid-stream
             if (activeQuery) {
               console.log(`🔄 Switching permission mode mid-stream: ${mode}`);
-              await activeQuery.setPermissionMode(mode);
+              await (activeQuery as { setPermissionMode: (mode: string) => Promise<void> }).setPermissionMode(mode);
             }
 
             // Always update database
@@ -649,15 +674,34 @@ const server = Bun.serve({
         try {
           const cssContent = await file.text();
 
-          const result = await postcss([
-            tailwindcss(),
-            autoprefixer,
-          ]).process(cssContent, {
-            from: filePath,
-            to: undefined
-          });
+          // In standalone mode, CSS is pre-built - serve directly
+          if (IS_STANDALONE) {
+            return new Response(cssContent, {
+              headers: {
+                'Content-Type': 'text/css',
+              },
+            });
+          }
 
-          return new Response(result.css, {
+          // In dev mode, process CSS with PostCSS
+          if (postcss && tailwindcss && autoprefixer) {
+            const result = await postcss([
+              tailwindcss(),
+              autoprefixer,
+            ]).process(cssContent, {
+              from: filePath,
+              to: undefined
+            });
+
+            return new Response(result.css, {
+              headers: {
+                'Content-Type': 'text/css',
+              },
+            });
+          }
+
+          // Fallback: serve raw CSS
+          return new Response(cssContent, {
             headers: {
               'Content-Type': 'text/css',
             },
@@ -717,14 +761,18 @@ const server = Bun.serve({
   },
 });
 
-console.log(`🚀 Server running at http://localhost:${server.port}`);
-console.log(`📡 WebSocket endpoint: ws://localhost:${server.port}/ws`);
-console.log(`🗄️  Database initialized`);
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('🏠 Working Directory Configuration');
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-const platformInfo = getPlatformInfo();
-console.log(`💻 Platform: ${platformInfo.platform} (${platformInfo.os})`);
-console.log(`🏠 Home Directory: ${platformInfo.home}`);
-console.log(`📁 Default Working Directory: ${DEFAULT_WORKING_DIR}`);
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+// ASCII Art Banner
+console.log('\n');
+console.log('  █████╗  ██████╗ ███████╗███╗   ██╗████████╗     ██████╗ ██╗██████╗ ██╗     ');
+console.log(' ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝    ██╔════╝ ██║██╔══██╗██║     ');
+console.log(' ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║       ██║  ███╗██║██████╔╝██║     ');
+console.log(' ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║       ██║   ██║██║██╔══██╗██║     ');
+console.log(' ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║       ╚██████╔╝██║██║  ██║███████╗');
+console.log(' ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝        ╚═════╝ ╚═╝╚═╝  ╚═╝╚══════╝');
+console.log('\n');
+console.log(`  👉 Open here: http://localhost:${server.port}`);
+console.log('\n');
+console.log('  ═══════════════════════════════════════════════════════════════════════════');
+console.log('\n');
+console.log('  All logs will show below this:');
+console.log('\n');

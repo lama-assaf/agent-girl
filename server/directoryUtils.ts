@@ -10,9 +10,10 @@ export function getDefaultWorkingDirectory(): string {
   const homeDir = os.homedir();
   const defaultDir = path.join(homeDir, 'Documents', 'agent-girl');
 
-  console.log('🏠 Platform:', os.platform());
-  console.log('🏠 Home directory:', homeDir);
-  console.log('🏠 Default working directory:', defaultDir);
+  // Startup logs are now consolidated in server.ts
+  // console.log('🏠 Platform:', os.platform());
+  // console.log('🏠 Home directory:', homeDir);
+  // console.log('🏠 Default working directory:', defaultDir);
 
   return defaultDir;
 }
@@ -172,6 +173,7 @@ export function getPlatformInfo(): {
     version: os.release()
   };
 
-  console.log('💻 Platform info:', info);
+  // Startup logs are now consolidated in server.ts
+  // console.log('💻 Platform info:', info);
   return info;
 }

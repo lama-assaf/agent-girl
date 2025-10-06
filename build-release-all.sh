@@ -51,6 +51,10 @@ for target_config in "${TARGETS[@]}"; do
   echo "📁 Copying client files..."
   cp -r client/ "$PLATFORM_DIR/client/"
 
+  # Replace raw globals.css with processed version from dist
+  echo "📁 Copying processed CSS..."
+  cp dist/globals.css "$PLATFORM_DIR/client/globals.css"
+
   # Copy icons
   cp -r client/icons/ "$PLATFORM_DIR/icons/" 2>/dev/null || true
 

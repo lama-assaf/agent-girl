@@ -788,7 +788,7 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
               remarkPlugins={[remarkGfm]}
               components={{
                 a: ({ _node, ...props }) => (
-                  <a {...props} className="plan-text-gradient hover:opacity-80 underline transition-opacity" />
+                  <a {...props} target="_blank" rel="noopener noreferrer" className="plan-text-gradient hover:opacity-80 underline transition-opacity" />
                 ),
                 code: ({ _node, className, children, ...props }: unknown) => {
                   const match = /language-(\w+)/.exec(className || '');
@@ -1203,7 +1203,7 @@ function TextComponent({ text }: { text: TextBlock }) {
           components={{
             // Customize link rendering
             a: ({ _node, ...props }) => (
-              <a {...props} style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
+              <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
             ),
             // Customize code rendering
             code: ({ _node, className, children, ...props }: unknown) => {

@@ -96,7 +96,7 @@ export function PlanApprovalModal({ plan, onApprove, onReject }: PlanApprovalMod
               remarkPlugins={[remarkGfm]}
               components={{
                 a: ({ _node, ...props }) => (
-                  <a {...props} style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
+                  <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
                 ),
                 code: ({ _node, className, children, ...props }: unknown) => {
                   const match = /language-(\w+)/.exec(className || '');
