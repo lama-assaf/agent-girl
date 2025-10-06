@@ -19,26 +19,26 @@ export function WorkingDirectoryDisplay({ directory, sessionId }: WorkingDirecto
     }
   };
 
-  // Shorten directory for display (show last 2 segments)
-  const getShortPath = (path: string): string => {
+  // Extract just the chat folder name (e.g., "chat-a1b2c3d4")
+  const getFolderName = (path: string): string => {
     const segments = path.split('/').filter(Boolean);
-    if (segments.length <= 2) return path;
-    return '.../' + segments.slice(-2).join('/');
+    return segments[segments.length - 1];
   };
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs">
+    <div className="flex items-center gap-2 text-xs">
       <Folder className="w-3.5 h-3.5" style={{ color: 'rgb(var(--text-secondary))' }} />
+      <span style={{ color: 'rgb(var(--text-secondary))' }}>›</span>
       <span
-        className="font-mono truncate max-w-[300px]"
+        className="font-mono"
         style={{ color: 'rgb(var(--text-secondary))' }}
         title={directory}
       >
-        {getShortPath(directory)}
+        {getFolderName(directory)}
       </span>
       <button
         onClick={handleCopy}
-        className="ml-1 p-1 hover:bg-white/10 rounded transition-colors"
+        className="p-1 hover:bg-white/10 rounded transition-colors"
         aria-label="Copy full path"
         title={directory}
       >
