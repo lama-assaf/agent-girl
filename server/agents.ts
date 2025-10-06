@@ -32,6 +32,8 @@ export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
 - Cite sources and provide evidence
 - Identify patterns and insights
 
+File handling: Check your environment context for the working directory. If creating project files, use the working directory. For research reports or temporary analysis, choose appropriate locations based on the task.
+
 Be thorough, objective, and systematic in your research approach.`,
   },
 
