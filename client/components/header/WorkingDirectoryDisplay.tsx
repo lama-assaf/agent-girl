@@ -26,7 +26,7 @@ export function WorkingDirectoryDisplay({ directory, sessionId }: WorkingDirecto
   };
 
   return (
-    <div className="flex items-center gap-2 text-xs">
+    <div className="flex items-center gap-2 py-2 text-xs">
       <Folder className="w-3.5 h-3.5" style={{ color: 'rgb(var(--text-secondary))' }} />
       <span style={{ color: 'rgb(var(--text-secondary))' }}>›</span>
       <span
