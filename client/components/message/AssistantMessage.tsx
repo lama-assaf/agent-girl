@@ -1096,7 +1096,7 @@ function TextComponent({ text }: { text: TextBlock }) {
           components={{
             // Customize link rendering
             a: ({ node, ...props }) => (
-              <a {...props} style={{ color: 'rgb(var(--text-primary))' }} className="hover:opacity-70 underline" />
+              <a {...props} style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
             ),
             // Customize code rendering
             code: ({ node, className, children, ...props }: any) => {
@@ -1110,7 +1110,7 @@ function TextComponent({ text }: { text: TextBlock }) {
                   language={language || 'text'}
                   PreTag="div"
                   customStyle={{
-                    margin: '0.5rem 0',
+                    margin: '1rem 0',
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -1120,21 +1120,80 @@ function TextComponent({ text }: { text: TextBlock }) {
                   {String(children).replace(/\n$/, '')}
                 </SyntaxHighlighter>
               ) : (
-                <code className="px-1 py-0.5 text-xs font-mono" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'rgb(var(--text-primary))' }} {...props}>
+                <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'rgb(var(--text-primary))' }} {...props}>
                   {children}
                 </code>
               );
             },
+            // Customize heading rendering
+            h1: ({ node, ...props }) => (
+              <h1 className="text-2xl font-bold mt-6 mb-4" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            h2: ({ node, ...props }) => (
+              <h2 className="text-xl font-bold mt-5 mb-3" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            h3: ({ node, ...props }) => (
+              <h3 className="text-lg font-semibold mt-4 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            h4: ({ node, ...props }) => (
+              <h4 className="text-base font-semibold mt-3 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            h5: ({ node, ...props }) => (
+              <h5 className="text-sm font-semibold mt-3 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            h6: ({ node, ...props }) => (
+              <h6 className="text-sm font-semibold mt-3 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
             // Customize list rendering
             ul: ({ node, ...props }) => (
-              <ul className="list-disc pl-5 space-y-1" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+              <ul className="list-disc pl-6 space-y-3 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             ol: ({ node, ...props }) => (
-              <ol className="list-decimal pl-5 space-y-1" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+              <ol className="list-decimal pl-6 space-y-3 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            li: ({ node, ...props }) => (
+              <li className="mb-2 leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize paragraph spacing
             p: ({ node, ...props }) => (
-              <p className="mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+              <p className="mb-4 leading-relaxed first:mt-0 last:mb-0" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            // Customize blockquote
+            blockquote: ({ node, ...props }) => (
+              <blockquote className="border-l-4 border-gray-500 pl-4 py-2 my-4 italic bg-white/5" style={{ color: 'rgb(var(--text-secondary))' }} {...props} />
+            ),
+            // Customize horizontal rule
+            hr: ({ node, ...props }) => (
+              <hr className="my-6 border-t border-gray-600" {...props} />
+            ),
+            // Customize strong/bold
+            strong: ({ node, ...props }) => (
+              <strong className="font-bold" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            // Customize emphasis/italic
+            em: ({ node, ...props }) => (
+              <em className="italic" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            // Customize table
+            table: ({ node, ...props }) => (
+              <div className="my-4 overflow-x-auto">
+                <table className="min-w-full border-collapse border border-gray-600" {...props} />
+              </div>
+            ),
+            thead: ({ node, ...props }) => (
+              <thead className="bg-white/10" {...props} />
+            ),
+            tbody: ({ node, ...props }) => (
+              <tbody className="divide-y divide-gray-600" {...props} />
+            ),
+            tr: ({ node, ...props }) => (
+              <tr className="even:bg-white/5" {...props} />
+            ),
+            th: ({ node, ...props }) => (
+              <th className="px-4 py-2 text-left font-semibold border border-gray-600" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
+            ),
+            td: ({ node, ...props }) => (
+              <td className="px-4 py-2 border border-gray-600" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
           }}
         >
@@ -1192,7 +1251,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 
           {/* Message body */}
           <div className="message-assistant-body">
-            <div className="space-y-2 mt-2">
+            <div className="space-y-4 mt-2">
               {message.content.map((block, index) => {
                 if (block.type === 'text') {
                   return <TextComponent key={index} text={block} />;
