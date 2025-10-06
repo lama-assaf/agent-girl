@@ -1,5 +1,8 @@
 import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
+import path from "path";
+import fs from "fs";
+import { getDefaultWorkingDirectory, expandPath, validateDirectory } from "./directoryUtils";
 
 export interface Session {
   id: string;
@@ -7,6 +10,7 @@ export interface Session {
   created_at: string;
   updated_at: string;
   message_count: number;
+  working_directory: string;
 }
 
 export interface SessionMessage {
@@ -53,16 +57,77 @@ class SessionDatabase {
       CREATE INDEX IF NOT EXISTS idx_messages_session_id
       ON messages(session_id)
     `);
+
+    // Migration: Add working_directory column if it doesn't exist
+    this.migrateWorkingDirectory();
+  }
+
+  private migrateWorkingDirectory() {
+    try {
+      // Check if working_directory column exists
+      const columns = this.db.query<{ name: string }, []>(
+        "PRAGMA table_info(sessions)"
+      ).all();
+
+      const hasWorkingDirectory = columns.some(col => col.name === 'working_directory');
+
+      if (!hasWorkingDirectory) {
+        console.log('📦 Migrating database: Adding working_directory column');
+
+        // Add the column
+        this.db.run(`
+          ALTER TABLE sessions
+          ADD COLUMN working_directory TEXT NOT NULL DEFAULT ''
+        `);
+
+        // Update existing sessions with default directory
+        const defaultDir = getDefaultWorkingDirectory();
+        console.log('📦 Setting default working directory for existing sessions:', defaultDir);
+
+        this.db.run(
+          "UPDATE sessions SET working_directory = ? WHERE working_directory = ''",
+          [defaultDir]
+        );
+
+        console.log('✅ Database migration completed successfully');
+      } else {
+        console.log('✅ working_directory column already exists');
+      }
+    } catch (error) {
+      console.error('❌ Database migration failed:', error);
+      throw error;
+    }
   }
 
   // Session operations
-  createSession(title: string = "New Chat"): Session {
+  createSession(title: string = "New Chat", workingDirectory?: string): Session {
     const id = randomUUID();
     const now = new Date().toISOString();
 
+    let finalWorkingDir: string;
+
+    if (workingDirectory) {
+      // User provided a custom directory
+      const expandedPath = expandPath(workingDirectory);
+      const validation = validateDirectory(expandedPath);
+
+      if (!validation.valid) {
+        console.warn('⚠️  Invalid working directory provided:', validation.error);
+        // Fall back to auto-generated chat folder
+        finalWorkingDir = this.createChatDirectory(id);
+      } else {
+        finalWorkingDir = expandedPath;
+      }
+    } else {
+      // Auto-generate chat folder: ~/Documents/agent-girl/chat-{short-id}/
+      finalWorkingDir = this.createChatDirectory(id);
+    }
+
+    console.log('📁 Creating session with working directory:', finalWorkingDir);
+
     this.db.run(
-      "INSERT INTO sessions (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)",
-      [id, title, now, now]
+      "INSERT INTO sessions (id, title, created_at, updated_at, working_directory) VALUES (?, ?, ?, ?, ?)",
+      [id, title, now, now, finalWorkingDir]
     );
 
     return {
@@ -71,7 +136,30 @@ class SessionDatabase {
       created_at: now,
       updated_at: now,
       message_count: 0,
+      working_directory: finalWorkingDir,
     };
+  }
+
+  private createChatDirectory(sessionId: string): string {
+    // Create unique chat folder: ~/Documents/agent-girl/chat-{first-8-chars}/
+    const shortId = sessionId.substring(0, 8);
+    const baseDir = getDefaultWorkingDirectory();
+    const chatDir = path.join(baseDir, `chat-${shortId}`);
+
+    try {
+      if (!fs.existsSync(chatDir)) {
+        fs.mkdirSync(chatDir, { recursive: true });
+        console.log('✅ Created chat directory:', chatDir);
+      } else {
+        console.log('📁 Chat directory already exists:', chatDir);
+      }
+    } catch (error) {
+      console.error('❌ Failed to create chat directory:', error);
+      // Fall back to base directory if creation fails
+      return baseDir;
+    }
+
+    return chatDir;
   }
 
   getSessions(): Session[] {
@@ -82,6 +170,7 @@ class SessionDatabase {
           s.title,
           s.created_at,
           s.updated_at,
+          s.working_directory,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -101,6 +190,7 @@ class SessionDatabase {
           s.title,
           s.created_at,
           s.updated_at,
+          s.working_directory,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -110,6 +200,41 @@ class SessionDatabase {
       .get(sessionId);
 
     return session || null;
+  }
+
+  updateWorkingDirectory(sessionId: string, directory: string): boolean {
+    try {
+      // Expand and validate path
+      const expandedPath = expandPath(directory);
+      const validation = validateDirectory(expandedPath);
+
+      if (!validation.valid) {
+        console.error('❌ Invalid working directory:', validation.error);
+        return false;
+      }
+
+      console.log('📁 Updating working directory:', {
+        session: sessionId,
+        directory: expandedPath
+      });
+
+      const result = this.db.run(
+        "UPDATE sessions SET working_directory = ?, updated_at = ? WHERE id = ?",
+        [expandedPath, new Date().toISOString(), sessionId]
+      );
+
+      const success = result.changes > 0;
+      if (success) {
+        console.log('✅ Working directory updated successfully');
+      } else {
+        console.warn('⚠️  No session found to update');
+      }
+
+      return success;
+    } catch (error) {
+      console.error('❌ Failed to update working directory:', error);
+      return false;
+    }
   }
 
   deleteSession(sessionId: string): boolean {

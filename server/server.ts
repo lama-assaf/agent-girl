@@ -6,10 +6,15 @@ import { AVAILABLE_MODELS } from "../client/config/models";
 import { configureProvider, PROVIDERS, getMaskedApiKey } from "./providers";
 import { getMcpServers, getAllowedMcpTools } from "./mcpServers";
 import { AGENT_REGISTRY } from "./agents";
+import { getDefaultWorkingDirectory, ensureDirectory, getPlatformInfo, validateDirectory } from "./directoryUtils";
 import type { ServerWebSocket } from "bun";
 
 // Load environment variables
 import "dotenv/config";
+
+// Initialize default working directory
+const DEFAULT_WORKING_DIR = getDefaultWorkingDirectory();
+ensureDirectory(DEFAULT_WORKING_DIR);
 
 // Hot reload WebSocket clients
 interface HotReloadClient {
@@ -118,7 +123,46 @@ const server = Bun.serve({
 
           let assistantResponse = '';
 
+          // Get session working directory
+          const session = sessionDb.getSession(sessionId);
+          if (!session) {
+            console.error('❌ Session not found:', sessionId);
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Session not found'
+            }));
+            return;
+          }
+
+          const workingDir = session.working_directory;
+          const originalCwd = process.cwd();
+
+          // Log working directory info
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('📂 Working Directory Info');
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('🔹 Session ID:', sessionId);
+          console.log('🔹 Original CWD:', originalCwd);
+          console.log('🔹 Session Working Dir:', workingDir);
+
+          // Validate working directory
+          const validation = validateDirectory(workingDir);
+          if (!validation.valid) {
+            console.error('❌ Working directory invalid:', validation.error);
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: `Working directory error: ${validation.error}`
+            }));
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+            return;
+          }
+
           try {
+            // Change to session's working directory
+            process.chdir(workingDir);
+            console.log('✅ Changed to working directory:', process.cwd());
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
             // Build query options with provider-specific system prompt (including agent list)
             const queryOptions: any = {
               model: apiModelId,
@@ -209,6 +253,11 @@ const server = Bun.serve({
               type: 'error',
               error: error instanceof Error ? error.message : 'Unknown error'
             }));
+          } finally {
+            // Always restore original working directory
+            process.chdir(originalCwd);
+            console.log('↩️  Restored to original directory:', process.cwd());
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
           }
         }
       } catch (error) {
@@ -257,8 +306,8 @@ const server = Bun.serve({
     }
 
     if (url.pathname === '/api/sessions' && req.method === 'POST') {
-      const body = await req.json() as { title?: string };
-      const session = sessionDb.createSession(body.title || 'New Chat');
+      const body = await req.json() as { title?: string; workingDirectory?: string };
+      const session = sessionDb.createSession(body.title || 'New Chat', body.workingDirectory);
       return new Response(JSON.stringify(session), {
         headers: { 'Content-Type': 'application/json' },
       });
@@ -304,6 +353,48 @@ const server = Bun.serve({
       const messages = sessionDb.getSessionMessages(sessionId);
 
       return new Response(JSON.stringify(messages), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Update working directory for a session
+    if (url.pathname.match(/^\/api\/sessions\/[^/]+\/directory$/) && req.method === 'PATCH') {
+      const sessionId = url.pathname.split('/')[3];
+      const body = await req.json() as { workingDirectory: string };
+
+      console.log('📁 API: Update working directory request:', {
+        sessionId,
+        directory: body.workingDirectory
+      });
+
+      const success = sessionDb.updateWorkingDirectory(sessionId, body.workingDirectory);
+
+      if (success) {
+        const session = sessionDb.getSession(sessionId);
+        return new Response(JSON.stringify({ success: true, session }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else {
+        return new Response(JSON.stringify({ success: false, error: 'Invalid directory or session not found' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Validate directory path
+    if (url.pathname === '/api/validate-directory' && req.method === 'POST') {
+      const body = await req.json() as { directory: string };
+
+      console.log('🔍 API: Validate directory request:', body.directory);
+
+      const validation = validateDirectory(body.directory);
+
+      return new Response(JSON.stringify({
+        valid: validation.valid,
+        expanded: validation.expanded,
+        error: validation.error
+      }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }
@@ -423,3 +514,11 @@ const server = Bun.serve({
 console.log(`🚀 Server running at http://localhost:${server.port}`);
 console.log(`📡 WebSocket endpoint: ws://localhost:${server.port}/ws`);
 console.log(`🗄️  Database initialized`);
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log('🏠 Working Directory Configuration');
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+const platformInfo = getPlatformInfo();
+console.log(`💻 Platform: ${platformInfo.platform} (${platformInfo.os})`);
+console.log(`🏠 Home Directory: ${platformInfo.home}`);
+console.log(`📁 Default Working Directory: ${DEFAULT_WORKING_DIR}`);
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

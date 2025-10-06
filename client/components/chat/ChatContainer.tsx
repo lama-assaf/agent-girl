@@ -4,6 +4,7 @@ import { ChatInput } from './ChatInput';
 import { NewChatWelcome } from './NewChatWelcome';
 import { Sidebar } from '../sidebar/Sidebar';
 import { ModelSelector } from '../header/ModelSelector';
+import { WorkingDirectoryDisplay } from '../header/WorkingDirectoryDisplay';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useSessionAPI, type Session } from '../../hooks/useSessionAPI';
 import { Menu, Edit3 } from 'lucide-react';
@@ -359,6 +360,14 @@ export function ChatContainer() {
 
             {/* Right side */}
             <div className="header-right">
+              {/* Working Directory Display */}
+              {currentSessionId && sessions.find(s => s.id === currentSessionId)?.working_directory && (
+                <WorkingDirectoryDisplay
+                  directory={sessions.find(s => s.id === currentSessionId)?.working_directory || ''}
+                  sessionId={currentSessionId}
+                />
+              )}
+
               {/* Model Selector */}
               <ModelSelector
                 selectedModel={selectedModel}
