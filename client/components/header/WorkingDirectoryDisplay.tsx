@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Folder, FolderOpen } from 'lucide-react';
+import { toast } from '../../utils/toast';
 
 interface WorkingDirectoryDisplayProps {
   directory: string;
@@ -37,11 +38,15 @@ export function WorkingDirectoryDisplay({ directory, sessionId, onChangeDirector
         console.log('Directory picker cancelled');
       } else {
         // Error occurred
-        alert(result.error || 'Failed to open directory picker');
+        toast.error('Error', {
+          description: result.error || 'Failed to open directory picker'
+        });
       }
     } catch (error) {
       console.error('Failed to open directory picker:', error);
-      alert('Failed to open directory picker');
+      toast.error('Error', {
+        description: 'Failed to open directory picker'
+      });
     } finally {
       setIsChanging(false);
     }

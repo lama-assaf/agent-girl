@@ -145,7 +145,9 @@ export function ChatContainer() {
       await loadSessions();
     } else {
       // Show error to user
-      alert(result.error || 'Failed to rename folder');
+      toast.error('Error', {
+        description: result.error || 'Failed to rename folder'
+      });
     }
   };
 
@@ -155,9 +157,11 @@ export function ChatContainer() {
 
     if (result.success) {
       await loadSessions();
-      alert('Working directory updated successfully!');
+      toast.success('Working directory updated successfully!');
     } else {
-      alert(result.error || 'Failed to change working directory');
+      toast.error('Error', {
+        description: result.error || 'Failed to change working directory'
+      });
     }
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Menu, Edit3, Search, Trash2, Edit } from 'lucide-react';
+import { toast } from '../../utils/toast';
 
 interface Chat {
   id: string;
@@ -95,12 +96,16 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
     }
 
     if (newName.length > 15) {
-      alert('Folder name must be 15 characters or less');
+      toast.error('Invalid folder name', {
+        description: 'Folder name must be 15 characters or less'
+      });
       return;
     }
 
     if (!/^[a-z0-9-]+$/.test(newName)) {
-      alert('Only lowercase letters, numbers, and dashes allowed');
+      toast.error('Invalid folder name', {
+        description: 'Only lowercase letters, numbers, and dashes allowed'
+      });
       return;
     }
 
