@@ -11,11 +11,12 @@ const App: React.FC = () => {
         toastOptions={{
           style: {
             background: 'rgb(31, 41, 55)',
-            color: 'rgb(243, 244, 246)',
+            color: '#ffffff',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             fontSize: '14px',
             fontFamily: 'var(--font-sans)',
           },
+          className: 'sonner-toast',
         }}
       />
     </>

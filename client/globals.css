@@ -49,6 +49,17 @@
     overflow: hidden;
   }
 
+  /* Toast notification styling */
+  .sonner-toast [data-title],
+  .sonner-toast [data-description],
+  .sonner-toast [data-content] {
+    color: #ffffff !important;
+  }
+
+  .sonner-toast [data-description] {
+    opacity: 0.9;
+  }
+
   /* Scrollbar Styling */
   ::-webkit-scrollbar {
     width: 0px;
