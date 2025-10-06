@@ -129,6 +129,18 @@ export function ChatContainer() {
     }
   };
 
+  // Handle working directory change
+  const handleChangeDirectory = async (sessionId: string, newDirectory: string) => {
+    const result = await sessionAPI.updateWorkingDirectory(sessionId, newDirectory);
+
+    if (result.success) {
+      await loadSessions();
+      alert('Working directory updated successfully!');
+    } else {
+      alert(result.error || 'Failed to change working directory');
+    }
+  };
+
   const { isConnected, sendMessage, stopGeneration } = useWebSocket({
     url: 'ws://localhost:3001/ws',
     onMessage: (message) => {
@@ -395,6 +407,7 @@ export function ChatContainer() {
                 <WorkingDirectoryDisplay
                   directory={sessions.find(s => s.id === currentSessionId)?.working_directory || ''}
                   sessionId={currentSessionId}
+                  onChangeDirectory={handleChangeDirectory}
                 />
               )}
             </div>
