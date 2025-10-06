@@ -385,7 +385,19 @@ export function ChatContainer() {
                 <div className="flex justify-between items-center w-full">
                   <div className="flex items-center gap-3">
                     {!isSidebarOpen && (
-                      <img src="/client/agent-boy.svg" alt="Agent Girl" className="header-icon" />
+                      <img
+                        src="/client/agent-boy.svg"
+                        alt="Agent Girl"
+                        className="header-icon"
+                        loading="eager"
+                        onError={(e) => {
+                          console.error('Failed to load agent-boy.svg');
+                          // Retry loading
+                          setTimeout(() => {
+                            e.currentTarget.src = '/client/agent-boy.svg?' + Date.now();
+                          }, 100);
+                        }}
+                      />
                     )}
                     <div className="header-title text-gradient">
                       Agent Girl
