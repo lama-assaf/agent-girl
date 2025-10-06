@@ -255,6 +255,24 @@ export function ChatContainer() {
         });
       } else if (message.type === 'result') {
         setIsLoading(false);
+      } else if (message.type === 'error') {
+        // Handle error messages from server
+        setIsLoading(false);
+        const errorMessage = message.message || message.error || 'An error occurred';
+
+        // Display error as assistant message
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            type: 'assistant' as const,
+            content: [{
+              type: 'text' as const,
+              text: `❌ Error: ${errorMessage}`
+            }],
+            timestamp: new Date().toISOString(),
+          },
+        ]);
       } else if (message.type === 'user_message') {
         // Echo back user message if needed
       }

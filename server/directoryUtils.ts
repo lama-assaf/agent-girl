@@ -61,7 +61,7 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
       };
     }
 
-    // Check if it's actually a directory
+    // Check if it's actually a directory (follows symlinks)
     const stats = fs.statSync(expanded);
     if (!stats.isDirectory()) {
       console.warn('⚠️  Path is not a directory:', expanded);
@@ -72,6 +72,13 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
       };
     }
 
+    // Check if it's a symbolic link (log warning but allow)
+    const lstat = fs.lstatSync(expanded);
+    if (lstat.isSymbolicLink()) {
+      console.warn('⚠️  Path is a symbolic link:', expanded);
+      console.log('🔗 Symlink target:', fs.realpathSync(expanded));
+    }
+
     // Check read/write permissions by attempting to access
     try {
       fs.accessSync(expanded, fs.constants.R_OK | fs.constants.W_OK);
@@ -80,6 +87,18 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
       return {
         valid: false,
         error: 'No read/write permissions',
+        expanded
+      };
+    }
+
+    // Additional safety check: ensure directory is accessible
+    try {
+      fs.readdirSync(expanded);
+    } catch (err) {
+      console.warn('⚠️  Directory not accessible:', expanded);
+      return {
+        valid: false,
+        error: 'Directory not accessible (may be deleted or moved)',
         expanded
       };
     }

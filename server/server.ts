@@ -159,8 +159,18 @@ const server = Bun.serve({
 
           try {
             // Change to session's working directory
-            process.chdir(workingDir);
-            console.log('✅ Changed to working directory:', process.cwd());
+            try {
+              process.chdir(workingDir);
+              console.log('✅ Changed to working directory:', process.cwd());
+            } catch (chdirError) {
+              console.error('❌ Failed to change directory:', chdirError);
+              const errorMessage = chdirError instanceof Error ? chdirError.message : 'Unknown error';
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: `Failed to access working directory: ${errorMessage}. The directory may have been deleted.`
+              }));
+              return;
+            }
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             // Build query options with provider-specific system prompt (including agent list)
