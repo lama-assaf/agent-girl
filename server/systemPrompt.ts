@@ -37,11 +37,11 @@ function buildAgentInstructions(agents: Record<string, AgentDefinition>): string
 
   return `
 **AVAILABLE SPECIALIZED AGENTS:**
-You can spawn specialized agents using the Task tool with the following subagent types:
+You have access to specialized sub-agents for specific tasks. When a task matches a specialized agent's expertise, DELEGATE to that agent using the Task tool rather than doing everything yourself.
 
 ${agentList}
 
-Use these agents when their specialization matches the task at hand.
+IMPORTANT: Use these agents proactively when their specialization matches the task. You can still handle general tasks directly when no specialized agent is appropriate.
 `.trim();
 }
 
