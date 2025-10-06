@@ -85,10 +85,29 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
 
   const handleRenameSubmit = (chatId: string) => {
     const currentChat = chats.find(c => c.id === chatId);
+    const newName = editingTitle.trim();
 
-    if (editingTitle.trim() && editingTitle !== currentChat?.title) {
-      onChatRename?.(chatId, editingTitle.trim());
+    // Validate folder name: max 15 chars, lowercase + dashes + numbers only
+    if (!newName) {
+      setEditingId(null);
+      setEditingTitle('');
+      return;
     }
+
+    if (newName.length > 15) {
+      alert('Folder name must be 15 characters or less');
+      return;
+    }
+
+    if (!/^[a-z0-9-]+$/.test(newName)) {
+      alert('Only lowercase letters, numbers, and dashes allowed');
+      return;
+    }
+
+    if (newName !== currentChat?.title) {
+      onChatRename?.(chatId, newName);
+    }
+
     setEditingId(null);
     setEditingTitle('');
   };
@@ -177,7 +196,12 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
                               ref={inputRef}
                               type="text"
                               value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
+                              maxLength={15}
+                              onChange={(e) => {
+                                // Convert to lowercase and filter out invalid chars
+                                const filtered = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                                setEditingTitle(filtered);
+                              }}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   handleRenameSubmit(chat.id);
@@ -186,6 +210,7 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
                                 }
                               }}
                               onBlur={() => handleRenameSubmit(chat.id)}
+                              placeholder="folder-name"
                               style={{
                                 width: '100%',
                                 padding: '0.5rem',

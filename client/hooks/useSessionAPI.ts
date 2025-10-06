@@ -131,9 +131,9 @@ export function useSessionAPI() {
   }, []);
 
   /**
-   * Rename a session
+   * Rename a session folder (and title)
    */
-  const renameSession = useCallback(async (sessionId: string, newTitle: string): Promise<boolean> => {
+  const renameSession = useCallback(async (sessionId: string, newFolderName: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     setError(null);
 
@@ -143,19 +143,22 @@ export function useSessionAPI() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title: newTitle }),
+        body: JSON.stringify({ folderName: newFolderName }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json() as { success: boolean; error?: string; session?: Session };
+
+      if (!response.ok || !result.success) {
+        const errorMsg = result.error || `HTTP error! status: ${response.status}`;
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       }
 
-      await response.json();
-      return true;
+      return { success: true };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to rename session';
       setError(errorMsg);
-      return false;
+      return { success: false, error: errorMsg };
     } finally {
       setIsLoading(false);
     }

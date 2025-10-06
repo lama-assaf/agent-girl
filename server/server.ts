@@ -350,12 +350,26 @@ const server = Bun.serve({
 
     if (url.pathname.match(/^\/api\/sessions\/[^/]+$/) && req.method === 'PATCH') {
       const sessionId = url.pathname.split('/').pop()!;
-      const body = await req.json() as { title: string };
-      const success = sessionDb.renameSession(sessionId, body.title);
+      const body = await req.json() as { folderName: string };
 
-      return new Response(JSON.stringify({ success }), {
-        headers: { 'Content-Type': 'application/json' },
+      console.log('📝 API: Rename folder request:', {
+        sessionId,
+        folderName: body.folderName
       });
+
+      const result = sessionDb.renameFolderAndSession(sessionId, body.folderName);
+
+      if (result.success) {
+        const session = sessionDb.getSession(sessionId);
+        return new Response(JSON.stringify({ success: true, session }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else {
+        return new Response(JSON.stringify({ success: false, error: result.error }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     if (url.pathname.match(/^\/api\/sessions\/[^/]+\/messages$/) && req.method === 'GET') {

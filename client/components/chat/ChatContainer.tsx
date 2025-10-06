@@ -118,11 +118,14 @@ export function ChatContainer() {
   };
 
   // Handle chat rename
-  const handleChatRename = async (chatId: string, newTitle: string) => {
-    const success = await sessionAPI.renameSession(chatId, newTitle);
+  const handleChatRename = async (chatId: string, newFolderName: string) => {
+    const result = await sessionAPI.renameSession(chatId, newFolderName);
 
-    if (success) {
+    if (result.success) {
       await loadSessions();
+    } else {
+      // Show error to user
+      alert(result.error || 'Failed to rename folder');
     }
   };
 
@@ -325,12 +328,16 @@ export function ChatContainer() {
       <Sidebar
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-        chats={sessions.map(session => ({
-          id: session.id,
-          title: session.title,
-          timestamp: new Date(session.updated_at),
-          isActive: session.id === currentSessionId,
-        }))}
+        chats={sessions.map(session => {
+          // Extract folder name from working_directory path
+          const folderName = session.working_directory?.split('/').filter(Boolean).pop() || session.title;
+          return {
+            id: session.id,
+            title: folderName,
+            timestamp: new Date(session.updated_at),
+            isActive: session.id === currentSessionId,
+          };
+        })}
         onNewChat={handleNewChat}
         onChatSelect={handleSessionSelect}
         onChatDelete={handleChatDelete}
