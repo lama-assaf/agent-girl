@@ -37,8 +37,18 @@ export function useSessionAPI() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const sessions = await response.json() as Session[];
-      return sessions;
+      const data = await response.json() as { sessions: Session[]; warning?: string };
+
+      // Show warning if directories were recreated
+      if (data.warning) {
+        console.warn('⚠️  Directory warning:', data.warning);
+        // Show alert to user
+        setTimeout(() => {
+          alert(`⚠️  ${data.warning}\n\nSome chat folders were missing and have been recreated.`);
+        }, 100);
+      }
+
+      return data.sessions;
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch sessions';
       setError(errorMsg);

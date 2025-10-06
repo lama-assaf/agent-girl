@@ -310,8 +310,14 @@ const server = Bun.serve({
 
     // REST API endpoints
     if (url.pathname === '/api/sessions' && req.method === 'GET') {
-      const sessions = sessionDb.getSessions();
-      return new Response(JSON.stringify(sessions), {
+      const { sessions, recreatedDirectories } = sessionDb.getSessions();
+
+      return new Response(JSON.stringify({
+        sessions,
+        warning: recreatedDirectories.length > 0
+          ? `Recreated ${recreatedDirectories.length} missing director${recreatedDirectories.length === 1 ? 'y' : 'ies'}`
+          : undefined
+      }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }

@@ -162,7 +162,7 @@ class SessionDatabase {
     return chatDir;
   }
 
-  getSessions(): Session[] {
+  getSessions(): { sessions: Session[]; recreatedDirectories: string[] } {
     const sessions = this.db
       .query<Session, []>(
         `SELECT
@@ -179,7 +179,24 @@ class SessionDatabase {
       )
       .all();
 
-    return sessions;
+    // Validate and recreate missing directories
+    const recreatedDirectories: string[] = [];
+
+    for (const session of sessions) {
+      if (session.working_directory && !fs.existsSync(session.working_directory)) {
+        console.warn(`⚠️  Missing directory for session ${session.id}: ${session.working_directory}`);
+
+        try {
+          fs.mkdirSync(session.working_directory, { recursive: true });
+          console.log(`✅ Recreated directory: ${session.working_directory}`);
+          recreatedDirectories.push(session.working_directory);
+        } catch (error) {
+          console.error(`❌ Failed to recreate directory: ${session.working_directory}`, error);
+        }
+      }
+    }
+
+    return { sessions, recreatedDirectories };
   }
 
   getSession(sessionId: string): Session | null {
