@@ -360,17 +360,22 @@ export function ChatContainer() {
                 )}
               </div>
 
-            {/* Center - Model name */}
+            {/* Center - Logo and Model Selector */}
             <div className="header-center">
               <div className="flex flex-col items-start w-full">
                 <div className="flex justify-between items-center w-full">
-                  <div className="flex items-center gap-2 overflow-hidden">
+                  <div className="flex items-center gap-3 overflow-hidden">
                     {!isSidebarOpen && (
                       <img src="/client/agent-boy.svg" alt="Agent Girl" className="header-icon" />
                     )}
                     <div className="header-title text-gradient">
                       Agent Girl
                     </div>
+                    {/* Model Selector */}
+                    <ModelSelector
+                      selectedModel={selectedModel}
+                      onModelChange={handleModelChange}
+                    />
                   </div>
                 </div>
               </div>
@@ -385,12 +390,6 @@ export function ChatContainer() {
                   sessionId={currentSessionId}
                 />
               )}
-
-              {/* Model Selector */}
-              <ModelSelector
-                selectedModel={selectedModel}
-                onModelChange={handleModelChange}
-              />
             </div>
           </div>
         </div>
