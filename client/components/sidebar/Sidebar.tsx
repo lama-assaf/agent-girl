@@ -7,6 +7,7 @@ interface Chat {
   title: string;
   timestamp: Date;
   isActive?: boolean;
+  isLoading?: boolean;
 }
 
 interface SidebarProps {
@@ -233,7 +234,45 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
                               className={`sidebar-chat-item ${chat.isActive ? 'sidebar-chat-item-active' : ''}`}
                               onClick={() => onChatSelect?.(chat.id)}
                             >
-                              <div className="sidebar-chat-title">{chat.title}</div>
+                              <div className="sidebar-chat-title">
+                                {chat.title}
+                                {chat.isLoading && (
+                                  <span style={{
+                                    marginLeft: '0.5rem',
+                                    display: 'inline-flex',
+                                    gap: '2px',
+                                    alignItems: 'center',
+                                  }}>
+                                    <span style={{
+                                      width: '3px',
+                                      height: '3px',
+                                      backgroundColor: 'rgb(var(--text-secondary))',
+                                      borderRadius: '50%',
+                                      animation: 'pulse 1.4s ease-in-out infinite',
+                                      animationDelay: '0s',
+                                      opacity: 0.6,
+                                    }}></span>
+                                    <span style={{
+                                      width: '3px',
+                                      height: '3px',
+                                      backgroundColor: 'rgb(var(--text-secondary))',
+                                      borderRadius: '50%',
+                                      animation: 'pulse 1.4s ease-in-out infinite',
+                                      animationDelay: '0.2s',
+                                      opacity: 0.6,
+                                    }}></span>
+                                    <span style={{
+                                      width: '3px',
+                                      height: '3px',
+                                      backgroundColor: 'rgb(var(--text-secondary))',
+                                      borderRadius: '50%',
+                                      animation: 'pulse 1.4s ease-in-out infinite',
+                                      animationDelay: '0.4s',
+                                      opacity: 0.6,
+                                    }}></span>
+                                  </span>
+                                )}
+                              </div>
                             </button>
                             <div className={`sidebar-chat-menu ${chat.isActive ? '' : 'sidebar-chat-menu-hidden'}`} style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                               <button

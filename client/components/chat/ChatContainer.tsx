@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { NewChatWelcome } from './NewChatWelcome';
@@ -16,13 +16,25 @@ import { toast } from '../../utils/toast';
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingSessions, setLoadingSessions] = useState<Set<string>>(new Set());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Session management
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [_isLoadingSessions, setIsLoadingSessions] = useState(true);
+
+  // Message cache to preserve streaming state across session switches
+  const messageCache = useRef<Map<string, Message[]>>(new Map());
+
+  // Automatically cache messages as they update during streaming
+  // IMPORTANT: Only depend on messages, NOT currentSessionId
+  // (otherwise it fires when session changes with old messages)
+  useEffect(() => {
+    if (currentSessionId && messages.length > 0) {
+      messageCache.current.set(currentSessionId, messages);
+    }
+  }, [messages]);
 
   // Model selection
   const [selectedModel, setSelectedModel] = useState<string>(() => {
@@ -36,6 +48,30 @@ export function ChatContainer() {
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
 
   const sessionAPI = useSessionAPI();
+
+  // Per-session loading state helpers
+  const isSessionLoading = (sessionId: string | null): boolean => {
+    return sessionId ? loadingSessions.has(sessionId) : false;
+  };
+
+  const setSessionLoading = (sessionId: string, loading: boolean) => {
+    setLoadingSessions(prev => {
+      const next = new Set(prev);
+      if (loading) {
+        next.add(sessionId);
+      } else {
+        next.delete(sessionId);
+      }
+      return next;
+    });
+  };
+
+  // Check if ANY session is loading (global loading state for input disabling)
+  const isAnySessionLoading = loadingSessions.size > 0;
+  const isLoading = isAnySessionLoading;
+
+  // Check if CURRENT session is loading (for typing indicator)
+  const isCurrentSessionLoading = currentSessionId ? loadingSessions.has(currentSessionId) : false;
 
   // Save model selection to localStorage
   const handleModelChange = (modelId: string) => {
@@ -57,6 +93,12 @@ export function ChatContainer() {
 
   // Handle session switching
   const handleSessionSelect = async (sessionId: string) => {
+    // IMPORTANT: Cache current session's messages BEFORE switching
+    if (currentSessionId && messages.length > 0) {
+      messageCache.current.set(currentSessionId, messages);
+      console.log(`[Message Cache] Cached ${messages.length} messages for session ${currentSessionId}`);
+    }
+
     setCurrentSessionId(sessionId);
 
     // Load session details to get permission mode
@@ -66,7 +108,15 @@ export function ChatContainer() {
       setIsPlanMode(session.permission_mode === 'plan');
     }
 
-    // Load messages for this session
+    // Check cache first before loading from database
+    const cachedMessages = messageCache.current.get(sessionId);
+    if (cachedMessages) {
+      console.log(`[Message Cache] Restored ${cachedMessages.length} cached messages for session ${sessionId}`);
+      setMessages(cachedMessages);
+      return;
+    }
+
+    // Load messages from database
     const sessionMessages = await sessionAPI.fetchSessionMessages(sessionId);
 
     // Convert session messages to Message format
@@ -179,7 +229,7 @@ export function ChatContainer() {
       const result = await sessionAPI.updatePermissionMode(currentSessionId, mode);
 
       // If query is active, send WebSocket message to switch mode mid-stream
-      if (result.success && isLoading) {
+      if (result.success && isSessionLoading(currentSessionId)) {
         sendMessage({
           type: 'set_permission_mode',
           sessionId: currentSessionId,
@@ -204,7 +254,7 @@ export function ChatContainer() {
     setPendingPlan(null);
 
     // Immediately send continuation message to start execution
-    setIsLoading(true);
+    if (currentSessionId) setSessionLoading(currentSessionId, true);
 
     // Add a user message indicating approval
     const approvalMessage: Message = {
@@ -229,13 +279,24 @@ export function ChatContainer() {
   // Handle plan rejection
   const handleRejectPlan = () => {
     setPendingPlan(null);
-    setIsLoading(false);
+    if (currentSessionId) setSessionLoading(currentSessionId, false);
   };
 
   const { isConnected, sendMessage, stopGeneration } = useWebSocket({
     // Use dynamic URL based on current window location (works on any port)
     url: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
     onMessage: (message) => {
+      // Session isolation: Ignore messages from other sessions
+      if (message.sessionId && message.sessionId !== currentSessionId) {
+        console.log(`[Session Filter] Ignoring message from session ${message.sessionId} (current: ${currentSessionId})`);
+
+        // Clear loading state for filtered session if it's a completion message
+        if (message.type === 'result' || message.type === 'error') {
+          setSessionLoading(message.sessionId, false);
+        }
+        return;
+      }
+
       // Handle incoming WebSocket messages
       if (message.type === 'assistant_message' && message.content) {
         setMessages((prev) => {
@@ -361,10 +422,15 @@ export function ChatContainer() {
           ];
         });
       } else if (message.type === 'result') {
-        setIsLoading(false);
+        if (currentSessionId) {
+          setSessionLoading(currentSessionId, false);
+          // Clear message cache for this session since messages are now saved to DB
+          messageCache.current.delete(currentSessionId);
+          console.log(`[Message Cache] Cleared cache for session ${currentSessionId} (stream completed)`);
+        }
       } else if (message.type === 'error') {
         // Handle error messages from server
-        setIsLoading(false);
+        if (currentSessionId) setSessionLoading(currentSessionId, false);
         const errorMessage = message.message || message.error || 'An error occurred';
 
         // Show toast notification
@@ -399,7 +465,15 @@ export function ChatContainer() {
   });
 
   const handleSubmit = async (files?: import('../message/types').FileAttachment[]) => {
-    if (!inputValue.trim() || !isConnected || isLoading) return;
+    if (!inputValue.trim()) return;
+
+    if (!isConnected) return;
+
+    // Show toast if another chat is in progress
+    if (isLoading) {
+      toast.info('Another chat is in progress. Wait for it to complete first.');
+      return;
+    }
 
     try {
       // Create new session if none exists
@@ -431,7 +505,7 @@ export function ChatContainer() {
       };
 
       setMessages((prev) => [...prev, userMessage]);
-      setIsLoading(true);
+      setSessionLoading(sessionId, true);
 
       // Use local sessionId variable (guaranteed to be set)
       sendMessage({
@@ -445,13 +519,13 @@ export function ChatContainer() {
     } catch (error) {
       console.error('Failed to submit message:', error);
       toast.error('Failed to send message');
-      setIsLoading(false);
+      if (currentSessionId) setSessionLoading(currentSessionId, false);
     }
   };
 
   const handleStop = () => {
     stopGeneration();
-    setIsLoading(false);
+    if (currentSessionId) setSessionLoading(currentSessionId, false);
   };
 
   return (
@@ -468,6 +542,7 @@ export function ChatContainer() {
             title: folderName,
             timestamp: new Date(session.updated_at),
             isActive: session.id === currentSessionId,
+            isLoading: loadingSessions.has(session.id),
           };
         })}
         onNewChat={handleNewChat}
@@ -566,7 +641,7 @@ export function ChatContainer() {
           // Chat Interface
           <>
             {/* Messages */}
-            <MessageList messages={messages} isLoading={isLoading} />
+            <MessageList messages={messages} isLoading={isCurrentSessionLoading} />
 
             {/* Input */}
             <ChatInput

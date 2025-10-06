@@ -1,10 +1,11 @@
 import { watch } from "fs";
 import path from "path";
+import { readFileSync, existsSync, appendFileSync } from "fs";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { sessionDb } from "./database";
-import { getSystemPrompt } from "./systemPrompt";
+import { getSystemPrompt, injectWorkingDirIntoAgents } from "./systemPrompt";
 import { AVAILABLE_MODELS } from "../client/config/models";
-import { configureProvider, PROVIDERS, getMaskedApiKey } from "./providers";
+import { configureProvider, getProviders, getMaskedApiKey } from "./providers";
 import { getMcpServers, getAllowedMcpTools } from "./mcpServers";
 import { AGENT_REGISTRY } from "./agents";
 import { getDefaultWorkingDirectory, ensureDirectory, validateDirectory } from "./directoryUtils";
@@ -13,6 +14,30 @@ import type { ServerWebSocket } from "bun";
 
 // Determine if running in standalone mode
 const IS_STANDALONE = process.env.STANDALONE_BUILD === 'true';
+
+// Create debug log function
+// In standalone mode: only writes to debug log file (silent in console)
+// In dev mode: writes to console for debugging
+const debugLog = (message: string) => {
+  if (IS_STANDALONE) {
+    try {
+      const logPath = path.join(path.dirname(process.execPath), 'agent-girl-debug.log');
+      const timestamp = new Date().toISOString();
+      const logMessage = `[${timestamp}] ${message}\n`;
+      appendFileSync(logPath, logMessage, 'utf-8');
+    } catch (e) {
+      console.error('Failed to write debug log:', e);
+    }
+  } else {
+    console.log(message);
+  }
+};
+
+debugLog('🔍 Startup diagnostics:');
+debugLog(`  - IS_STANDALONE: ${IS_STANDALONE}`);
+debugLog(`  - STANDALONE_BUILD env: ${process.env.STANDALONE_BUILD}`);
+debugLog(`  - process.execPath: ${process.execPath}`);
+debugLog(`  - process.cwd(): ${process.cwd()}`);
 
 // Conditionally import PostCSS only in dev mode (not standalone)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,9 +62,64 @@ const getBinaryDir = () => {
 };
 
 const BINARY_DIR = getBinaryDir();
+debugLog(`  - BINARY_DIR: ${BINARY_DIR}`);
+
+// In standalone mode, change working directory to binary location
+// This ensures all relative paths work correctly regardless of how the binary was launched
+if (IS_STANDALONE) {
+  debugLog(`  - Changing cwd from ${process.cwd()} to ${BINARY_DIR}`);
+  process.chdir(BINARY_DIR);
+  debugLog(`  - New cwd: ${process.cwd()}`);
+}
 
 // Load environment variables
-import "dotenv/config";
+// In standalone mode, manually parse .env from binary directory
+// In dev mode, use dotenv/config from project root
+if (IS_STANDALONE) {
+  const envPath = path.join(BINARY_DIR, '.env');
+  debugLog(`  - Looking for .env at: ${envPath}`);
+  debugLog(`  - .env exists: ${existsSync(envPath)}`);
+
+  if (existsSync(envPath)) {
+    const envContent = readFileSync(envPath, 'utf-8');
+    debugLog(`  - .env file size: ${envContent.length} bytes`);
+
+    let keysLoaded = 0;
+    envContent.split('\n').forEach(line => {
+      const trimmedLine = line.trim();
+      // Skip empty lines and comments
+      if (!trimmedLine || trimmedLine.startsWith('#')) return;
+
+      const match = trimmedLine.match(/^([^=]+)=(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        let value = match[2].trim();
+
+        // Remove quotes if present
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+
+        process.env[key] = value;
+        keysLoaded++;
+        // Only log the key name, not the value (for security)
+        if (key === 'ANTHROPIC_API_KEY' || key === 'ZAI_API_KEY') {
+          debugLog(`  - Loaded ${key}: ${value.substring(0, 10)}...`);
+        }
+      }
+    });
+    debugLog(`✅ Loaded .env from: ${envPath} (${keysLoaded} keys)`);
+  } else {
+    debugLog(`⚠️  .env file not found at: ${envPath}`);
+  }
+} else {
+  debugLog('  - Using dotenv/config (dev mode)');
+  await import("dotenv/config");
+}
+
+debugLog(`  - ANTHROPIC_API_KEY set: ${!!process.env.ANTHROPIC_API_KEY}`);
+debugLog(`  - ZAI_API_KEY set: ${!!process.env.ZAI_API_KEY}`);
 
 // Initialize default working directory
 const DEFAULT_WORKING_DIR = getDefaultWorkingDirectory();
@@ -146,7 +226,8 @@ const server = Bun.serve({
           }
 
           // Get provider config for logging
-          const providerConfig = PROVIDERS[providerType];
+          const providers = getProviders();
+          const providerConfig = providers[providerType];
 
           // Get MCP servers for this provider
           const mcpServers = getMcpServers(providerType);
@@ -220,12 +301,30 @@ const server = Bun.serve({
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             // Build query options with provider-specific system prompt (including agent list)
+            // Add working directory context to system prompt AND all agent prompts
+            const baseSystemPrompt = getSystemPrompt(providerType, AGENT_REGISTRY);
+            const systemPromptWithContext = `${baseSystemPrompt}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 ENVIRONMENT CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WORKING DIRECTORY: ${workingDir}
+
+When creating files for this session, use the WORKING DIRECTORY path above.
+All file paths should be relative to this directory or use absolute paths within it.
+Run bash commands with the understanding that this is your current working directory.
+`;
+
+            // Inject working directory context into all custom agent prompts
+            const agentsWithWorkingDir = injectWorkingDirIntoAgents(AGENT_REGISTRY, workingDir);
+
             const queryOptions: Record<string, unknown> = {
               model: apiModelId,
-              systemPrompt: getSystemPrompt(providerType, AGENT_REGISTRY),
+              systemPrompt: systemPromptWithContext,
               permissionMode: session.permission_mode || 'bypassPermissions', // Use session's permission mode
               includePartialMessages: true,
-              agents: AGENT_REGISTRY, // Register custom agents (already in SDK format)
+              agents: agentsWithWorkingDir, // Register custom agents with working dir context
             };
 
             // In standalone mode, point to the CLI in the binary directory
@@ -267,6 +366,7 @@ const server = Bun.serve({
                   ws.send(JSON.stringify({
                     type: 'assistant_message',
                     content: text,
+                    sessionId: sessionId,  // Include sessionId for client-side filtering
                   }));
                 }
               } else if (message.type === 'assistant') {
@@ -293,6 +393,7 @@ const server = Bun.serve({
                         ws.send(JSON.stringify({
                           type: 'exit_plan_mode',
                           plan: (block.input as Record<string, unknown>)?.plan || 'No plan provided',
+                          sessionId: sessionId,  // Include sessionId for client-side filtering
                         }));
                       }
 
@@ -301,6 +402,7 @@ const server = Bun.serve({
                         toolId: block.id,
                         toolName: block.name,
                         toolInput: block.input,
+                        sessionId: sessionId,  // Include sessionId for client-side filtering
                       }));
                     }
                   }

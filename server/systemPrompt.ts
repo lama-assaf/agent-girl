@@ -46,6 +46,42 @@ IMPORTANT: Use these agents proactively when their specialization matches the ta
 }
 
 /**
+ * Inject working directory context into an agent definition
+ */
+function injectWorkingDirIntoAgent(agent: AgentDefinition, workingDir: string): AgentDefinition {
+  return {
+    ...agent,
+    prompt: `${agent.prompt}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 ENVIRONMENT CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WORKING DIRECTORY: ${workingDir}
+
+When creating files, use the WORKING DIRECTORY path above.
+All file paths should be relative to this directory or use absolute paths within it.
+`
+  };
+}
+
+/**
+ * Inject working directory context into all agent definitions
+ */
+export function injectWorkingDirIntoAgents(
+  agents: Record<string, AgentDefinition>,
+  workingDir: string
+): Record<string, AgentDefinition> {
+  const updatedAgents: Record<string, AgentDefinition> = {};
+
+  for (const [key, agent] of Object.entries(agents)) {
+    updatedAgents[key] = injectWorkingDirIntoAgent(agent, workingDir);
+  }
+
+  return updatedAgents;
+}
+
+/**
  * Get system prompt based on provider and available agents
  * GLM models get additional instructions about using MCP web search
  */

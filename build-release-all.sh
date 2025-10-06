@@ -64,18 +64,36 @@ for target_config in "${TARGETS[@]}"; do
   cp node_modules/@anthropic-ai/claude-code/yoga.wasm "$PLATFORM_DIR/"
   cp -r node_modules/@anthropic-ai/claude-code/vendor "$PLATFORM_DIR/"
 
+  # Copy platform-specific setup files
+  if [[ "$platform" == "macos-"* ]]; then
+    echo "📁 Copying macOS setup files..."
+    cp release-templates/macos/setup.sh "$PLATFORM_DIR/"
+    cp release-templates/macos/README.md "$PLATFORM_DIR/"
+    chmod +x "$PLATFORM_DIR/setup.sh"
+  elif [[ "$platform" == "linux-"* ]]; then
+    echo "📁 Copying Linux setup files..."
+    cp release-templates/linux/setup.sh "$PLATFORM_DIR/"
+    cp release-templates/linux/README.md "$PLATFORM_DIR/"
+    chmod +x "$PLATFORM_DIR/setup.sh"
+  elif [[ "$platform" == "windows-"* ]]; then
+    echo "📁 Copying Windows setup files..."
+    cp release-templates/windows/README.md "$PLATFORM_DIR/"
+  fi
+
   # Create .env file with placeholders
   cat > "$PLATFORM_DIR/.env" << 'EOF'
-# API Configuration
-# Choose your provider: anthropic or z-ai
-API_PROVIDER=anthropic
+# =============================================================================
+# Anthropic Configuration (Claude Models)
+# =============================================================================
+# Get your API key from: https://console.anthropic.com/
+ANTHROPIC_API_KEY=sk-ant-your-key-here
 
-# Anthropic API Key (get from https://console.anthropic.com/)
-ANTHROPIC_API_KEY=your-anthropic-api-key-here
-
-# Z.AI API Key (get from https://z.ai/)
-# Only needed if using API_PROVIDER=z-ai
-ZAI_API_KEY=your-zai-api-key-here
+# =============================================================================
+# Z.AI Configuration (GLM Models)
+# =============================================================================
+# Get your API key from: https://z.ai
+# The server automatically configures the endpoint when you select a GLM model
+ZAI_API_KEY=your-zai-key-here
 EOF
 
   # Create platform-specific README

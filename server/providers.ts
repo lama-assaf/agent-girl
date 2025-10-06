@@ -9,26 +9,31 @@ export interface ProviderConfig {
 /**
  * Provider configurations
  * Maps provider types to their API configurations
+ * This is a getter function to ensure API keys are read from process.env at runtime,
+ * not at module initialization time (which happens before .env is loaded in standalone mode)
  */
-export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
-  'anthropic': {
-    // No baseUrl = uses default Anthropic endpoint (https://api.anthropic.com)
-    apiKey: process.env.ANTHROPIC_API_KEY || '',
-    name: 'Anthropic',
-  },
-  'z-ai': {
-    baseUrl: 'https://api.z.ai/api/anthropic',
-    apiKey: process.env.ZAI_API_KEY || '',
-    name: 'Z.AI',
-  },
-};
+export function getProviders(): Record<ProviderType, ProviderConfig> {
+  return {
+    'anthropic': {
+      // No baseUrl = uses default Anthropic endpoint (https://api.anthropic.com)
+      apiKey: process.env.ANTHROPIC_API_KEY || '',
+      name: 'Anthropic',
+    },
+    'z-ai': {
+      baseUrl: 'https://api.z.ai/api/anthropic',
+      apiKey: process.env.ZAI_API_KEY || '',
+      name: 'Z.AI',
+    },
+  };
+}
 
 /**
  * Configure environment for a specific provider
  * Sets ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars
  */
 export function configureProvider(provider: ProviderType): void {
-  const config = PROVIDERS[provider];
+  const providers = getProviders();
+  const config = providers[provider];
 
   if (!config.apiKey) {
     throw new Error(`Missing API key for provider: ${provider}`);
