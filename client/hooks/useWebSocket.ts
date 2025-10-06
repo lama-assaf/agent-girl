@@ -78,7 +78,7 @@ export function useWebSocket({
           scheduleReconnect();
         }
       };
-    } catch (error) {
+    } catch {
       // Failed to create WebSocket connection
     }
   }, [url, onMessage, onConnect, onDisconnect, onError, reconnectAttempts, maxReconnectAttempts, scheduleReconnect]);

@@ -17,14 +17,14 @@ export function openDirectoryPicker(): Promise<string | null> {
 
       const child = spawn('osascript', ['-e', script]);
       let output = '';
-      let error = '';
+      let _error = '';
 
       child.stdout.on('data', (data) => {
         output += data.toString();
       });
 
       child.stderr.on('data', (data) => {
-        error += data.toString();
+        _error += data.toString();
       });
 
       child.on('close', (code) => {

@@ -195,7 +195,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                 {onTogglePlanMode && (
                   <button
                     onClick={onTogglePlanMode}
-                    className={isPlanMode ? 'send-button-active' : 'btn-icon'}
+                    className={`${isPlanMode ? 'send-button-active' : 'btn-icon'} rounded-lg`}
                     title={isPlanMode ? "Plan Mode Active - Click to deactivate" : "Activate Plan Mode"}
                     type="button"
                     style={{

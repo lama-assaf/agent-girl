@@ -338,6 +338,104 @@
   opacity: 0.9;
 }
 
+/* Plan mode gradient border with shimmer */
+.plan-border-active {
+  position: relative;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(rgb(var(--bg-input)), rgb(var(--bg-input))) padding-box,
+    linear-gradient(
+      90deg,
+      #A8C7FA 0%,
+      #DAEEFF 25%,
+      #ffffff 50%,
+      #DAEEFF 75%,
+      #A8C7FA 100%
+    ) border-box;
+  background-size: 100% 100%, 200% 100%;
+  animation: shimmer-border 3s linear infinite;
+}
+
+@keyframes shimmer-border {
+  0% {
+    background-position: 0% 0%, -200% 0%;
+  }
+  100% {
+    background-position: 0% 0%, 200% 0%;
+  }
+}
+
+/* Plan mode gradient separator */
+.plan-separator {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    #A8C7FA 0%,
+    #DAEEFF 25%,
+    #ffffff 50%,
+    #DAEEFF 75%,
+    #A8C7FA 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-separator 3s linear infinite;
+}
+
+@keyframes shimmer-separator {
+  0% {
+    background-position: -200% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+/* Plan mode code block gradient border */
+.plan-code-border {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  background:
+    linear-gradient(rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.05)) padding-box,
+    linear-gradient(
+      90deg,
+      #A8C7FA 0%,
+      #DAEEFF 25%,
+      #ffffff 50%,
+      #DAEEFF 75%,
+      #A8C7FA 100%
+    ) border-box;
+  background-size: 100% 100%, 200% 100%;
+  animation: shimmer-border 3s linear infinite;
+}
+
+/* Plan mode gradient text */
+.plan-text-gradient {
+  background: linear-gradient(
+    90deg,
+    #A8C7FA 0%,
+    #DAEEFF 25%,
+    #ffffff 50%,
+    #DAEEFF 75%,
+    #A8C7FA 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-text 3s linear infinite;
+}
+
+@keyframes shimmer-text {
+  0% {
+    background-position: -200% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
 /* Header */
 .header {
   position: sticky;

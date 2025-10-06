@@ -9,6 +9,9 @@ import { AGENT_REGISTRY } from "./agents";
 import { getDefaultWorkingDirectory, ensureDirectory, getPlatformInfo, validateDirectory } from "./directoryUtils";
 import { openDirectoryPicker } from "./directoryPicker";
 import type { ServerWebSocket } from "bun";
+import postcss from 'postcss';
+import tailwindcss from '@tailwindcss/postcss';
+import autoprefixer from 'autoprefixer';
 
 // Load environment variables
 import "dotenv/config";
@@ -29,7 +32,7 @@ interface ChatWebSocketData {
 }
 
 // Store active queries for mid-stream control
-const activeQueries = new Map<string, any>();
+const activeQueries = new Map<string, unknown>();
 
 const hotReloadClients = new Set<HotReloadClient>();
 
@@ -40,7 +43,7 @@ watch('./client', { recursive: true }, (_eventType, filename) => {
     hotReloadClients.forEach(client => {
       try {
         client.send(JSON.stringify({ type: 'reload' }));
-      } catch (err) {
+      } catch {
         hotReloadClients.delete(client);
       }
     });
@@ -178,7 +181,7 @@ const server = Bun.serve({
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             // Build query options with provider-specific system prompt (including agent list)
-            const queryOptions: any = {
+            const queryOptions: unknown = {
               model: apiModelId,
               systemPrompt: getSystemPrompt(providerType, AGENT_REGISTRY),
               permissionMode: session.permission_mode || 'bypassPermissions', // Use session's permission mode
@@ -204,7 +207,7 @@ const server = Bun.serve({
             console.log(`✅ Query initialized successfully`);
 
             // Track full message content structure for saving to database
-            let fullMessageContent: any[] = [];
+            const fullMessageContent: unknown[] = [];
             let waitingForPlanApproval = false;
 
             // Stream the response - query() is an AsyncGenerator
@@ -626,10 +629,6 @@ const server = Bun.serve({
         try {
           const cssContent = await file.text();
 
-          const postcss = require('postcss');
-          const tailwindcss = require('@tailwindcss/postcss');
-          const autoprefixer = require('autoprefixer');
-
           const result = await postcss([
             tailwindcss(),
             autoprefixer,
@@ -643,7 +642,7 @@ const server = Bun.serve({
               'Content-Type': 'text/css',
             },
           });
-        } catch (error) {
+        } catch {
           return new Response('CSS processing failed', { status: 500 });
         }
       }

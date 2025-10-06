@@ -20,7 +20,7 @@ export function ChatContainer() {
   // Session management
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [_isLoadingSessions, setIsLoadingSessions] = useState(true);
 
   // Model selection
   const [selectedModel, setSelectedModel] = useState<string>(() => {

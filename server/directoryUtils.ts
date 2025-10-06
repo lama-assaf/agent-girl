@@ -82,7 +82,7 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
     // Check read/write permissions by attempting to access
     try {
       fs.accessSync(expanded, fs.constants.R_OK | fs.constants.W_OK);
-    } catch (err) {
+    } catch {
       console.warn('⚠️  No read/write permissions:', expanded);
       return {
         valid: false,
@@ -94,7 +94,7 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
     // Additional safety check: ensure directory is accessible
     try {
       fs.readdirSync(expanded);
-    } catch (err) {
+    } catch {
       console.warn('⚠️  Directory not accessible:', expanded);
       return {
         valid: false,

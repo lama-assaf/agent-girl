@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Check, X, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 interface PlanApprovalModalProps {
   plan: string;
@@ -95,17 +95,17 @@ export function PlanApprovalModal({ plan, onApprove, onReject }: PlanApprovalMod
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                a: ({ node, ...props }) => (
+                a: ({ _node, ...props }) => (
                   <a {...props} style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
                 ),
-                code: ({ node, className, children, ...props }: any) => {
+                code: ({ _node, className, children, ...props }: unknown) => {
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const inline = !className;
 
                   return !inline ? (
                     <SyntaxHighlighter
-                      style={vscDarkPlus as any}
+                      style={vscDarkPlus as unknown}
                       language={language || 'text'}
                       PreTag="div"
                       customStyle={{
@@ -124,28 +124,28 @@ export function PlanApprovalModal({ plan, onApprove, onReject }: PlanApprovalMod
                     </code>
                   );
                 },
-                h1: ({ node, ...props }) => (
+                h1: ({ _node, ...props }) => (
                   <h1 className="text-2xl font-bold mt-6 mb-4" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                h2: ({ node, ...props }) => (
+                h2: ({ _node, ...props }) => (
                   <h2 className="text-xl font-bold mt-5 mb-3" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                h3: ({ node, ...props }) => (
+                h3: ({ _node, ...props }) => (
                   <h3 className="text-lg font-semibold mt-4 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                ul: ({ node, ...props }) => (
+                ul: ({ _node, ...props }) => (
                   <ul className="list-disc pl-6 space-y-2 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                ol: ({ node, ...props }) => (
+                ol: ({ _node, ...props }) => (
                   <ol className="list-decimal pl-6 space-y-2 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                li: ({ node, ...props }) => (
+                li: ({ _node, ...props }) => (
                   <li className="leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                p: ({ node, ...props }) => (
+                p: ({ _node, ...props }) => (
                   <p className="mb-4 leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                strong: ({ node, ...props }) => (
+                strong: ({ _node, ...props }) => (
                   <strong className="font-bold" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
               }}
@@ -167,54 +167,26 @@ export function PlanApprovalModal({ plan, onApprove, onReject }: PlanApprovalMod
         >
           <button
             onClick={onReject}
+            className="stop-button-active"
             style={{
               padding: '0.625rem 1.25rem',
-              borderRadius: '0.5rem',
-              border: '1px solid rgba(239, 68, 68, 0.5)',
-              background: 'rgba(239, 68, 68, 0.1)',
-              color: 'rgb(239, 68, 68)',
               fontSize: '0.875rem',
               fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+              borderRadius: '0.5rem',
             }}
           >
-            <X size={16} />
             Reject
           </button>
           <button
             onClick={onApprove}
+            className="send-button-active"
             style={{
               padding: '0.625rem 1.25rem',
-              borderRadius: '0.5rem',
-              border: '1px solid rgba(34, 197, 94, 0.5)',
-              background: 'rgba(34, 197, 94, 0.1)',
-              color: 'rgb(34, 197, 94)',
               fontSize: '0.875rem',
               fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)';
+              borderRadius: '0.5rem',
             }}
           >
-            <Check size={16} />
             Approve & Execute
           </button>
         </div>

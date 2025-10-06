@@ -2,12 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { AVAILABLE_MODELS } from '../../config/models';
 
-interface Model {
-  id: string;
-  name: string;
-  description: string;
-}
-
 interface ModelSelectorProps {
   selectedModel: string;
   onModelChange: (modelId: string) => void;
