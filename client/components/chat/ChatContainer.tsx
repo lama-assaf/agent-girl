@@ -233,7 +233,8 @@ export function ChatContainer() {
   };
 
   const { isConnected, sendMessage, stopGeneration } = useWebSocket({
-    url: 'ws://localhost:3001/ws',
+    // Use dynamic URL based on current window location (works on any port)
+    url: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
     onMessage: (message) => {
       // Handle incoming WebSocket messages
       if (message.type === 'assistant_message' && message.content) {
@@ -400,41 +401,52 @@ export function ChatContainer() {
   const handleSubmit = async (files?: import('../message/types').FileAttachment[]) => {
     if (!inputValue.trim() || !isConnected || isLoading) return;
 
-    // Create new session if none exists
-    let sessionId = currentSessionId;
-    if (!sessionId) {
-      const newSession = await sessionAPI.createSession();
-      if (!newSession) return;
+    try {
+      // Create new session if none exists
+      let sessionId = currentSessionId;
+      if (!sessionId) {
+        const newSession = await sessionAPI.createSession();
+        if (!newSession) {
+          toast.error('Failed to create chat session');
+          return;
+        }
 
-      sessionId = newSession.id;
-      setCurrentSessionId(sessionId);
+        sessionId = newSession.id;
 
-      // Apply current permission mode to new session
-      const mode = isPlanMode ? 'plan' : 'bypassPermissions';
-      await sessionAPI.updatePermissionMode(sessionId, mode);
+        // Apply current permission mode to new session
+        const mode = isPlanMode ? 'plan' : 'bypassPermissions';
+        await sessionAPI.updatePermissionMode(sessionId, mode);
 
-      await loadSessions();
+        // Update state and load sessions
+        setCurrentSessionId(sessionId);
+        await loadSessions();
+      }
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: inputValue,
+        timestamp: new Date().toISOString(),
+        attachments: files,
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setIsLoading(true);
+
+      // Use local sessionId variable (guaranteed to be set)
+      sendMessage({
+        type: 'chat',
+        content: inputValue,
+        sessionId: sessionId,
+        model: selectedModel,
+      });
+
+      setInputValue('');
+    } catch (error) {
+      console.error('Failed to submit message:', error);
+      toast.error('Failed to send message');
+      setIsLoading(false);
     }
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: inputValue,
-      timestamp: new Date().toISOString(),
-      attachments: files,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
-
-    sendMessage({
-      type: 'chat',
-      content: inputValue,
-      sessionId: sessionId,
-      model: selectedModel,
-    });
-
-    setInputValue('');
   };
 
   const handleStop = () => {

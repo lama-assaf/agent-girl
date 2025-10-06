@@ -22,8 +22,8 @@ export function WorkingDirectoryDisplay({ directory, sessionId, onChangeDirector
 
     setIsChanging(true);
     try {
-      // Call server to open native directory picker
-      const response = await fetch('http://localhost:3001/api/pick-directory', {
+      // Call server to open native directory picker (dynamic URL works on any port)
+      const response = await fetch(`${window.location.protocol}//${window.location.host}/api/pick-directory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });

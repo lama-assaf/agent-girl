@@ -25,28 +25,44 @@ export function useWebSocket({
   maxReconnectAttempts = 5,
 }: UseWebSocketOptions) {
   const [isConnected, setIsConnected] = useState(false);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messageQueueRef = useRef<string[]>([]);
-  const connectRef = useRef<(() => void) | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const isMountedRef = useRef(false);
 
-  const scheduleReconnect = useCallback(() => {
-    reconnectTimeoutRef.current = setTimeout(() => {
-      setReconnectAttempts(prev => prev + 1);
-      connectRef.current?.();
-    }, reconnectDelay);
-  }, [reconnectDelay]);
+  // Use refs for callbacks to prevent reconnections when they change
+  const onMessageRef = useRef(onMessage);
+  const onConnectRef = useRef(onConnect);
+  const onDisconnectRef = useRef(onDisconnect);
+  const onErrorRef = useRef(onError);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+    onConnectRef.current = onConnect;
+    onDisconnectRef.current = onDisconnect;
+    onErrorRef.current = onError;
+  }, [onMessage, onConnect, onDisconnect, onError]);
 
   const connect = useCallback(() => {
+    // Don't attempt connection if already connected or if we've exceeded max attempts
+    if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      return;
+    }
+
     try {
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
       ws.onopen = () => {
         setIsConnected(true);
-        setReconnectAttempts(0);
-        onConnect?.();
+        reconnectAttemptsRef.current = 0;
+        onConnectRef.current?.();
 
         // Send any queued messages
         while (messageQueueRef.current.length > 0) {
@@ -58,32 +74,33 @@ export function useWebSocket({
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          onMessage?.(message);
+          onMessageRef.current?.(message);
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
         }
       };
 
       ws.onerror = (error) => {
-        onError?.(error);
+        onErrorRef.current?.(error);
       };
 
       ws.onclose = () => {
         setIsConnected(false);
-        onDisconnect?.();
+        onDisconnectRef.current?.();
         wsRef.current = null;
 
-        // Attempt reconnection
-        if (reconnectAttempts < maxReconnectAttempts) {
-          scheduleReconnect();
+        // Only attempt reconnection if still mounted
+        if (isMountedRef.current && reconnectAttemptsRef.current < maxReconnectAttempts) {
+          reconnectAttemptsRef.current += 1;
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, reconnectDelay);
         }
       };
     } catch {
       // Failed to create WebSocket connection
     }
-  }, [url, onMessage, onConnect, onDisconnect, onError, reconnectAttempts, maxReconnectAttempts, scheduleReconnect]);
-
-  connectRef.current = connect;
+  }, [url, maxReconnectAttempts, reconnectDelay]);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
     const messageStr = JSON.stringify(message);
@@ -93,14 +110,8 @@ export function useWebSocket({
     } else {
       // Queue the message if not connected
       messageQueueRef.current.push(messageStr);
-
-      // Try to reconnect if not already attempting
-      if (!isConnected && reconnectAttempts >= maxReconnectAttempts) {
-        setReconnectAttempts(0);
-        connect();
-      }
     }
-  }, [isConnected, reconnectAttempts, maxReconnectAttempts, connect]);
+  }, []);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -124,12 +135,19 @@ export function useWebSocket({
 
   // Initialize connection
   useEffect(() => {
+    isMountedRef.current = true;
     connect();
 
     return () => {
+      isMountedRef.current = false;
+      // Clear reconnection timeout on unmount
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       disconnect();
     };
-  }, []);
+  }, [connect, disconnect]);
 
   return {
     isConnected,

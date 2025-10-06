@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { SyntaxHighlighter, vscDarkPlus } from '../../utils/syntaxHighlighter';
 import { AssistantMessage as AssistantMessageType, ToolUseBlock, TextBlock, TodoItem } from './types';
 import { ThinkingBlock } from './ThinkingBlock';
 import { Shield } from 'lucide-react';

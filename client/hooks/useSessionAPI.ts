@@ -19,7 +19,8 @@ export interface SessionMessage {
   timestamp: string;
 }
 
-const API_BASE = 'http://localhost:3001/api';
+// Use dynamic URL based on current window location (works on any port)
+const API_BASE = `${window.location.protocol}//${window.location.host}/api`;
 
 export function useSessionAPI() {
   const [isLoading, setIsLoading] = useState(false);

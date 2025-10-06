@@ -7,6 +7,10 @@ echo "🚀 Building Agent Girl Release..."
 rm -rf release/
 mkdir -p release/agent-girl-app
 
+# Pre-build CSS (required for standalone binary)
+echo "📦 Pre-building CSS..."
+bun run build:css
+
 # Build the binary
 echo "📦 Building binary..."
 bun run build:binary
@@ -17,6 +21,10 @@ mv agent-girl release/agent-girl-app/
 # Copy client files
 echo "📁 Copying client files..."
 cp -r client/ release/agent-girl-app/client/
+
+# Replace raw globals.css with processed version from dist
+echo "📁 Copying processed CSS..."
+cp dist/globals.css release/agent-girl-app/client/globals.css
 
 # Copy icons
 cp -r client/icons/ release/agent-girl-app/icons/ 2>/dev/null || true
