@@ -1,8 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ChatContainer } from "./components/chat/ChatContainer";
 import { Toaster } from "sonner";
 
 const App: React.FC = () => {
+  // Preload the agent icon to prevent broken image on first render
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/client/agent-boy.svg';
+  }, []);
+
   return (
     <>
       <ChatContainer />
