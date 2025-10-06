@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 
 export interface Session {
   id: string;
@@ -42,10 +43,11 @@ export function useSessionAPI() {
       // Show warning if directories were recreated
       if (data.warning) {
         console.warn('⚠️  Directory warning:', data.warning);
-        // Show alert to user
-        setTimeout(() => {
-          alert(`⚠️  ${data.warning}\n\nSome chat folders were missing and have been recreated.`);
-        }, 100);
+        // Show toast notification to user
+        toast.warning(`${data.warning}`, {
+          description: 'Some chat folders were missing and have been recreated.',
+          duration: 5000,
+        });
       }
 
       return data.sessions;
