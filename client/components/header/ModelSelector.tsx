@@ -67,7 +67,7 @@ export function ModelSelector({ selectedModel, onModelChange }: ModelSelectorPro
             borderRadius: '0.75rem',
             width: '32rem',
             maxWidth: 'calc(100vw - 1rem)',
-            zIndex: 50,
+            zIndex: 9999,
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
           }}
         >

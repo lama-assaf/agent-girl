@@ -364,7 +364,7 @@ export function ChatContainer() {
             <div className="header-center">
               <div className="flex flex-col items-start w-full">
                 <div className="flex justify-between items-center w-full">
-                  <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="flex items-center gap-3">
                     {!isSidebarOpen && (
                       <img src="/client/agent-boy.svg" alt="Agent Girl" className="header-icon" />
                     )}
