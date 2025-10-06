@@ -60,6 +60,11 @@
     opacity: 0.9;
   }
 
+  /* Hide toast icon */
+  .sonner-toast [data-icon] {
+    display: none !important;
+  }
+
   /* Scrollbar Styling */
   ::-webkit-scrollbar {
     width: 0px;
