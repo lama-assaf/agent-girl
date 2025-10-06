@@ -170,7 +170,8 @@ const server = Bun.serve({
                 // Capture full message content structure for database storage
                 const content = message.message.content;
                 if (Array.isArray(content)) {
-                  fullMessageContent = content;
+                  // Append blocks instead of replacing (SDK may send multiple assistant messages)
+                  fullMessageContent.push(...content);
 
                   // Handle tool use from complete assistant message
                   for (const block of content) {
