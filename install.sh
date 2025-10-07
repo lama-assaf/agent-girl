@@ -220,6 +220,7 @@ cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
   fi
 
   # Add /usr/local/bin to PATH if not already there
+  NEEDS_RESTART=false
   if [[ -n "$LAUNCHER_PATH" ]] && [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
     echo ""
     echo -e "${BLUE}Adding /usr/local/bin to PATH...${NC}"
@@ -233,10 +234,10 @@ cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
     # Add PATH export if it doesn't already exist in the file
     if ! grep -q 'export PATH="/usr/local/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
       echo 'export PATH="/usr/local/bin:$PATH"' >> "$SHELL_RC"
-      echo -e "${GREEN}✓${NC} Added /usr/local/bin to PATH in $SHELL_RC"
-      echo -e "${YELLOW}Note:${NC} Restart your terminal or run: ${BLUE}source $SHELL_RC${NC}"
+      echo -e "${GREEN}✓${NC} Added /usr/local/bin to PATH"
+      NEEDS_RESTART=true
     else
-      echo -e "${GREEN}✓${NC} /usr/local/bin already configured in $SHELL_RC"
+      echo -e "${GREEN}✓${NC} /usr/local/bin already in PATH"
     fi
   fi
   echo ""
@@ -269,7 +270,11 @@ echo ""
 
 # Check if global launcher was created
 if [[ -f "$LAUNCHER_PATH" ]]; then
-  echo "  ${YELLOW}→ Just type:${NC} ${GREEN}$APP_NAME${NC}"
+  if [[ "$NEEDS_RESTART" == "true" ]]; then
+    echo "  ${YELLOW}→ Restart your terminal, then type:${NC} ${GREEN}$APP_NAME${NC}"
+  else
+    echo "  ${YELLOW}→ Just type:${NC} ${GREEN}$APP_NAME${NC}"
+  fi
   echo ""
   echo "  The app will start at ${BLUE}http://localhost:3001${NC}"
 else
