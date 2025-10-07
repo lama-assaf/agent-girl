@@ -271,21 +271,21 @@ echo ""
 # Check if global launcher was created
 if [[ -f "$LAUNCHER_PATH" ]]; then
   if [[ "$NEEDS_RESTART" == "true" ]]; then
-    echo "  ${YELLOW}→ Restart your terminal, then type:${NC} ${GREEN}$APP_NAME${NC}"
+    echo -e "  ${YELLOW}→ Restart your terminal, then type:${NC} ${GREEN}$APP_NAME${NC}"
   else
-    echo "  ${YELLOW}→ Just type:${NC} ${GREEN}$APP_NAME${NC}"
+    echo -e "  ${YELLOW}→ Just type:${NC} ${GREEN}$APP_NAME${NC}"
   fi
   echo ""
-  echo "  The app will start at ${BLUE}http://localhost:3001${NC}"
+  echo -e "  The app will start at ${BLUE}http://localhost:3001${NC}"
 else
-  echo "  ${YELLOW}Option 1 - From Finder:${NC}"
-  echo "    Open ${BLUE}$INSTALL_DIR${NC}"
-  echo "    Double-click ${YELLOW}$APP_NAME${NC}"
+  echo -e "  ${YELLOW}Option 1 - From Finder:${NC}"
+  echo -e "    Open ${BLUE}$INSTALL_DIR${NC}"
+  echo -e "    Double-click ${YELLOW}$APP_NAME${NC}"
   echo ""
-  echo "  ${YELLOW}Option 2 - From Terminal:${NC}"
-  echo "    Run ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
+  echo -e "  ${YELLOW}Option 2 - From Terminal:${NC}"
+  echo -e "    Run ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
   echo ""
-  echo "  The app will start at ${BLUE}http://localhost:3001${NC}"
+  echo -e "  The app will start at ${BLUE}http://localhost:3001${NC}"
 fi
 
 echo ""
