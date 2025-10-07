@@ -222,12 +222,12 @@ function BashOutputToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
               {input.bash_id as string}
             </div>
           </div>
-          {input.filter && (
+          {input.filter ? (
             <div>
               <span className="text-xs font-semibold text-black/60 dark:text-white/60">Filter:</span>
-              <div className="text-sm mt-1 font-mono">{input.filter as string}</div>
+              <div className="text-sm mt-1 font-mono">{String(input.filter)}</div>
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>
@@ -550,7 +550,7 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const [error, setError] = useState<Error | null>(null);
 
   // Defensive data access
-  let input, nestedToolsCount, agentName, gradientClass;
+  let input: Record<string, unknown> | undefined, nestedToolsCount: number | undefined, agentName, gradientClass;
 
   try {
     input = toolUse.input || {};
@@ -608,7 +608,7 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
           <span className={`text-sm leading-6 ${gradientClass}`}>{agentName}</span>
           <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
           <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
-            {nestedToolsCount > 0 ? `Used ${nestedToolsCount} tool${nestedToolsCount !== 1 ? 's' : ''}` : 'Running...'}
+            {nestedToolsCount && nestedToolsCount > 0 ? `Used ${nestedToolsCount} tool${nestedToolsCount !== 1 ? 's' : ''}` : 'Running...'}
           </span>
         </div>
         <div className="flex gap-1 items-center whitespace-nowrap">
@@ -637,19 +637,19 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             try {
               return (
                 <>
-                  {input.subagent_type && (
+                  {input?.subagent_type && (
                     <div>
                       <span className="text-xs font-semibold text-black/60 dark:text-white/60">Agent Type:</span>
                       <div className="text-sm mt-1">{String(input.subagent_type)}</div>
                     </div>
                   )}
-                  {input.description && (
+                  {input?.description && (
                     <div>
                       <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Description:</span>
                       <div className="text-sm mt-1">{String(input.description)}</div>
                     </div>
                   )}
-                  {input.prompt && (
+                  {input?.prompt && (
                     <div>
                       <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Prompt:</span>
                       <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-white/60 dark:bg-black/20 p-2 rounded whitespace-pre-wrap break-words">
@@ -662,7 +662,7 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                   )}
 
                   {/* Nested tools from spawned agent */}
-                  {nestedToolsCount > 0 && (
+                  {nestedToolsCount && nestedToolsCount > 0 && (
                     <div>
                       <span className="text-xs font-semibold text-black/60 dark:text-white/60">Tools Used ({nestedToolsCount}):</span>
                       <div className="mt-2 space-y-2">
@@ -935,17 +935,20 @@ function NotebookEditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             <span className="text-xs font-semibold text-black/60 dark:text-white/60">Edit Mode:</span>
             <div className="text-sm mt-1">{(input.edit_mode as string) || 'replace'}</div>
           </div>
-          {input.new_source && (
+          {input.new_source ? (
             <div>
               <span className="text-xs font-semibold text-black/60 dark:text-white/60">New Source:</span>
               <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-black/5 dark:bg-black/20 p-2 rounded font-mono whitespace-pre-wrap">
                 {String(input.new_source).substring(0, 500)}
-                {String(input.new_source).length > 500 && (
-                  <span className="text-xs text-black/40 dark:text-white/40"> (truncated)</span>
-                )}
+                {(() => {
+                  const sourceStr = String(input.new_source);
+                  return sourceStr.length > 500 ? (
+                    <span className="text-xs text-black/40 dark:text-white/40"> (truncated)</span>
+                  ) : null;
+                })()}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>
@@ -1086,10 +1089,10 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                a: ({ _node, ...props }) => (
+                a: (props) => (
                   <a {...props} target="_blank" rel="noopener noreferrer" className="plan-text-gradient hover:opacity-80 underline transition-opacity" />
                 ),
-                code: ({ _node, className, children, ...props }: unknown) => {
+                code: ({ className, children, ...props }: any) => {
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const inline = !className;
@@ -1118,28 +1121,28 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                     </code>
                   );
                 },
-                h1: ({ _node, ...props }) => (
+                h1: (props) => (
                   <h1 className="text-2xl font-bold mt-6 mb-4 plan-text-gradient" {...props} />
                 ),
-                h2: ({ _node, ...props }) => (
+                h2: (props) => (
                   <h2 className="text-xl font-bold mt-5 mb-3 plan-text-gradient" {...props} />
                 ),
-                h3: ({ _node, ...props }) => (
+                h3: (props) => (
                   <h3 className="text-lg font-semibold mt-4 mb-2 plan-text-gradient" {...props} />
                 ),
-                ul: ({ _node, ...props }) => (
+                ul: (props) => (
                   <ul className="list-disc pl-6 space-y-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                ol: ({ _node, ...props }) => (
+                ol: (props) => (
                   <ol className="list-decimal pl-6 space-y-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                li: ({ _node, ...props }) => (
+                li: (props) => (
                   <li className="leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                p: ({ _node, ...props }) => (
+                p: (props) => (
                   <p className="mb-4 leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                strong: ({ _node, ...props }) => (
+                strong: (props) => (
                   <strong className="font-bold plan-text-gradient" {...props} />
                 ),
               }}
@@ -1257,7 +1260,7 @@ function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             <div className="bg-red-500/10 border-l-2 border-red-500">
               <SyntaxHighlighter
                 language={language}
-                style={vscDarkPlus as unknown}
+                style={vscDarkPlus as { [key: string]: React.CSSProperties }}
                 PreTag="div"
                 customStyle={{
                   margin: 0,
@@ -1291,7 +1294,7 @@ function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             <div className="bg-green-500/10 border-l-2 border-green-500">
               <SyntaxHighlighter
                 language={language}
-                style={vscDarkPlus as unknown}
+                style={vscDarkPlus as { [key: string]: React.CSSProperties }}
                 PreTag="div"
                 showLineNumbers={true}
                 customStyle={{
@@ -1467,11 +1470,11 @@ function TextComponent({ text }: { text: TextBlock }) {
           remarkPlugins={[remarkGfm]}
           components={{
             // Customize link rendering
-            a: ({ _node, ...props }) => (
+            a: (props) => (
               <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
             ),
             // Customize code rendering
-            code: ({ _node, className, children, ...props }: unknown) => {
+            code: ({ className, children, ...props }: any) => {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : '';
               const inline = !className;
@@ -1498,73 +1501,73 @@ function TextComponent({ text }: { text: TextBlock }) {
               );
             },
             // Customize heading rendering
-            h1: ({ _node, ...props }) => (
+            h1: (props) => (
               <h1 className="text-2xl font-bold mt-6 mb-4" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h2: ({ _node, ...props }) => (
+            h2: (props) => (
               <h2 className="text-xl font-bold mt-5 mb-3" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h3: ({ _node, ...props }) => (
+            h3: (props) => (
               <h3 className="text-lg font-semibold mt-4 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h4: ({ _node, ...props }) => (
+            h4: (props) => (
               <h4 className="text-base font-semibold mt-3 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h5: ({ _node, ...props }) => (
+            h5: (props) => (
               <h5 className="text-sm font-semibold mt-3 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h6: ({ _node, ...props }) => (
+            h6: (props) => (
               <h6 className="text-sm font-semibold mt-3 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize list rendering
-            ul: ({ _node, ...props }) => (
+            ul: (props) => (
               <ul className="list-disc pl-6 space-y-3 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            ol: ({ _node, ...props }) => (
+            ol: (props) => (
               <ol className="list-decimal pl-6 space-y-3 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            li: ({ _node, ...props }) => (
+            li: (props) => (
               <li className="mb-2 leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize paragraph spacing
-            p: ({ _node, ...props }) => (
+            p: (props) => (
               <p className="mb-4 leading-relaxed first:mt-0 last:mb-0" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize blockquote
-            blockquote: ({ _node, ...props }) => (
+            blockquote: (props) => (
               <blockquote className="border-l-4 border-gray-500 pl-4 py-2 my-4 italic bg-white/5" style={{ color: 'rgb(var(--text-secondary))' }} {...props} />
             ),
             // Customize horizontal rule
-            hr: ({ _node, ...props }) => (
+            hr: (props) => (
               <hr className="my-6 border-t border-gray-600" {...props} />
             ),
             // Customize strong/bold
-            strong: ({ _node, ...props }) => (
+            strong: (props) => (
               <strong className="font-bold" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize emphasis/italic
-            em: ({ _node, ...props }) => (
+            em: (props) => (
               <em className="italic" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize table
-            table: ({ _node, ...props }) => (
+            table: (props) => (
               <div className="my-4 overflow-x-auto">
                 <table className="min-w-full border-collapse border border-gray-600" {...props} />
               </div>
             ),
-            thead: ({ _node, ...props }) => (
+            thead: (props) => (
               <thead className="bg-white/10" {...props} />
             ),
-            tbody: ({ _node, ...props }) => (
+            tbody: (props) => (
               <tbody className="divide-y divide-gray-600" {...props} />
             ),
-            tr: ({ _node, ...props }) => (
+            tr: (props) => (
               <tr className="even:bg-white/5" {...props} />
             ),
-            th: ({ _node, ...props }) => (
+            th: (props) => (
               <th className="px-4 py-2 text-left font-semibold border border-gray-600" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            td: ({ _node, ...props }) => (
+            td: (props) => (
               <td className="px-4 py-2 border border-gray-600" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
           }}

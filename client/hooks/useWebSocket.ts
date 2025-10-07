@@ -20,10 +20,77 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-interface WebSocketMessage {
+interface BaseWebSocketMessage {
   type: string;
-  [key: string]: unknown;
+  sessionId?: string;
 }
+
+interface AssistantMessageEvent extends BaseWebSocketMessage {
+  type: 'assistant_message';
+  content: string;
+}
+
+interface ToolUseEvent extends BaseWebSocketMessage {
+  type: 'tool_use';
+  toolId: string;
+  toolName: string;
+  toolInput: Record<string, unknown>;
+}
+
+interface ResultEvent extends BaseWebSocketMessage {
+  type: 'result';
+}
+
+interface ErrorEvent extends BaseWebSocketMessage {
+  type: 'error';
+  message?: string;
+  error?: string;
+}
+
+interface UserMessageEvent extends BaseWebSocketMessage {
+  type: 'user_message';
+}
+
+interface ExitPlanModeEvent extends BaseWebSocketMessage {
+  type: 'exit_plan_mode';
+  plan?: string;
+}
+
+interface PermissionModeChangedEvent extends BaseWebSocketMessage {
+  type: 'permission_mode_changed';
+  mode: string;
+}
+
+interface BackgroundProcessStartedEvent extends BaseWebSocketMessage {
+  type: 'background_process_started';
+  bashId: string;
+  command: string;
+  description: string;
+}
+
+interface BackgroundProcessKilledEvent extends BaseWebSocketMessage {
+  type: 'background_process_killed';
+  bashId: string;
+}
+
+interface BackgroundProcessExitedEvent extends BaseWebSocketMessage {
+  type: 'background_process_exited';
+  bashId: string;
+  exitCode: number;
+}
+
+export type WebSocketMessage =
+  | AssistantMessageEvent
+  | ToolUseEvent
+  | ResultEvent
+  | ErrorEvent
+  | UserMessageEvent
+  | ExitPlanModeEvent
+  | PermissionModeChangedEvent
+  | BackgroundProcessStartedEvent
+  | BackgroundProcessKilledEvent
+  | BackgroundProcessExitedEvent
+  | BaseWebSocketMessage; // Fallback for unknown types
 
 interface UseWebSocketOptions {
   url: string;
@@ -122,7 +189,7 @@ export function useWebSocket({
     }
   }, [url, maxReconnectAttempts, reconnectDelay]);
 
-  const sendMessage = useCallback((message: WebSocketMessage) => {
+  const sendMessage = useCallback((message: Record<string, unknown>) => {
     const messageStr = JSON.stringify(message);
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

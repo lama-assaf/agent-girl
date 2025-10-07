@@ -44,4 +44,13 @@ export const toast = {
       className: 'toast-error',
     });
   },
+
+  /**
+   * Info toast with default styling
+   */
+  info: (message: string, options?: { description?: string; duration?: number }) => {
+    return sonnerToast.info(message, {
+      ...options,
+    });
+  },
 };

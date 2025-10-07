@@ -114,10 +114,10 @@ export function PlanApprovalModal({ plan, onApprove, onReject }: PlanApprovalMod
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                a: ({ _node, ...props }) => (
+                a: (props) => (
                   <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
                 ),
-                code: ({ _node, className, children, ...props }: unknown) => {
+                code: ({ className, children, ...props }: any) => {
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const inline = !className;
@@ -143,28 +143,28 @@ export function PlanApprovalModal({ plan, onApprove, onReject }: PlanApprovalMod
                     </code>
                   );
                 },
-                h1: ({ _node, ...props }) => (
+                h1: (props) => (
                   <h1 className="text-2xl font-bold mt-6 mb-4" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                h2: ({ _node, ...props }) => (
+                h2: (props) => (
                   <h2 className="text-xl font-bold mt-5 mb-3" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                h3: ({ _node, ...props }) => (
+                h3: (props) => (
                   <h3 className="text-lg font-semibold mt-4 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                ul: ({ _node, ...props }) => (
+                ul: (props) => (
                   <ul className="list-disc pl-6 space-y-2 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                ol: ({ _node, ...props }) => (
+                ol: (props) => (
                   <ol className="list-decimal pl-6 space-y-2 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                li: ({ _node, ...props }) => (
+                li: (props) => (
                   <li className="leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                p: ({ _node, ...props }) => (
+                p: (props) => (
                   <p className="mb-4 leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                strong: ({ _node, ...props }) => (
+                strong: (props) => (
                   <strong className="font-bold" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
               }}

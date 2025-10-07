@@ -18,17 +18,22 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "types": ["node", "bun"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["client/*"]
+    }
   },
   "include": [
-    "*.ts",
-    "*.js",
-    "**/*.ts",
-    "**/*.js"
+    "client/**/*.ts",
+    "client/**/*.tsx",
+    "server/**/*.ts",
+    "*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "coverage"
+    "coverage",
+    "release"
   ]
 }

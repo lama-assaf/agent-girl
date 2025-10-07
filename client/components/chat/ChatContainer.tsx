@@ -315,14 +315,15 @@ export function ChatContainer() {
         console.log(`[Session Filter] Ignoring message from session ${message.sessionId} (current: ${currentSessionId})`);
 
         // Clear loading state for filtered session if it's a completion message
-        if (message.type === 'result' || message.type === 'error') {
+        if ((message.type === 'result' || message.type === 'error') && message.sessionId) {
           setSessionLoading(message.sessionId, false);
         }
         return;
       }
 
       // Handle incoming WebSocket messages
-      if (message.type === 'assistant_message' && message.content) {
+      if (message.type === 'assistant_message' && 'content' in message) {
+        const assistantContent = message.content as string;
         setMessages((prev) => {
           const lastMessage = prev[prev.length - 1];
 
@@ -335,7 +336,7 @@ export function ChatContainer() {
             if (lastBlock && lastBlock.type === 'text') {
               const updatedContent = [
                 ...content.slice(0, -1),
-                { type: 'text' as const, text: lastBlock.text + message.content }
+                { type: 'text' as const, text: lastBlock.text + assistantContent }
               ];
               const updatedMessage = {
                 ...lastMessage,
@@ -346,7 +347,7 @@ export function ChatContainer() {
               // Otherwise add new text block
               const updatedMessage = {
                 ...lastMessage,
-                content: [...content, { type: 'text' as const, text: message.content }]
+                content: [...content, { type: 'text' as const, text: assistantContent }]
               };
               return [...prev.slice(0, -1), updatedMessage];
             }
@@ -358,23 +359,24 @@ export function ChatContainer() {
             {
               id: Date.now().toString(),
               type: 'assistant' as const,
-              content: [{ type: 'text' as const, text: message.content }],
+              content: [{ type: 'text' as const, text: assistantContent }],
               timestamp: new Date().toISOString(),
             },
           ];
         });
-      } else if (message.type === 'tool_use') {
+      } else if (message.type === 'tool_use' && 'toolId' in message && 'toolName' in message && 'toolInput' in message) {
         // Handle tool use messages
+        const toolUseMsg = message as { type: 'tool_use'; toolId: string; toolName: string; toolInput: Record<string, unknown> };
         setMessages((prev) => {
           const lastMessage = prev[prev.length - 1];
 
           const toolUseBlock = {
             type: 'tool_use' as const,
-            id: message.toolId,
-            name: message.toolName,
-            input: message.toolInput,
+            id: toolUseMsg.toolId,
+            name: toolUseMsg.toolName,
+            input: toolUseMsg.toolInput,
             // Initialize nestedTools array for Task tools
-            ...(message.toolName === 'Task' ? { nestedTools: [] } : {}),
+            ...(toolUseMsg.toolName === 'Task' ? { nestedTools: [] } : {}),
           };
 
           // If last message is assistant, check for Task tool nesting
@@ -386,10 +388,11 @@ export function ChatContainer() {
             let foundTextBlockAfterLastTask = false;
 
             for (let i = content.length - 1; i >= 0; i--) {
-              if (content[i].type === 'text') {
+              const block = content[i];
+              if (block.type === 'text') {
                 foundTextBlockAfterLastTask = true;
               }
-              if (content[i].type === 'tool_use' && content[i].name === 'Task') {
+              if (block.type === 'tool_use' && block.name === 'Task') {
                 if (!foundTextBlockAfterLastTask) {
                   activeTaskIndices.unshift(i); // Add to beginning to maintain order
                 } else {
@@ -399,7 +402,7 @@ export function ChatContainer() {
             }
 
             // If this is a Task tool OR we found no active Tasks to nest under, add normally
-            if (message.toolName === 'Task' || activeTaskIndices.length === 0) {
+            if (toolUseMsg.toolName === 'Task' || activeTaskIndices.length === 0) {
               const updatedMessage = {
                 ...lastMessage,
                 content: [...content, toolUseBlock]
@@ -455,7 +458,8 @@ export function ChatContainer() {
       } else if (message.type === 'error') {
         // Handle error messages from server
         if (currentSessionId) setSessionLoading(currentSessionId, false);
-        const errorMessage = message.message || message.error || 'An error occurred';
+        const errorMsg = 'message' in message ? message.message : ('error' in message ? message.error : undefined);
+        const errorMessage = errorMsg || 'An error occurred';
 
         // Show toast notification
         toast.error('Error', {
@@ -479,12 +483,14 @@ export function ChatContainer() {
         // Echo back user message if needed
       } else if (message.type === 'exit_plan_mode') {
         // Handle plan mode exit - show approval modal and auto-deactivate plan mode
-        setPendingPlan(message.plan || 'No plan provided');
+        const planText = 'plan' in message ? message.plan : undefined;
+        setPendingPlan(planText || 'No plan provided');
         setIsPlanMode(false); // Auto-deactivate plan mode when ExitPlanMode is triggered
       } else if (message.type === 'permission_mode_changed') {
         // Handle permission mode change confirmation
-        setIsPlanMode(message.mode === 'plan');
-      } else if (message.type === 'background_process_started') {
+        const mode = 'mode' in message ? message.mode : undefined;
+        setIsPlanMode(mode === 'plan');
+      } else if (message.type === 'background_process_started' && 'bashId' in message && 'command' in message && 'description' in message) {
         // Handle background process started
         const sessionId = message.sessionId || currentSessionId;
         if (sessionId) {
@@ -492,15 +498,15 @@ export function ChatContainer() {
             const newMap = new Map(prev);
             const processes = newMap.get(sessionId) || [];
             newMap.set(sessionId, [...processes, {
-              bashId: message.bashId,
-              command: message.command,
-              description: message.description,
+              bashId: message.bashId as string,
+              command: message.command as string,
+              description: message.description as string,
               startedAt: Date.now()
             }]);
             return newMap;
           });
         }
-      } else if (message.type === 'background_process_killed') {
+      } else if (message.type === 'background_process_killed' && 'bashId' in message) {
         // Handle background process killed confirmation
         const sessionId = message.sessionId || currentSessionId;
         if (sessionId) {
@@ -511,7 +517,7 @@ export function ChatContainer() {
             return newMap;
           });
         }
-      } else if (message.type === 'background_process_exited') {
+      } else if (message.type === 'background_process_exited' && 'bashId' in message && 'exitCode' in message) {
         // Handle background process that exited on its own
         const sessionId = message.sessionId || currentSessionId;
         if (sessionId) {
