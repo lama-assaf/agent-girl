@@ -338,9 +338,9 @@ Run bash commands with the understanding that this is your current working direc
               agents: agentsWithWorkingDir, // Register custom agents with working dir context
             };
 
-            // In standalone mode, point to the CLI in the binary directory
+            // In standalone mode, point to the CLI in node_modules
             if (IS_STANDALONE) {
-              queryOptions.pathToClaudeCodeExecutable = path.join(BINARY_DIR, 'cli.js');
+              queryOptions.pathToClaudeCodeExecutable = path.join(BINARY_DIR, 'node_modules/@anthropic-ai/claude-code/cli.js');
               console.log('🔧 Using Claude Code CLI at:', queryOptions.pathToClaudeCodeExecutable);
             }
 
