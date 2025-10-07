@@ -29,13 +29,28 @@ function formatTimestamp(timestamp: string): string {
   return new Date(timestamp).toLocaleString();
 }
 
+// Filter out hidden image and file path references
+function filterImagePathReferences(text: string): string {
+  return text
+    .split('\n')
+    .filter(line => {
+      // Filter out image paths
+      if (line.match(/^\[Image attached: \.\/pictures\/.*\]$/)) return false;
+      // Filter out file paths
+      if (line.match(/^\[File attached: \.\/files\/.*\]$/)) return false;
+      return true;
+    })
+    .join('\n')
+    .trim();
+}
+
 export function UserMessage({ message }: UserMessageProps) {
   const [copied, setCopied] = useState(false);
 
   // Handle copy to clipboard
   const handleCopy = async () => {
     const userMessage = message as UserMessageType;
-    const text = userMessage.content;
+    const text = filterImagePathReferences(userMessage.content);
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -95,7 +110,7 @@ export function UserMessage({ message }: UserMessageProps) {
                     {userMessage.attachments.map((file) => (
                       <button
                         key={file.id}
-                        className="relative group p-1.5 w-60 flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 text-left mb-1"
+                        className="relative group p-1.5 w-60 max-w-60 flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 text-left mb-1"
                         type="button"
                       >
                         <div className="flex justify-center items-center">
@@ -105,7 +120,7 @@ export function UserMessage({ message }: UserMessageProps) {
                               disabled
                             >
                               <button className="outline-hidden focus:outline-hidden w-full h-full not-prose" type="button">
-                                {file.preview ? (
+                                {file.preview && file.type.startsWith('image/') ? (
                                   <img
                                     src={file.preview}
                                     alt={file.name}
@@ -121,8 +136,8 @@ export function UserMessage({ message }: UserMessageProps) {
                             </button>
                           </div>
                         </div>
-                        <div className="flex flex-col justify-center px-2.5 -space-y-0.5 w-full">
-                          <div className="mb-1 text-sm font-medium dark:text-gray-100 line-clamp-1">
+                        <div className="flex flex-col justify-center px-2.5 -space-y-0.5 flex-1 min-w-0 overflow-hidden">
+                          <div className="mb-1 text-sm font-medium dark:text-gray-100 truncate w-full">
                             {file.name}
                           </div>
                           <div className="flex justify-between text-xs text-gray-500 line-clamp-1">
@@ -138,7 +153,7 @@ export function UserMessage({ message }: UserMessageProps) {
 
               <div className="message-user-bubble-container">
                 <div className="message-user-bubble">
-                  {userMessage.content}
+                  {filterImagePathReferences(userMessage.content)}
                 </div>
               </div>
               <div className="message-user-actions">

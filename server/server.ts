@@ -31,6 +31,7 @@ import { getMcpServers, getAllowedMcpTools } from "./mcpServers";
 import { AGENT_REGISTRY } from "./agents";
 import { getDefaultWorkingDirectory, ensureDirectory, validateDirectory } from "./directoryUtils";
 import { openDirectoryPicker } from "./directoryPicker";
+import { saveImageToSessionPictures, saveFileToSessionFiles } from "./imageUtils";
 import type { ServerWebSocket } from "bun";
 import type { Subprocess } from "bun";
 
@@ -262,18 +263,113 @@ const server = Bun.serve({
             return;
           }
 
-          // Save user message to database
-          sessionDb.addMessage(sessionId, 'user', content);
+          // Get session for working directory access
+          const session = sessionDb.getSession(sessionId);
+          if (!session) {
+            console.error('❌ Session not found:', sessionId);
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Session not found'
+            }));
+            return;
+          }
+
+          const workingDir = session.working_directory;
+
+          // Process attachments (images and files)
+          const imagePaths: string[] = [];
+          const filePaths: string[] = [];
+
+          // Debug: log the content structure
+          console.log('🔍 Content type:', typeof content);
+          console.log('🔍 Content is array?', Array.isArray(content));
+          if (Array.isArray(content)) {
+            console.log('🔍 Content blocks:', content.map((b: Record<string, unknown>) => ({ type: b?.type, hasSource: !!b?.source, hasData: !!b?.data })));
+          }
+
+          // Check if content is an array (contains blocks like text/image/file)
+          const contentIsArray = Array.isArray(content);
+          if (contentIsArray) {
+            const contentBlocks = content as Array<Record<string, unknown>>;
+
+            // Extract and save images and files
+            for (const block of contentBlocks) {
+              console.log('🔍 Processing block:', { type: block.type, hasSource: !!block.source, hasData: !!block.data });
+
+              // Handle images
+              if (block.type === 'image' && typeof block.source === 'object') {
+                const source = block.source as Record<string, unknown>;
+                console.log('🔍 Image source:', { type: source.type, hasData: !!source.data });
+                if (source.type === 'base64' && typeof source.data === 'string') {
+                  // Save image to pictures folder
+                  const base64Data = `data:${source.media_type || 'image/png'};base64,${source.data}`;
+                  const imagePath = saveImageToSessionPictures(base64Data, sessionId, workingDir);
+                  imagePaths.push(imagePath);
+                  console.log('✅ Image saved and path added:', imagePath);
+                }
+              }
+
+              // Handle document files
+              if (block.type === 'document' && typeof block.data === 'string' && typeof block.name === 'string') {
+                console.log('🔍 Document file:', { name: block.name });
+                const filePath = saveFileToSessionFiles(block.data as string, block.name as string, sessionId, workingDir);
+                filePaths.push(filePath);
+                console.log('✅ File saved and path added:', filePath);
+              }
+            }
+          }
+
+          // Save user message to database (stringify if array)
+          const contentForDb = typeof content === 'string' ? content : JSON.stringify(content);
+          sessionDb.addMessage(sessionId, 'user', contentForDb);
 
           // Get conversation history
           const messages = sessionDb.getSessionMessages(sessionId);
 
           // Build conversation context for Claude
+          // Parse JSON content for messages with images (array format)
           const conversationHistory = messages
-            .map(msg => `${msg.type === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+            .map(msg => {
+              let displayContent = msg.content;
+              // Try to parse JSON for structured content
+              try {
+                const parsed = JSON.parse(msg.content);
+                if (Array.isArray(parsed)) {
+                  // Extract text from blocks
+                  displayContent = parsed
+                    .filter((block: Record<string, unknown>) => block.type === 'text')
+                    .map((block: Record<string, unknown>) => block.text)
+                    .join('\n');
+                }
+              } catch {
+                // Not JSON, use as-is
+              }
+              return `${msg.type === 'user' ? 'User' : 'Assistant'}: ${displayContent}`;
+            })
             .join('\n\n');
 
-          const prompt = conversationHistory;
+          let prompt = conversationHistory;
+
+          // Inject attachment paths for model access
+          if (imagePaths.length > 0 || filePaths.length > 0) {
+            const attachmentLines: string[] = [];
+
+            // Add image paths (for MCP vision tools on GLM models)
+            imagePaths.forEach(p => attachmentLines.push(`[Image attached: ${p}]`));
+
+            // Add file paths (for Read tool on all models)
+            filePaths.forEach(p => attachmentLines.push(`[File attached: ${p}]`));
+
+            const pathsText = attachmentLines.join('\n');
+
+            // Find the last "User: " in the prompt and inject paths after it
+            const lastUserIndex = prompt.lastIndexOf('User: ');
+            if (lastUserIndex !== -1) {
+              const beforeUser = prompt.substring(0, lastUserIndex + 6); // "User: "
+              const afterUser = prompt.substring(lastUserIndex + 6);
+              prompt = `${beforeUser}${pathsText}\n\n${afterUser}`;
+            }
+          }
 
           // Get model configuration
           const modelConfig = MODEL_MAP[model] || MODEL_MAP['sonnet'];
@@ -320,19 +416,6 @@ const server = Bun.serve({
 
           let assistantResponse = '';
 
-          // Get session working directory
-          const session = sessionDb.getSession(sessionId);
-          if (!session) {
-            console.error('❌ Session not found:', sessionId);
-            ws.send(JSON.stringify({
-              type: 'error',
-              message: 'Session not found'
-            }));
-            return;
-          }
-
-          const workingDir = session.working_directory;
-
           // Log working directory info
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
           console.log('📂 Working Directory Info');
@@ -352,9 +435,10 @@ const server = Bun.serve({
             return;
           }
 
+          console.log('✅ Working directory validated:', workingDir);
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
           try {
-            console.log('✅ Working directory validated:', workingDir);
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             // Build query options with provider-specific system prompt (including agent list)
             // Add working directory context to system prompt AND all agent prompts

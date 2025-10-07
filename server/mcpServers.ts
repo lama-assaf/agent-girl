@@ -53,6 +53,15 @@ export const MCP_SERVERS_BY_PROVIDER: Record<ProviderType, Record<string, McpSer
         'Authorization': `Bearer ${process.env.ZAI_API_KEY || ''}`,
       },
     },
+    'zai-mcp-server': {
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', '@z_ai/mcp-server'],
+      env: {
+        'Z_AI_API_KEY': process.env.ZAI_API_KEY || '',
+        'Z_AI_MODE': 'ZAI',
+      },
+    },
   },
 };
 
@@ -70,6 +79,8 @@ export function getAllowedMcpTools(provider: ProviderType): string[] {
   if (provider === 'z-ai') {
     return [
       'mcp__web-search-prime__search',
+      'mcp__zai-mcp-server__image_analysis',
+      'mcp__zai-mcp-server__video_analysis',
     ];
   }
   return [];

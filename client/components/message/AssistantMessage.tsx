@@ -1092,15 +1092,16 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                 a: (props) => (
                   <a {...props} target="_blank" rel="noopener noreferrer" className="plan-text-gradient hover:opacity-80 underline transition-opacity" />
                 ),
-                code: ({ className, children, ...props }: { className?: string; children?: React.ReactNode; [key: string]: unknown }) => {
+                code: ({ className, children }) => {
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const inline = !className;
+                  const codeStyle: { [key: string]: React.CSSProperties } = vscDarkPlus as unknown as { [key: string]: React.CSSProperties };
 
                   return !inline ? (
                     <div className="plan-code-border">
                       <SyntaxHighlighter
-                        style={vscDarkPlus as unknown}
+                        style={codeStyle}
                         language={language || 'text'}
                         PreTag="div"
                         customStyle={{
@@ -1110,13 +1111,12 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                           border: 'none',
                           backgroundColor: 'rgba(168, 199, 250, 0.05)',
                         }}
-                        {...props}
                       >
                         {String(children).replace(/\n$/, '')}
                       </SyntaxHighlighter>
                     </div>
                   ) : (
-                    <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(168, 199, 250, 0.15)', color: '#DAEEFF' }} {...props}>
+                    <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(168, 199, 250, 0.15)', color: '#DAEEFF' }}>
                       {children}
                     </code>
                   );
@@ -1474,14 +1474,15 @@ function TextComponent({ text }: { text: TextBlock }) {
               <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
             ),
             // Customize code rendering
-            code: ({ className, children, ...props }: { className?: string; children?: React.ReactNode; [key: string]: unknown }) => {
+            code: ({ className, children }) => {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : '';
               const inline = !className;
+              const codeStyle: { [key: string]: React.CSSProperties } = vscDarkPlus as unknown as { [key: string]: React.CSSProperties };
 
               return !inline ? (
                 <SyntaxHighlighter
-                  style={vscDarkPlus as unknown}
+                  style={codeStyle}
                   language={language || 'text'}
                   PreTag="div"
                   customStyle={{
@@ -1490,12 +1491,11 @@ function TextComponent({ text }: { text: TextBlock }) {
                     fontSize: '0.875rem',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
-                  {...props}
                 >
                   {String(children).replace(/\n$/, '')}
                 </SyntaxHighlighter>
               ) : (
-                <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'rgb(var(--text-primary))' }} {...props}>
+                <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'rgb(var(--text-primary))' }}>
                   {children}
                 </code>
               );

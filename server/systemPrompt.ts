@@ -47,6 +47,21 @@ DO NOT use websearch or webfetch tools - they are not available for GLM models.
 Use mcp__web-search-prime__search for all web-related queries and information gathering.
 `.trim();
 
+const GLM_VISION_INSTRUCTIONS = `
+
+**IMPORTANT VISION INSTRUCTIONS:**
+When you see "[Image attached: ./pictures/...]" in messages, analyze the image using:
+- mcp__zai-mcp-server__image_analysis with the file path
+
+The paths are relative to the current working directory. These lines are hidden from the user in the UI but visible to you for MCP tool access.
+`.trim();
+
+const FILE_ATTACHMENT_INSTRUCTIONS = `
+
+**IMPORTANT FILE ATTACHMENT INSTRUCTIONS:**
+When you see "[File attached: ./files/...]" in messages, you can read the file content using the Read tool with that path. The paths are relative to the current working directory. These lines are hidden from the user in the UI but visible to you for file access.
+`.trim();
+
 const BACKGROUND_PROCESS_INSTRUCTIONS = `
 **CRITICAL: BACKGROUND PROCESSES**
 
@@ -135,9 +150,13 @@ export function getSystemPrompt(provider: ProviderType, agents?: Record<string, 
   // Add background process management instructions (universal for all providers)
   prompt = `${prompt}\n\n${BACKGROUND_PROCESS_INSTRUCTIONS}`;
 
+  // Add file attachment instructions (universal for all providers)
+  prompt = `${prompt}\n\n${FILE_ATTACHMENT_INSTRUCTIONS}`;
+
   // Add provider-specific instructions
   if (provider === 'z-ai') {
     prompt = `${prompt}\n\n${GLM_WEB_SEARCH_INSTRUCTIONS}`;
+    prompt = `${prompt}\n\n${GLM_VISION_INSTRUCTIONS}`;
   }
 
   return prompt;

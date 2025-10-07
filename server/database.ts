@@ -23,6 +23,7 @@ import { randomUUID } from "crypto";
 import path from "path";
 import fs from "fs";
 import { getDefaultWorkingDirectory, expandPath, validateDirectory, getAppDataDirectory } from "./directoryUtils";
+import { deleteSessionPictures, deleteSessionFiles } from "./imageUtils";
 
 export interface Session {
   id: string;
@@ -347,6 +348,15 @@ class SessionDatabase {
   }
 
   deleteSession(sessionId: string): boolean {
+    // Get session to access working directory before deletion
+    const session = this.getSession(sessionId);
+
+    // Delete pictures and files folders if session exists
+    if (session && session.working_directory) {
+      deleteSessionPictures(session.working_directory);
+      deleteSessionFiles(session.working_directory);
+    }
+
     const result = this.db.run("DELETE FROM sessions WHERE id = ?", [sessionId]);
     return result.changes > 0;
   }

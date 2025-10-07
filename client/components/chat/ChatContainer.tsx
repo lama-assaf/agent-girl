@@ -594,10 +594,54 @@ export function ChatContainer() {
       setMessages((prev) => [...prev, userMessage]);
       setSessionLoading(sessionId, true);
 
+      // Build content: if there are image files, send as array of blocks
+      // Otherwise, send as plain string (existing behavior)
+      let messageContent: string | Array<Record<string, unknown>> = inputValue;
+
+      if (files && files.length > 0) {
+        // Convert to content blocks format (text + images)
+        const contentBlocks: Array<Record<string, unknown>> = [];
+
+        // Add text block if there's input
+        if (inputValue.trim()) {
+          contentBlocks.push({
+            type: 'text',
+            text: inputValue
+          });
+        }
+
+        // Add image and file blocks from attachments
+        for (const file of files) {
+          if (file.preview && file.type.startsWith('image/')) {
+            // Extract base64 data from data URL for images
+            const base64Match = file.preview.match(/^data:([^;]+);base64,(.+)$/);
+            if (base64Match) {
+              contentBlocks.push({
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: base64Match[1],
+                  data: base64Match[2]
+                }
+              });
+            }
+          } else if (file.preview) {
+            // Non-image file (document, PDF, etc.)
+            contentBlocks.push({
+              type: 'document',
+              name: file.name,
+              data: file.preview  // Contains base64 data URL
+            });
+          }
+        }
+
+        messageContent = contentBlocks;
+      }
+
       // Use local sessionId variable (guaranteed to be set)
       sendMessage({
         type: 'chat',
-        content: inputValue,
+        content: messageContent,
         sessionId: sessionId,
         model: selectedModel,
       });
