@@ -38,9 +38,6 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build CSS
-        run: bun run build:css
-
       - name: Build client bundle
         run: bun run build
 
@@ -62,7 +59,6 @@ jobs:
           mkdir -p release/agent-girl-${{ matrix.platform }}
           mv agent-girl release/agent-girl-${{ matrix.platform }}/
           cp -r client/ release/agent-girl-${{ matrix.platform }}/client/
-          cp dist/globals.css release/agent-girl-${{ matrix.platform }}/client/globals.css
           mkdir -p release/agent-girl-${{ matrix.platform }}/dist
           cp dist/index.js release/agent-girl-${{ matrix.platform }}/dist/
           cp dist/index.js.map release/agent-girl-${{ matrix.platform }}/dist/ 2>/dev/null || true
