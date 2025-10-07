@@ -48,6 +48,7 @@ jobs:
           cp -r client release/agent-girl-${{ matrix.platform }}/
           cp -r dist release/agent-girl-${{ matrix.platform }}/
           cp package.json release/agent-girl-${{ matrix.platform }}/
+          cp build-css.ts release/agent-girl-${{ matrix.platform }}/
           cp bun.lockb release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
           cp LICENSE release/agent-girl-${{ matrix.platform }}/
           cp tailwind.config.js release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
@@ -239,6 +240,7 @@ jobs:
           Copy-Item -Recurse -Force client release\agent-girl-windows-x64\
           Copy-Item -Recurse -Force dist release\agent-girl-windows-x64\
           Copy-Item -Force package.json release\agent-girl-windows-x64\
+          Copy-Item -Force build-css.ts release\agent-girl-windows-x64\
           if (Test-Path bun.lockb) { Copy-Item -Force bun.lockb release\agent-girl-windows-x64\ }
           Copy-Item -Force LICENSE release\agent-girl-windows-x64\
           if (Test-Path tailwind.config.js) { Copy-Item -Force tailwind.config.js release\agent-girl-windows-x64\ }
