@@ -1092,7 +1092,7 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                 a: (props) => (
                   <a {...props} target="_blank" rel="noopener noreferrer" className="plan-text-gradient hover:opacity-80 underline transition-opacity" />
                 ),
-                code: ({ className, children, ...props }: any) => {
+                code: ({ className, children, ...props }: { className?: string; children?: React.ReactNode; [key: string]: unknown }) => {
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const inline = !className;
@@ -1474,7 +1474,7 @@ function TextComponent({ text }: { text: TextBlock }) {
               <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
             ),
             // Customize code rendering
-            code: ({ className, children, ...props }: any) => {
+            code: ({ className, children, ...props }: { className?: string; children?: React.ReactNode; [key: string]: unknown }) => {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : '';
               const inline = !className;

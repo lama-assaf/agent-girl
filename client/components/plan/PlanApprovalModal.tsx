@@ -117,7 +117,7 @@ export function PlanApprovalModal({ plan, onApprove, onReject }: PlanApprovalMod
                 a: (props) => (
                   <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
                 ),
-                code: ({ className, children, ...props }: any) => {
+                code: ({ className, children, ...props }: { className?: string; children?: React.ReactNode; [key: string]: unknown }) => {
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const inline = !className;
