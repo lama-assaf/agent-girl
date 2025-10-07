@@ -74,23 +74,14 @@ if (!IS_STANDALONE) {
 }
 
 // Get the directory where the binary/script is located
+// In source-based releases, the launcher script already cd's to the right directory,
+// so we just use process.cwd() which is already correct
 const getBinaryDir = () => {
-  if (IS_STANDALONE) {
-    return path.dirname(process.execPath);
-  }
   return process.cwd();
 };
 
 const BINARY_DIR = getBinaryDir();
 debugLog(`  - BINARY_DIR: ${BINARY_DIR}`);
-
-// In standalone mode, change working directory to binary location
-// This ensures all relative paths work correctly regardless of how the binary was launched
-if (IS_STANDALONE) {
-  debugLog(`  - Changing cwd from ${process.cwd()} to ${BINARY_DIR}`);
-  process.chdir(BINARY_DIR);
-  debugLog(`  - New cwd: ${process.cwd()}`);
-}
 
 // Load environment variables
 // In standalone mode, manually parse .env from binary directory
