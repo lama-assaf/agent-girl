@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="agentgirl.jpg" alt="Agent Girl" width="600" />
+
 # Agent Girl
 
 **A modern chat interface powered by the Claude Agent SDK**
