@@ -202,7 +202,7 @@ cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
 
   # Try to create without sudo
   if echo "$LAUNCHER_SCRIPT" > "$LAUNCHER_PATH" 2>/dev/null && chmod +x "$LAUNCHER_PATH" 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} You can now run ${YELLOW}$APP_NAME${NC} from anywhere"
+    echo -e "${GREEN}✓${NC} Global launcher created at $LAUNCHER_PATH"
   else
     # Needs sudo - ask user
     echo -e "${YELLOW}⚠️  Creating global command requires admin permissions${NC}"
@@ -211,11 +211,29 @@ cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
     if [[ "$use_sudo" =~ ^[Yy]$ ]]; then
       echo "$LAUNCHER_SCRIPT" | sudo tee "$LAUNCHER_PATH" > /dev/null
       sudo chmod +x "$LAUNCHER_PATH"
-      echo -e "${GREEN}✓${NC} Global launcher created - you can now run ${YELLOW}$APP_NAME${NC} from anywhere"
+      echo -e "${GREEN}✓${NC} Global launcher created at $LAUNCHER_PATH"
     else
       echo -e "${YELLOW}⚠️  Skipped global launcher${NC}"
       echo "You can still run: ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
+      LAUNCHER_PATH=""  # Clear path so we don't show the global command instructions
     fi
+  fi
+
+  # Check if /usr/local/bin is in PATH
+  if [[ -n "$LAUNCHER_PATH" ]] && [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+    echo ""
+    echo -e "${YELLOW}⚠️  Note: /usr/local/bin is not in your PATH${NC}"
+    echo "To use the ${YELLOW}$APP_NAME${NC} command from anywhere, add this to your shell profile:"
+    echo ""
+    if [[ "$SHELL" == *"zsh"* ]]; then
+      echo "  ${BLUE}echo 'export PATH=\"/usr/local/bin:\$PATH\"' >> ~/.zshrc${NC}"
+      echo "  ${BLUE}source ~/.zshrc${NC}"
+    else
+      echo "  ${BLUE}echo 'export PATH=\"/usr/local/bin:\$PATH\"' >> ~/.bash_profile${NC}"
+      echo "  ${BLUE}source ~/.bash_profile${NC}"
+    fi
+    echo ""
+    echo "Or run directly: ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
   fi
   echo ""
 fi
