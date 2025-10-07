@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="agentgirl.jpg" alt="Agent Girl" width="600" />
+<img src="agentgirl.png" alt="Agent Girl" width="600" />
 
 # Agent Girl
 
