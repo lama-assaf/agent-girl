@@ -10,11 +10,12 @@
 [![Bun](https://img.shields.io/badge/Bun-Latest-black?logo=bun)](https://bun.sh/)
 [![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://www.anthropic.com/claude)
 
+<img src="agentgirl.png" alt="Agent Girl" width="600" />
+
+
 Seamless AI conversations with real-time streaming, session management, and specialized sub-agents. Built with React, TypeScript, and Bun for blazing-fast performance.
 
 [Getting Started](#-quick-start) • [Features](#-features) • [Installation](#-installation) • [Contributing](#-contributing)
-
-<img src="agentgirl.png" alt="Agent Girl" width="600" />
 
 </div>
 
