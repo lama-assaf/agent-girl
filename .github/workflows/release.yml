@@ -41,33 +41,55 @@ jobs:
       - name: Build client bundle
         run: bun run build
 
-      - name: Build binary for ${{ matrix.platform }}
-        run: |
-          bun build ./server/server.ts \
-            --compile \
-            --minify \
-            --sourcemap=none \
-            --target="${{ matrix.target }}" \
-            --define 'process.env.STANDALONE_BUILD="true"' \
-            --external postcss \
-            --external @tailwindcss/postcss \
-            --external autoprefixer \
-            --outfile agent-girl
-
-      - name: Setup release directory
+      - name: Setup release directory (source-based)
         run: |
           mkdir -p release/agent-girl-${{ matrix.platform }}
-          mv agent-girl release/agent-girl-${{ matrix.platform }}/
-          cp -r client/ release/agent-girl-${{ matrix.platform }}/client/
-          mkdir -p release/agent-girl-${{ matrix.platform }}/dist
-          cp dist/index.js release/agent-girl-${{ matrix.platform }}/dist/
-          cp dist/index.js.map release/agent-girl-${{ matrix.platform }}/dist/ 2>/dev/null || true
-          cp -r client/icons/ release/agent-girl-${{ matrix.platform }}/icons/ 2>/dev/null || true
-          cp credits.mp3 release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
+          cp -r server release/agent-girl-${{ matrix.platform }}/
+          cp -r client release/agent-girl-${{ matrix.platform }}/
+          cp -r dist release/agent-girl-${{ matrix.platform }}/
+          cp package.json release/agent-girl-${{ matrix.platform }}/
+          cp bun.lockb release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
           cp LICENSE release/agent-girl-${{ matrix.platform }}/
-          cp node_modules/@anthropic-ai/claude-code/cli.js release/agent-girl-${{ matrix.platform }}/
-          cp node_modules/@anthropic-ai/claude-code/yoga.wasm release/agent-girl-${{ matrix.platform }}/
-          cp -r node_modules/@anthropic-ai/claude-code/vendor release/agent-girl-${{ matrix.platform }}/
+          cp tailwind.config.js release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
+          cp postcss.config.mjs release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
+          cp tsconfig.json release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
+
+      - name: Install production dependencies
+        run: |
+          cd release/agent-girl-${{ matrix.platform }}
+          bun install --production
+
+      - name: Create launcher script
+        run: |
+          cat > release/agent-girl-${{ matrix.platform }}/agent-girl << 'EOF'
+          #!/bin/bash
+          set -e
+
+          # Get the directory where this script is located
+          SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+          cd "$SCRIPT_DIR"
+
+          # Check if bun is installed
+          if ! command -v bun &> /dev/null; then
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "  🔧 Installing Bun..."
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              curl -fsSL https://bun.sh/install | bash
+
+              # Add bun to PATH for this session
+              export PATH="$HOME/.bun/bin:$PATH"
+
+              echo
+              echo "✅ Bun installed successfully!"
+              echo
+          fi
+
+          # Start the server
+          echo "🚀 Starting Agent Girl..."
+          echo
+          exec bun run server/server.ts
+          EOF
+          chmod +x release/agent-girl-${{ matrix.platform }}/agent-girl
 
       - name: Create .env template
         run: |
@@ -95,22 +117,27 @@ jobs:
           Setup (First Time):
           1. Open the .env file in a text editor
           2. Add your Anthropic API key (get from https://console.anthropic.com/)
-             Replace: ANTHROPIC_API_KEY=your-anthropic-api-key-here
+             Replace: ANTHROPIC_API_KEY=sk-ant-your-key-here
              With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
 
           To Run:
           - Double-click the 'agent-girl' file
+          - Or run from terminal: ./agent-girl
           - The app will start at http://localhost:3001
           - Your browser should open automatically
 
+          First Run:
+          - On first launch, Bun runtime will be auto-installed (takes ~5 seconds)
+          - Subsequent launches are instant
+
           Data Storage:
-          - Sessions stored in ~/Documents/agent-girl-app/
+          - Sessions stored in ~/Documents/agent-girl/
           - All your conversations are saved locally
 
           Requirements:
           - macOS 11+ (Big Sur or later)
           - Anthropic API key (for Claude models)
-          - No other dependencies needed!
+          - Internet connection (for first-time Bun install)
 
           Troubleshooting:
           - If port 3001 is busy, kill the process: lsof -ti:3001 | xargs kill -9
@@ -204,32 +231,55 @@ jobs:
       - name: Build client bundle
         run: bun run build
 
-      - name: Build binary for Windows
-        run: |
-          bun build ./server/server.ts `
-            --compile `
-            --minify `
-            --sourcemap=none `
-            --target=bun-windows-x64 `
-            --define 'process.env.STANDALONE_BUILD="true"' `
-            --external postcss `
-            --external @tailwindcss/postcss `
-            --external autoprefixer `
-            --outfile agent-girl.exe
-
-      - name: Setup release directory
+      - name: Setup release directory (source-based)
         run: |
           New-Item -ItemType Directory -Force -Path release\agent-girl-windows-x64
-          Move-Item -Force agent-girl.exe release\agent-girl-windows-x64\
-          Copy-Item -Recurse -Force client release\agent-girl-windows-x64\client
-          New-Item -ItemType Directory -Force -Path release\agent-girl-windows-x64\dist
-          Copy-Item -Force dist\index.js release\agent-girl-windows-x64\dist\
-          if (Test-Path dist\index.js.map) { Copy-Item -Force dist\index.js.map release\agent-girl-windows-x64\dist\ }
-          if (Test-Path client\icons) { Copy-Item -Recurse -Force client\icons release\agent-girl-windows-x64\icons }
-          if (Test-Path credits.mp3) { Copy-Item -Force credits.mp3 release\agent-girl-windows-x64\ }
-          Copy-Item -Force node_modules\@anthropic-ai\claude-code\cli.js release\agent-girl-windows-x64\
-          Copy-Item -Force node_modules\@anthropic-ai\claude-code\yoga.wasm release\agent-girl-windows-x64\
-          Copy-Item -Recurse -Force node_modules\@anthropic-ai\claude-code\vendor release\agent-girl-windows-x64\
+          Copy-Item -Recurse -Force server release\agent-girl-windows-x64\
+          Copy-Item -Recurse -Force client release\agent-girl-windows-x64\
+          Copy-Item -Recurse -Force dist release\agent-girl-windows-x64\
+          Copy-Item -Force package.json release\agent-girl-windows-x64\
+          if (Test-Path bun.lockb) { Copy-Item -Force bun.lockb release\agent-girl-windows-x64\ }
+          Copy-Item -Force LICENSE release\agent-girl-windows-x64\
+          if (Test-Path tailwind.config.js) { Copy-Item -Force tailwind.config.js release\agent-girl-windows-x64\ }
+          if (Test-Path postcss.config.mjs) { Copy-Item -Force postcss.config.mjs release\agent-girl-windows-x64\ }
+          if (Test-Path tsconfig.json) { Copy-Item -Force tsconfig.json release\agent-girl-windows-x64\ }
+
+      - name: Install production dependencies
+        run: |
+          cd release\agent-girl-windows-x64
+          bun install --production
+
+      - name: Create launcher script
+        run: |
+          @'
+          @echo off
+          setlocal
+
+          :: Get the directory where this script is located
+          set "SCRIPT_DIR=%~dp0"
+          cd /d "%SCRIPT_DIR%"
+
+          :: Check if bun is installed
+          where bun >nul 2>nul
+          if %ERRORLEVEL% NEQ 0 (
+              echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+              echo   🔧 Installing Bun...
+              echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+              powershell -c "irm bun.sh/install.ps1 | iex"
+
+              :: Add bun to PATH for this session
+              set "PATH=%USERPROFILE%\.bun\bin;%PATH%"
+
+              echo.
+              echo ✅ Bun installed successfully!
+              echo.
+          )
+
+          :: Start the server
+          echo 🚀 Starting Agent Girl...
+          echo.
+          bun run server\server.ts
+          '@ | Out-File -FilePath release\agent-girl-windows-x64\agent-girl.bat -Encoding ASCII
 
       - name: Create .env template
         run: |
@@ -257,27 +307,31 @@ jobs:
           Setup (First Time):
           1. Open the .env file in a text editor
           2. Add your Anthropic API key (get from https://console.anthropic.com/)
-             Replace: ANTHROPIC_API_KEY=your-anthropic-api-key-here
+             Replace: ANTHROPIC_API_KEY=sk-ant-your-key-here
              With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
 
           To Run:
-          - Double-click 'agent-girl.exe'
+          - Double-click the 'agent-girl.bat' file
+          - Or run from command prompt: agent-girl.bat
           - The app will start at http://localhost:3001
           - Your browser should open automatically
 
+          First Run:
+          - On first launch, Bun runtime will be auto-installed (takes ~10 seconds)
+          - Subsequent launches are instant
+
           Data Storage:
-          - Sessions stored in %USERPROFILE%\Documents\agent-girl-app\
+          - Sessions stored in %USERPROFILE%\Documents\agent-girl\
           - All your conversations are saved locally
 
           Requirements:
           - Windows 10 or later
           - Anthropic API key (for Claude models)
-          - No other dependencies needed!
+          - Internet connection (for first-time Bun install)
 
           Troubleshooting:
           - If port 3001 is busy, kill the process using Task Manager
           - Make sure .env file has your real API key
-          - Windows Defender might scan the exe on first run (this is normal)
 
           Enjoy!
           "@ | Out-File -FilePath release\agent-girl-windows-x64\README.txt -Encoding UTF8
