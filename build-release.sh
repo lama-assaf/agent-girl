@@ -11,6 +11,10 @@ mkdir -p release/agent-girl-app
 echo "📦 Pre-building CSS..."
 bun run build:css
 
+# Build client bundle (required for standalone binary)
+echo "📦 Building client bundle..."
+bun run build
+
 # Build the binary
 echo "📦 Building binary..."
 bun run build:binary
@@ -26,8 +30,17 @@ cp -r client/ release/agent-girl-app/client/
 echo "📁 Copying processed CSS..."
 cp dist/globals.css release/agent-girl-app/client/globals.css
 
+# Copy pre-built client bundle (only the files we need)
+echo "📁 Copying client bundle..."
+mkdir -p release/agent-girl-app/dist
+cp dist/index.js release/agent-girl-app/dist/
+cp dist/index.js.map release/agent-girl-app/dist/ 2>/dev/null || true
+
 # Copy icons
 cp -r client/icons/ release/agent-girl-app/icons/ 2>/dev/null || true
+
+# Copy audio files
+cp credits.mp3 release/agent-girl-app/ 2>/dev/null || true
 
 # Copy Claude Code CLI
 echo "📁 Copying Claude Code CLI..."

@@ -741,25 +741,30 @@ Run bash commands with the understanding that this is your current working direc
       const file = Bun.file(path.join(BINARY_DIR, 'client/index.html'));
       let html = await file.text();
 
-      // Inject hot reload script
-      const hotReloadScript = `
-        <script>
-          (function() {
-            const ws = new WebSocket('ws://localhost:3001/hot-reload');
-            ws.onmessage = (event) => {
-              const data = JSON.parse(event.data);
-              if (data.type === 'reload') {
-                window.location.reload();
-              }
-            };
-            ws.onclose = () => {
-              setTimeout(() => window.location.reload(), 1000);
-            };
-          })();
-        </script>
-      `;
+      // In standalone mode, replace raw tsx with pre-built bundle
+      if (IS_STANDALONE) {
+        html = html.replace('/client/index.tsx', '/dist/index.js');
+      } else {
+        // Inject hot reload script only in dev mode
+        const hotReloadScript = `
+          <script>
+            (function() {
+              const ws = new WebSocket('ws://localhost:3001/hot-reload');
+              ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'reload') {
+                  window.location.reload();
+                }
+              };
+              ws.onclose = () => {
+                setTimeout(() => window.location.reload(), 1000);
+              };
+            })();
+          </script>
+        `;
 
-      html = html.replace('</body>', `${hotReloadScript}</body>`);
+        html = html.replace('</body>', `${hotReloadScript}</body>`);
+      }
 
       return new Response(html, {
         headers: {
@@ -814,7 +819,22 @@ Run bash commands with the understanding that this is your current working direc
       }
     }
 
-    if (url.pathname.startsWith('/client/') && (url.pathname.endsWith('.tsx') || url.pathname.endsWith('.ts'))) {
+    // Serve pre-built bundle in standalone mode
+    if (IS_STANDALONE && url.pathname === '/dist/index.js') {
+      const filePath = path.join(BINARY_DIR, 'dist/index.js');
+      const file = Bun.file(filePath);
+
+      if (await file.exists()) {
+        return new Response(file, {
+          headers: {
+            'Content-Type': 'application/javascript',
+          },
+        });
+      }
+    }
+
+    // Transpile TypeScript on-the-fly (dev mode only)
+    if (!IS_STANDALONE && url.pathname.startsWith('/client/') && (url.pathname.endsWith('.tsx') || url.pathname.endsWith('.ts'))) {
       const filePath = path.join(BINARY_DIR, url.pathname);
       const file = Bun.file(filePath);
 

@@ -51,22 +51,26 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
         <div className="h-full flex pt-8">
           <div className="pt-2 w-full">
             <div className="w-full" style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
-              {virtualizer.getVirtualItems().map((virtualItem) => (
-                <div
-                  key={messages[virtualItem.index].id}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                  ref={virtualizer.measureElement}
-                  data-index={virtualItem.index}
-                >
-                  <MessageRenderer message={messages[virtualItem.index]} />
-                </div>
-              ))}
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const message = messages[virtualItem.index];
+
+                return (
+                  <div
+                    key={message.id}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                    ref={virtualizer.measureElement}
+                    data-index={virtualItem.index}
+                  >
+                    <MessageRenderer message={message} />
+                  </div>
+                );
+              })}
             </div>
             {isLoading && (
               <div className="message-container">

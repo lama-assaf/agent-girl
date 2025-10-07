@@ -12,13 +12,13 @@ export function MessageRenderer({ message }: MessageRendererProps) {
   switch (message.type) {
     case 'user':
       return <UserMessage message={message} />;
-    
+
     case 'system':
       return <SystemMessage message={message} />;
-    
+
     case 'assistant':
       return <AssistantMessage message={message} />;
-    
+
     default: {
       const unknownMessage = message as { type: string };
       return (

@@ -11,6 +11,10 @@ mkdir -p release
 echo "📦 Pre-building CSS..."
 bun run build:css
 
+# Build client bundle (shared across all platforms)
+echo "📦 Building client bundle..."
+bun run build
+
 # Build configurations
 # Format: "target|platform|ext"
 TARGETS=(
@@ -55,8 +59,17 @@ for target_config in "${TARGETS[@]}"; do
   echo "📁 Copying processed CSS..."
   cp dist/globals.css "$PLATFORM_DIR/client/globals.css"
 
+  # Copy pre-built client bundle (only the files we need)
+  echo "📁 Copying client bundle..."
+  mkdir -p "$PLATFORM_DIR/dist"
+  cp dist/index.js "$PLATFORM_DIR/dist/"
+  cp dist/index.js.map "$PLATFORM_DIR/dist/" 2>/dev/null || true
+
   # Copy icons
   cp -r client/icons/ "$PLATFORM_DIR/icons/" 2>/dev/null || true
+
+  # Copy audio files
+  cp credits.mp3 "$PLATFORM_DIR/" 2>/dev/null || true
 
   # Copy Claude Code CLI
   echo "📁 Copying Claude Code CLI..."

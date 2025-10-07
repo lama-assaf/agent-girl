@@ -80,6 +80,12 @@ function ToolIcon({ toolName }: { toolName: string }) {
             <line x1="12" y1="22.08" x2="12" y2="12"/>
           </svg>
         );
+      case 'NotebookEdit':
+        return (
+          <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        );
       default:
         return (
           <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -736,6 +742,8 @@ function getToolSummary(toolUse: ToolUseBlock): string {
         const todos = input.todos as Array<unknown> || [];
         return `${todos.length} task${todos.length !== 1 ? 's' : ''}`;
       }
+      case 'NotebookEdit':
+        return String(input.notebook_path || '');
       default: {
         // Safely convert any value to string
         const firstValue = Object.values(input)[0];
@@ -847,6 +855,169 @@ function McpToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// NotebookEdit tool component
+function NotebookEditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const input = toolUse.input;
+
+  return (
+    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+      {/* Header */}
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+        <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+          {/* Notebook icon */}
+          <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="text-sm font-medium leading-6">Notebook Edit</span>
+          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+            {input.notebook_path as string}
+          </span>
+        </div>
+        <div className="flex gap-1 items-center whitespace-nowrap">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-collapsed={!isExpanded}
+            className="p-1.5 rounded-lg transition-all data-[collapsed=true]:-rotate-180"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3.5" stroke="currentColor" className="size-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {isExpanded && (
+        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+          <div>
+            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Notebook Path:</span>
+            <div className="text-sm mt-1 font-mono">{input.notebook_path as string}</div>
+          </div>
+          {input.cell_id && (
+            <div>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Cell ID:</span>
+              <div className="text-sm mt-1 font-mono">{input.cell_id as string}</div>
+            </div>
+          )}
+          <div>
+            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Cell Type:</span>
+            <div className="text-sm mt-1">{(input.cell_type as string) || 'default'}</div>
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Edit Mode:</span>
+            <div className="text-sm mt-1">{(input.edit_mode as string) || 'replace'}</div>
+          </div>
+          {input.new_source && (
+            <div>
+              <span className="text-xs font-semibold text-black/60 dark:text-white/60">New Source:</span>
+              <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-black/5 dark:bg-black/20 p-2 rounded font-mono whitespace-pre-wrap">
+                {String(input.new_source).substring(0, 500)}
+                {String(input.new_source).length > 500 && (
+                  <span className="text-xs text-black/40 dark:text-white/40"> (truncated)</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// TodoWrite tool component matching other tool designs
+function TodoToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const input = toolUse.input;
+  const todos = input.todos as TodoItem[] || [];
+
+  // Count todos by status
+  const completedCount = todos.filter(t => t.status === 'completed').length;
+  const inProgressCount = todos.filter(t => t.status === 'in_progress').length;
+  const pendingCount = todos.filter(t => t.status === 'pending').length;
+
+  return (
+    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+      {/* Header */}
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+        <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+          {/* Todo list icon */}
+          <svg className="size-4" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="32" height="32" strokeWidth="1.5">
+            <path d="M266.304 104.544l-105.408 105.92-41.408-41.6a31.904 31.904 0 0 0-54.496 13.888c-2.88 11.424 0.672 23.552 9.28 31.552l64 64.32a31.904 31.904 0 0 0 45.216 0l128-128.64a32.256 32.256 0 0 0-0.864-44.576 31.904 31.904 0 0 0-44.352-0.864h0.032zM176 384a112 112 0 1 1 0 224 112 112 0 0 1 0-224z m9.376 64.8a48.064 48.064 0 1 0 24.416 81.216 48.064 48.064 0 0 0-24.416-81.216zM928.064 160H416a32 32 0 0 0 0 64h512.064a32 32 0 0 0 0-64zM928.064 480H416a32 32 0 0 0 0 64h512.064a32 32 0 0 0 0-64zM176 720a112 112 0 1 1 0 224 112 112 0 0 1 0-224z m9.376 64.8a48.064 48.064 0 1 0 24.416 81.216 48.064 48.064 0 0 0-24.416-81.216zM928.064 800H416a32 32 0 0 0 0 64h512.064a32 32 0 0 0 0-64z" fill="currentColor" stroke="currentColor"/>
+          </svg>
+          <span className="text-sm font-medium leading-6">Task List</span>
+          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+            {completedCount}/{todos.length} completed
+            {inProgressCount > 0 && ` · ${inProgressCount} in progress`}
+            {pendingCount > 0 && ` · ${pendingCount} pending`}
+          </span>
+        </div>
+        <div className="flex gap-1 items-center whitespace-nowrap">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-collapsed={!isExpanded}
+            className="p-1.5 rounded-lg transition-all data-[collapsed=true]:-rotate-180"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3.5" stroke="currentColor" className="size-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {isExpanded && (
+        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm">
+          <div className="space-y-1">
+            {todos.map((todo: TodoItem, i: number) => (
+              <div key={i} className="flex gap-2 items-center py-1.5 px-2 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                {/* Status indicator */}
+                <div className="flex items-center justify-center size-5 shrink-0">
+                  {todo.status === 'completed' ? (
+                    // Checkmark for completed
+                    <svg className="size-4 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : todo.status === 'in_progress' ? (
+                    // Spinner for in progress
+                    <svg className="size-4 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    // Empty circle for pending
+                    <svg className="size-4 text-black/30 dark:text-white/30" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                      <circle cx="12" cy="12" r="9" />
+                    </svg>
+                  )}
+                </div>
+
+                {/* Task text */}
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs text-black/40 dark:text-white/40 mr-1">{i + 1}.</span>
+                  <span
+                    className={`${
+                      todo.status === 'completed'
+                        ? 'text-black/40 dark:text-white/40 line-through'
+                        : todo.status === 'in_progress'
+                        ? 'font-medium text-blue-600 dark:text-blue-400'
+                        : 'text-black/70 dark:text-white/70'
+                    }`}
+                  >
+                    {todo.status === 'in_progress' ? todo.activeForm : todo.content}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -1188,6 +1359,16 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
     return <TaskToolComponent toolUse={toolUse} />;
   }
 
+  // Use TodoToolComponent for TodoWrite tool
+  if (toolUse.name === 'TodoWrite') {
+    return <TodoToolComponent toolUse={toolUse} />;
+  }
+
+  // Use NotebookEditToolComponent for NotebookEdit tool
+  if (toolUse.name === 'NotebookEdit') {
+    return <NotebookEditToolComponent toolUse={toolUse} />;
+  }
+
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Format tool parameters based on tool type
@@ -1207,66 +1388,10 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
       case 'WebSearch':
       case 'WebFetch':
       case 'Task':
+      case 'TodoWrite':
+      case 'NotebookEdit':
         // These are handled in custom components
         return null;
-
-      case 'TodoWrite':
-        return (
-          <div className="flex gap-2 w-full text-sm">
-            <div className="flex overflow-hidden flex-col flex-1 h-full shrink-1">
-              {input.todos?.map((todo: TodoItem, i: number) => (
-                <React.Fragment key={i}>
-                  <div className="flex gap-2 items-center w-full">
-                    <div className="p-1.5">
-                      <div className="rounded-full size-1 bg-black/20 dark:bg-white/30"></div>
-                    </div>
-                    <div className="flex-1 min-w-0 truncate">
-                      <span>{i + 1}.</span>{' '}
-                      <span
-                        className={`${
-                          todo.status === 'completed'
-                            ? 'text-black/40 dark:text-white/40 line-through'
-                            : todo.status === 'in_progress'
-                            ? 'font-medium'
-                            : ''
-                        }`}
-                      >
-                        {todo.status === 'in_progress' ? todo.activeForm : todo.content}
-                      </span>
-                    </div>
-                  </div>
-                  {i < (input.todos?.length || 0) - 1 && (
-                    <div className="h-1.5 w-[1px] bg-black/20 dark:bg-white/15 ml-2"></div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-        );
-        
-      case 'NotebookEdit':
-        return (
-          <div className="space-y-1">
-            <div className="flex">
-              <span className="text-xs text-gray-600 font-semibold mr-2">Notebook:</span>
-              <span className="text-xs text-gray-900 font-mono">{input.notebook_path}</span>
-            </div>
-            {input.cell_id && (
-              <div className="flex">
-                <span className="text-xs text-gray-600 font-semibold mr-2">Cell ID:</span>
-                <span className="text-xs text-gray-900 font-mono">{input.cell_id}</span>
-              </div>
-            )}
-            <div className="flex">
-              <span className="text-xs text-gray-600 font-semibold mr-2">Type:</span>
-              <span className="text-xs text-gray-900">{input.cell_type || 'default'}</span>
-            </div>
-            <div className="flex">
-              <span className="text-xs text-gray-600 font-semibold mr-2">Mode:</span>
-              <span className="text-xs text-gray-900">{input.edit_mode || 'replace'}</span>
-            </div>
-          </div>
-        );
 
       default:
         // Fallback to raw JSON for unknown tools
