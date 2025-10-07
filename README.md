@@ -106,6 +106,22 @@ curl -fsSL https://raw.githubusercontent.com/KenKaiii/agent-girl/master/install.
 - ✅ Sets up API key configuration
 - ✅ No Gatekeeper warnings (Apple-signed & notarized)
 
+### Windows
+
+**One-line install:**
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/KenKaiii/agent-girl/master/install.ps1 | iex
+```
+
+**What it does:**
+- ✅ Detects Windows x64 architecture
+- ✅ Downloads the latest release
+- ✅ Installs to `%LOCALAPPDATA%\Programs\agent-girl-app\`
+- ✅ Creates global `agent-girl` command
+- ✅ Sets up API key configuration
+- ✅ Automatic PATH setup
+
 ### Manual Download
 
 **macOS:**
