@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "bun run server/server.ts",
-    "build": "bun build ./client/index.tsx --outdir=./dist --minify",
+    "build:css": "bun run build-css.ts",
+    "build:js": "bun build ./client/index.tsx --outdir=./dist --minify",
+    "build": "bun run build:css && bun run build:js",
     "start": "bun run server/server.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",

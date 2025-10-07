@@ -830,6 +830,49 @@ Run bash commands with the understanding that this is your current working direc
       }
     }
 
+    // Serve pre-built CSS
+    if (url.pathname === '/dist/globals.css') {
+      const distCssPath = path.join(BINARY_DIR, 'dist/globals.css');
+      const distCssFile = Bun.file(distCssPath);
+
+      // In standalone mode or if built CSS exists, serve it directly
+      if (await distCssFile.exists()) {
+        return new Response(distCssFile, {
+          headers: {
+            'Content-Type': 'text/css',
+          },
+        });
+      }
+
+      // In dev mode, process CSS with PostCSS on-the-fly
+      if (!IS_STANDALONE && postcss && tailwindcss && autoprefixer) {
+        const sourceCssPath = path.join(BINARY_DIR, 'client/globals.css');
+        const sourceCssFile = Bun.file(sourceCssPath);
+
+        if (await sourceCssFile.exists()) {
+          try {
+            const cssContent = await sourceCssFile.text();
+            const result = await postcss([
+              tailwindcss(),
+              autoprefixer,
+            ]).process(cssContent, {
+              from: sourceCssPath,
+              to: undefined
+            });
+
+            return new Response(result.css, {
+              headers: {
+                'Content-Type': 'text/css',
+              },
+            });
+          } catch (error) {
+            console.error('CSS processing error:', error);
+            return new Response('CSS processing failed', { status: 500 });
+          }
+        }
+      }
+    }
+
     // Serve pre-built bundle in standalone mode
     if (IS_STANDALONE && url.pathname === '/dist/index.js') {
       const filePath = path.join(BINARY_DIR, 'dist/index.js');
