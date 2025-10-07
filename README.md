@@ -1,131 +1,232 @@
+<div align="center">
+
 # Agent Girl
 
-A powerful desktop chat interface powered by Anthropic's Claude Agent SDK. Built with React, TypeScript, and Bun for blazing-fast performance and seamless AI interactions.
+**A modern chat interface powered by the Claude Agent SDK**
 
-<p align="center">
-  <img src="https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript" alt="TypeScript">
-  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React">
-  <img src="https://img.shields.io/badge/Bun-Latest-black?logo=bun" alt="Bun">
-  <img src="https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6" alt="Claude">
-  <img src="https://img.shields.io/badge/License-ISC-green" alt="License">
-</p>
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://reactjs.org/)
+[![Bun](https://img.shields.io/badge/Bun-Latest-black?logo=bun)](https://bun.sh/)
+[![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://www.anthropic.com/claude)
+
+Seamless AI conversations with real-time streaming, session management, and specialized sub-agents. Built with React, TypeScript, and Bun for blazing-fast performance.
+
+[Getting Started](#-quick-start) • [Features](#-features) • [Installation](#-installation) • [Contributing](#-contributing)
+
+</div>
+
+---
+
+## 📋 Table of Contents
+
+- [🌟 Overview](#-overview)
+- [✨ Features](#-features)
+- [🚀 Installation](#-installation)
+- [📖 Quick Start](#-quick-start)
+- [🎮 Usage](#-usage)
+- [🛠️ Development](#️-development)
+- [📚 Architecture](#-architecture)
+- [🔧 Configuration](#-configuration)
+- [🐛 Troubleshooting](#-troubleshooting)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+
+---
+
+## 🌟 Overview
+
+Agent Girl is a **desktop-first chat interface** that brings the power of Anthropic's Claude Agent SDK to your local machine. Unlike web-based alternatives, Agent Girl runs entirely on your computer with full file system access, persistent sessions, and no data leaving your machine except API calls to Claude.
+
+**Perfect for:**
+- 🔧 Developers needing AI assistance with code
+- 📁 Power users who want file system access
+- 🔒 Privacy-conscious individuals (all data stored locally)
+- ⚡ Anyone seeking blazing-fast AI interactions
+
+---
 
 ## ✨ Features
 
-### 🤖 **Powered by Claude Agent SDK**
-- Direct integration with Anthropic's official Agent SDK
-- Access to Claude Sonnet 4.5 - Anthropic's most intelligent model
-- Specialized sub-agents for research, code review, debugging, testing, and documentation
-- Full tool access with bypass permissions mode
+### 🤖 Powered by Claude Agent SDK
+- **Claude Sonnet 4.5** - Anthropic's most intelligent model
+- **Specialized Sub-Agents** - Researcher, code reviewer, debugger, test writer, documenter
+- **Full Tool Access** - Read, write, edit files, search code, run commands
+- **MCP Integration** - Model Context Protocol for extensibility
 
-### 💬 **Real-time Streaming**
-- WebSocket-based streaming for instant responses
-- Live message updates as Claude types
-- Seamless tool use visualization with nested sub-agent support
+### 💬 Real-Time Streaming
+- **WebSocket-Based** - Instant responses as Claude types
+- **Live Updates** - See tool use in real-time
+- **Nested Visualization** - Sub-agent tools displayed under parent tasks
 
-### 🗂️ **Session Management**
-- Persistent chat sessions with SQLite database
-- Session isolation with per-session working directories
-- Auto-generated session titles
-- Full conversation history
+### 🗂️ Session Management
+- **SQLite Persistence** - All conversations saved locally
+- **Session Isolation** - Each chat has its own working directory
+- **Auto-Titles** - Sessions named from first message
+- **Full History** - Never lose a conversation
 
-### 🎨 **Modern UI/UX**
-- Clean, responsive interface built with Radix UI
-- Dark mode support
-- Virtual scrolling for performance
-- Smooth animations with Framer Motion
-- Syntax highlighting for code blocks
+### 🎨 Modern UI/UX
+- **Clean Interface** - Built with Radix UI components
+- **Dark Mode** - Easy on the eyes
+- **Virtual Scrolling** - Smooth performance with long conversations
+- **Syntax Highlighting** - Beautiful code blocks
+- **Smooth Animations** - Powered by Framer Motion
 
-### ⚡ **Developer Experience**
-- Hot module reloading in development
-- TypeScript for type safety
-- Bun for ultra-fast builds and runtime
-- Zero-config SQLite for data persistence
+### 🌐 Multi-Provider Support
+- **Anthropic** - Direct Claude API access
+- **Z.AI** - Alternative provider with GLM models + web search
+- **Easy Switching** - Change providers via dropdown
 
-### 🌐 **Multi-Provider Support**
-- **Anthropic**: Direct Claude API access
-- **Z.AI**: Alternative provider with GLM models and web search MCP
-- Easy provider switching via model selector
+### ⚡ Developer Experience
+- **Hot Reload** - Instant updates during development
+- **TypeScript** - Full type safety
+- **Bun Runtime** - Ultra-fast builds and execution
+- **Zero Config** - SQLite just works
 
-## 📦 Installation
+---
 
-### One-Line Install (macOS)
+## 🚀 Installation
+
+### macOS (Recommended)
+
+**One-line install:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/UnstableMind/agent-boy2/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/KenKaiii/agent-girl/master/install.sh | bash
 ```
 
-The installer automatically:
-- ✅ Detects your Mac's architecture (Intel vs Apple Silicon)
+**What it does:**
+- ✅ Detects your Mac architecture (Intel vs Apple Silicon)
 - ✅ Downloads the latest notarized release
 - ✅ Installs to `~/Applications/agent-girl-app/`
-- ✅ Creates a global `agent-girl` command
-- ✅ No Gatekeeper warnings (app is code-signed and notarized by Apple)
+- ✅ Creates global `agent-girl` command
+- ✅ Sets up API key configuration
+- ✅ No Gatekeeper warnings (Apple-signed & notarized)
 
 ### Manual Download
 
-Download the latest release for your platform:
-
 **macOS:**
-- [macOS Apple Silicon (M1/M2/M3)](https://github.com/UnstableMind/agent-boy2/releases/latest/download/agent-girl-macos-arm64.zip)
-- [macOS Intel (x86_64)](https://github.com/UnstableMind/agent-boy2/releases/latest/download/agent-girl-macos-intel.zip)
+- [Apple Silicon (M1/M2/M3/M4)](https://github.com/KenKaiii/agent-girl/releases/latest/download/agent-girl-macos-arm64.zip)
+- [Intel (x86_64)](https://github.com/KenKaiii/agent-girl/releases/latest/download/agent-girl-macos-intel.zip)
 
-**Or browse all releases:** [https://github.com/UnstableMind/agent-boy2/releases/latest](https://github.com/UnstableMind/agent-boy2/releases/latest)
+**Windows:**
+- [Windows x64](https://github.com/KenKaiii/agent-girl/releases/latest/download/agent-girl-windows-x64.zip)
 
-## 🚀 Quick Start
+**Browse all releases:** [https://github.com/KenKaiii/agent-girl/releases](https://github.com/KenKaiii/agent-girl/releases)
 
-### 1. **Configure API Key**
+---
+
+## 📖 Quick Start
+
+### 1. Configure API Key
 
 Before first run, add your Anthropic API key:
 
 ```bash
-# Open the .env file
-open -e ~/Applications/agent-girl-app/.env
+# macOS/Linux
+nano ~/Applications/agent-girl-app/.env
+
+# Windows
+notepad %USERPROFILE%\Documents\agent-girl-app\.env
 ```
 
-Replace `sk-ant-your-key-here` with your actual API key from [console.anthropic.com](https://console.anthropic.com/).
+Replace `sk-ant-your-key-here` with your actual key from [console.anthropic.com](https://console.anthropic.com/).
 
-### 2. **Run the App**
+### 2. Launch the App
 
-**From Finder:**
-1. Navigate to `~/Applications/agent-girl-app/`
-2. Double-click `agent-girl`
-
-**From Terminal:**
+**macOS:**
 ```bash
 agent-girl
 ```
 
+**Windows:**
+- Double-click `agent-girl.exe` in the install directory
+
+**From Finder/Explorer:**
+1. Navigate to install directory
+2. Double-click the `agent-girl` executable
+
 The app starts at **http://localhost:3001** and opens automatically in your browser.
 
-### 3. **Start Chatting**
+### 3. Start Chatting
 
-- Create a new session with the **"New Chat"** button
-- Select a working directory (or use default `~/Documents/agent-girl-app/`)
-- Choose your model (Claude Sonnet 4.5 recommended)
-- Start chatting!
+1. Click **"New Chat"** to create a session
+2. Select a working directory (or use default)
+3. Choose your model (Claude Sonnet 4.5 recommended)
+4. Start your conversation!
 
-## 🛠️ Development Setup
+---
 
-Want to build from source or contribute? Here's how:
+## 🎮 Usage
+
+### Session Management
+
+**Create a Session:**
+- Click **"New Chat"** in sidebar
+- Choose working directory for file operations
+- Sessions are isolated - files stay organized
+
+**Rename Session:**
+- Click pencil icon → Enter new name → Press Enter
+
+**Delete Session:**
+- Click trash icon → Confirm deletion (permanent)
+
+### Model Selection
+
+**Anthropic Models:**
+- **Claude Sonnet 4.5** ⭐ - Best for complex tasks
+- Direct API access to latest Claude models
+
+**Z.AI Models:**
+- **GLM 4.6** - Alternative with web search MCP
+- Great for research tasks
+
+Switch anytime via header dropdown.
+
+### Custom Sub-Agents
+
+Claude can spawn specialized agents using the Task tool:
+
+| Agent | Purpose |
+|-------|---------|
+| **researcher** | Information gathering and analysis |
+| **code-reviewer** | Bug detection, security, best practices |
+| **debugger** | Systematic bug hunting |
+| **test-writer** | Comprehensive test suite creation |
+| **documenter** | Clear docs and examples |
+
+Sub-agent activity displays nested under parent tasks for clarity.
+
+### Working Directories
+
+Each session has an isolated working directory:
+
+- **Default:** `~/Documents/agent-girl-app/{session-id}/`
+- **Custom:** Choose any directory when creating
+- **Safety:** File operations scoped to this directory only
+
+---
+
+## 🛠️ Development
 
 ### Prerequisites
 
 - [Bun](https://bun.sh/) v1.0.0+
-- Node.js 18+ (optional, for compatibility)
-- macOS, Linux, or WSL
+- macOS, Linux, or WSL (Windows Subsystem for Linux)
+- Node.js 18+ (optional, for compatibility testing)
 
 ### Local Development
 
 ```bash
-# Clone the repository
-git clone https://github.com/UnstableMind/agent-boy2.git
-cd agent-boy2
+# Clone repository
+git clone https://github.com/KenKaiii/agent-girl.git
+cd agent-girl
 
 # Install dependencies
 bun install
 
-# Create .env file
+# Create environment file
 cat > .env << EOF
 API_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-your-key-here
@@ -135,270 +236,248 @@ EOF
 bun run dev
 ```
 
-Development server runs at **http://localhost:3001** with hot reload enabled.
+Development server runs at **http://localhost:3001** with hot reload.
 
-### Build Release
+### Build from Source
 
 Build for your current platform:
 
 ```bash
-# Build for current platform
+# Single platform build
 ./build-release.sh
 
-# Build for all platforms (macOS ARM64, Intel, Windows, Linux)
+# All platforms (macOS ARM64, Intel, Windows, Linux)
 ./build-release-all.sh
 ```
 
-Binaries are output to `./release/`.
+Binaries output to `./release/`.
+
+### Run Tests
+
+```bash
+# Run all tests
+bun test
+
+# Watch mode
+bun test --watch
+```
+
+---
 
 ## 📚 Architecture
 
 ### Tech Stack
 
 **Frontend:**
-- React 18 with TypeScript
-- Radix UI for accessible components
-- Tailwind CSS 4 for styling
-- Framer Motion for animations
-- React Virtual for performance
-- React Markdown for message rendering
+- React 18 + TypeScript
+- Radix UI (accessible components)
+- Tailwind CSS 4 (utility-first styling)
+- Framer Motion (animations)
+- React Virtual (performance)
+- React Markdown (message rendering)
 
 **Backend:**
-- Bun runtime for high performance
-- Claude Agent SDK for AI interactions
-- SQLite for session persistence
-- WebSocket for real-time streaming
-- MCP (Model Context Protocol) for extensibility
+- Bun runtime (high performance)
+- Claude Agent SDK (AI interactions)
+- SQLite (session persistence)
+- WebSocket (real-time streaming)
+- MCP (Model Context Protocol)
 
 ### Project Structure
 
 ```
-agent-boy2/
+agent-girl/
 ├── client/                 # React frontend
 │   ├── components/
 │   │   ├── chat/          # ChatContainer, MessageList, ChatInput
-│   │   ├── message/       # Message renderers (text, code, tool use)
+│   │   ├── message/       # Message renderers
 │   │   ├── sidebar/       # Session sidebar
 │   │   └── header/        # Header, model selector, about modal
 │   ├── hooks/             # useWebSocket, useSessionAPI
-│   ├── config/            # Model and provider configuration
+│   ├── config/            # Model/provider configuration
 │   └── index.tsx          # App entry point
 ├── server/
 │   ├── server.ts          # Main server, WebSocket, SDK integration
-│   ├── database.ts        # Session and message persistence
-│   ├── providers.ts       # Multi-provider configuration
+│   ├── database.ts        # Session & message persistence
+│   ├── providers.ts       # Multi-provider config
 │   ├── agents.ts          # Custom agent registry
-│   ├── mcpServers.ts      # MCP server configuration
-│   └── systemPrompt.ts    # Dynamic system prompt generation
-├── .github/workflows/     # GitHub Actions for releases
-├── build-release.sh       # Build script for single platform
-├── build-release-all.sh   # Build script for all platforms
-└── install.sh             # One-line installer for users
+│   ├── mcpServers.ts      # MCP server config
+│   └── systemPrompt.ts    # Dynamic system prompts
+├── .github/workflows/     # CI/CD for releases
+├── build-release.sh       # Build script (single platform)
+├── build-release-all.sh   # Build script (all platforms)
+└── install.sh             # One-line installer
 ```
 
-## 🎮 Usage
-
-### Session Management
-
-**Create a Session:**
-- Click **"New Chat"** in the sidebar
-- Select a working directory (default: `~/Documents/agent-girl-app/`)
-- Directory isolation ensures file operations stay organized
-
-**Rename a Session:**
-- Click the pencil icon next to session name
-- Enter new name and press Enter
-
-**Delete a Session:**
-- Click the trash icon next to session name
-- Confirm deletion (permanent)
-
-### Model Selection
-
-Agent Girl supports multiple models and providers:
-
-**Anthropic Models:**
-- **Claude Sonnet 4.5** (recommended) - Most intelligent, best for complex tasks
-- Uses direct Anthropic API access
-
-**Z.AI Models:**
-- **GLM 4.6** - Alternative model with web search capabilities
-- Includes MCP-based web search tool
-
-Switch models using the dropdown in the header.
-
-### Custom Agents
-
-Claude can spawn specialized sub-agents using the Task tool:
-
-- **researcher** - Expert at gathering information and analyzing data
-- **code-reviewer** - Reviews code for bugs, security, and best practices
-- **debugger** - Systematically tracks down bugs
-- **test-writer** - Creates comprehensive test suites
-- **documenter** - Writes clear documentation and examples
-
-Sub-agent tool use is displayed nested under the parent Task for clarity.
-
-### Working Directories
-
-Each session has an isolated working directory:
-
-- **Default:** `~/Documents/agent-girl-app/{session-id}/`
-- **Custom:** Choose any directory when creating a session
-- All file operations (Read, Write, Edit) are scoped to this directory
-- Prevents accidental file modifications outside the session
+---
 
 ## 🔧 Configuration
 
 ### Environment Variables
 
-Create a `.env` file in the app directory:
+Create `.env` in app directory:
 
 ```env
-# Anthropic Configuration (Claude Models)
+# Anthropic (Claude models)
 ANTHROPIC_API_KEY=sk-ant-your-key-here
 
-# Z.AI Configuration (GLM Models, optional)
+# Z.AI (GLM models, optional)
 ZAI_API_KEY=your-zai-key-here
 ```
 
 ### Advanced Configuration
 
-**System Prompt Customization:**
-Edit `server/systemPrompt.ts` to customize Claude's behavior.
-
 **Custom Agents:**
-Add new agents to `server/agents.ts`:
+
+Edit `server/agents.ts`:
 
 ```typescript
 export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
   'my-agent': {
     description: 'Brief description for agent list',
-    prompt: 'Detailed instructions for agent behavior...',
-    tools: ['Read', 'Write', 'Grep'], // Optional: restrict tools
-    model: 'sonnet', // Optional: override model
+    prompt: 'Detailed instructions...',
+    tools: ['Read', 'Write', 'Grep'], // Optional tool restrictions
+    model: 'sonnet', // Optional model override
   },
 };
 ```
 
 **MCP Servers:**
-Configure MCP servers per provider in `server/mcpServers.ts`.
 
-## 🤝 Contributing
+Configure per-provider in `server/mcpServers.ts`:
 
-Contributions are welcome! Here's how to get started:
+```typescript
+export const MCP_SERVERS_BY_PROVIDER: Record<ProviderType, Record<string, McpServerConfig>> = {
+  'my-provider': {
+    'my-mcp-server': {
+      type: 'http',
+      url: 'https://api.example.com/mcp',
+      headers: { 'Authorization': `Bearer ${process.env.API_KEY}` },
+    },
+  },
+};
+```
 
-1. **Fork the repository**
-2. **Create a feature branch:** `git checkout -b feature/amazing-feature`
-3. **Make your changes**
-4. **Test thoroughly:** `bun test`
-5. **Commit your changes:** `git commit -m 'Add amazing feature'`
-6. **Push to your fork:** `git push origin feature/amazing-feature`
-7. **Open a Pull Request**
+**System Prompt:**
 
-### Development Guidelines
+Customize Claude's behavior in `server/systemPrompt.ts`.
 
-- **TypeScript:** Use strict typing
-- **Code Style:** Follow existing patterns
-- **Testing:** Add tests for new features
-- **Documentation:** Update README and code comments
+---
 
 ## 🐛 Troubleshooting
 
 ### Port Already in Use
 
-If port 3001 is busy:
-
 ```bash
+# macOS/Linux
 lsof -ti:3001 | xargs kill -9
+
+# Windows
+netstat -ano | findstr :3001
+taskkill /PID <PID> /F
 ```
 
 ### API Key Issues
 
-1. Verify `.env` file exists in app directory
-2. Check API key format: `sk-ant-...` for Anthropic
-3. Restart the app after changing `.env`
+1. Verify `.env` exists in app directory
+2. Check key format: `sk-ant-...` for Anthropic
+3. Restart app after changing `.env`
 
-### Database Issues
-
-Reset the database:
+### Database Reset
 
 ```bash
+# macOS/Linux
 rm -rf ~/Documents/agent-girl-app/
-```
 
-Or for development:
-
-```bash
-rm -rf data/
-mkdir data
+# Development
+rm -rf data/ && mkdir data
 ```
 
 ### macOS Security Warnings
 
-**First time opening the app:**
-1. Right-click the `agent-girl` binary
-2. Select **"Open"**
-3. Click **"Open"** in the security dialog
+**First run:**
+1. Right-click `agent-girl` → **"Open"**
+2. Click **"Open"** in security dialog
 
 Or via System Preferences:
-1. Go to **System Preferences** → **Security & Privacy**
+1. **System Preferences** → **Security & Privacy**
 2. Click **"Open Anyway"**
 
-**Note:** Released versions are notarized by Apple and shouldn't show warnings.
-
-## 📖 API Reference
-
-### WebSocket Endpoints
-
-**Chat WebSocket:**
-- **URL:** `ws://localhost:3001/ws`
-- **Purpose:** Real-time chat communication
-
-**Hot Reload (Dev Only):**
-- **URL:** `ws://localhost:3001/hot-reload`
-- **Purpose:** Development hot reload
-
-### REST API
-
-**Sessions:**
-- `GET /api/sessions` - List all sessions
-- `POST /api/sessions` - Create session (body: `{title?, workingDirectory?}`)
-- `GET /api/sessions/:id` - Get session details
-- `GET /api/sessions/:id/messages` - Get session messages
-- `PATCH /api/sessions/:id` - Rename session (body: `{title}`)
-- `DELETE /api/sessions/:id` - Delete session
-
-**Utilities:**
-- `POST /api/validate-directory` - Validate directory path (body: `{directory}`)
-- `POST /api/pick-directory` - Open directory picker
-
-## 📄 License
-
-ISC License - see [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Anthropic** for the Claude Agent SDK
-- **Bun** team for the amazing runtime
-- **Radix UI** for accessible components
-- **Tailwind CSS** for utility-first styling
-
-## 📞 Support
-
-- **Issues:** [GitHub Issues](https://github.com/UnstableMind/agent-boy2/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/UnstableMind/agent-boy2/discussions)
-- **Documentation:** [Distribution Guide](DISTRIBUTION.md)
-
-## 🚢 Releases
-
-Agent Girl uses **automated releases** with GitHub Actions:
-
-- **Code-signed** and **notarized** by Apple
-- No Gatekeeper warnings for users
-- Automatic architecture detection (Intel vs ARM64)
-- See [DISTRIBUTION.md](DISTRIBUTION.md) for release process details
+**Note:** Official releases are Apple-notarized and shouldn't show warnings.
 
 ---
 
+## 🤝 Contributing
+
+Contributions welcome! Here's how:
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Make** your changes
+4. **Test** thoroughly: `bun test`
+5. **Commit**: `git commit -m 'Add amazing feature'`
+6. **Push**: `git push origin feature/amazing-feature`
+7. **Open** a Pull Request
+
+### Guidelines
+
+- **TypeScript** - Use strict typing
+- **Code Style** - Follow existing patterns
+- **Testing** - Add tests for new features
+- **Documentation** - Update README and comments
+
+---
+
+## 📄 License
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+**What this means:**
+- ✅ **Free to use** - Personal or commercial
+- ✅ **Modify freely** - Adapt to your needs
+- ✅ **Distribute** - Share with others
+- ⚠️ **Share modifications** - If you run as a service, you must share your source code
+- ⚠️ **Keep license** - Derivatives must also be AGPL-3.0
+
+See the [LICENSE](LICENSE) file for full terms.
+
+**TL;DR:** You can use, modify, and distribute Agent Girl freely, but if you modify it and run it as a public service, you must share your source code under the same license.
+
+---
+
+## 🙏 Credits
+
+**Created by [KenKai](https://github.com/KenKaiii)**
+
+**Built with:**
+- [Anthropic Claude Agent SDK](https://github.com/anthropics/anthropic-sdk-typescript) - AI capabilities
+- [Bun](https://bun.sh/) - Lightning-fast runtime
+- [React](https://reactjs.org/) - UI framework
+- [Radix UI](https://www.radix-ui.com/) - Accessible components
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first styling
+- [Framer Motion](https://www.framer.com/motion/) - Smooth animations
+
+**Special thanks to:**
+- Anthropic team for the Claude Agent SDK
+- Open source community for amazing tools
+
+---
+
+## 📞 Support
+
+- **GitHub Issues**: [Report bugs](https://github.com/KenKaiii/agent-girl/issues)
+- **GitHub Discussions**: [Ask questions](https://github.com/KenKaiii/agent-girl/discussions)
+- **YouTube**: [@kenkaidoesai](https://www.youtube.com/@kenkaidoesai)
+- **Skool Community**: [skool.com/kenkai](https://www.skool.com/kenkai)
+
+---
+
+<div align="center">
+
 **Built with ❤️ using Claude Agent SDK**
+
+Copyright © 2025 KenKai • Licensed under AGPL-3.0
+
+[⬆ Back to Top](#agent-girl)
+
+</div>
