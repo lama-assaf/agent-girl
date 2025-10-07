@@ -8,4 +8,7 @@ data/
 server/generated/
 agent-girl
 release/
-CLAUDE.md
+
+# Ignore all .md files except README
+*.md
+!README.md

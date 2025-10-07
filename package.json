@@ -6,10 +6,6 @@
   "scripts": {
     "dev": "bun run server/server.ts",
     "build": "bun build ./client/index.tsx --outdir=./dist --minify",
-    "build:css": "bun run scripts/build-css.ts",
-    "build:binary": "bun run build:css && STANDALONE_BUILD=true bun build ./server/server.ts --compile --minify --sourcemap=none --define 'process.env.STANDALONE_BUILD=\"true\"' --external postcss --external @tailwindcss/postcss --external autoprefixer --outfile agent-girl",
-    "build:release": "./build-release.sh",
-    "build:release:all": "./build-release-all.sh",
     "start": "bun run server/server.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
