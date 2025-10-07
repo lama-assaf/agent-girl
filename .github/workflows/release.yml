@@ -84,9 +84,10 @@ jobs:
               echo
           fi
 
-          # Start the server
+          # Start the server in production mode
           echo "🚀 Starting Agent Girl..."
           echo
+          export STANDALONE_BUILD=true
           exec bun run server/server.ts
           EOF
           chmod +x release/agent-girl-${{ matrix.platform }}/agent-girl
@@ -275,9 +276,10 @@ jobs:
               echo.
           )
 
-          :: Start the server
+          :: Start the server in production mode
           echo 🚀 Starting Agent Girl...
           echo.
+          set STANDALONE_BUILD=true
           bun run server\server.ts
           '@ | Out-File -FilePath release\agent-girl-windows-x64\agent-girl.bat -Encoding ASCII
 
