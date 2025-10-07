@@ -9,7 +9,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="UnstableMind/agent-boy2"
+REPO="KenKaiii/agent-girl"
 APP_NAME="agent-girl"
 INSTALL_DIR="$HOME/Applications/agent-girl-app"
 
