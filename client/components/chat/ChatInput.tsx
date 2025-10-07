@@ -21,7 +21,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Send, Plus, X, Square } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
-import { BackgroundProcessMonitor, type BackgroundProcess } from '../process/BackgroundProcessMonitor';
+import type { BackgroundProcess } from '../process/BackgroundProcessMonitor';
 
 interface ChatInputProps {
   value: string;
@@ -37,7 +37,7 @@ interface ChatInputProps {
   onKillProcess?: (bashId: string) => void;
 }
 
-export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses = [], onKillProcess }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
@@ -232,12 +232,13 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                 )}
 
                 {/* Background Process Monitor */}
-                {onKillProcess && (
+                {/* TODO: Fix background process display - temporarily disabled */}
+                {/* {onKillProcess && (
                   <BackgroundProcessMonitor
                     processes={backgroundProcesses}
                     onKillProcess={onKillProcess}
                   />
-                )}
+                )} */}
               </div>
             </div>
 

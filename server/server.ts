@@ -22,6 +22,7 @@ import { watch } from "fs";
 import path from "path";
 import { readFileSync, existsSync, appendFileSync } from "fs";
 import { query } from "@anthropic-ai/claude-agent-sdk";
+import type { HookInput } from "@anthropic-ai/claude-agent-sdk/sdkTypes";
 import { sessionDb } from "./database";
 import { getSystemPrompt, injectWorkingDirIntoAgents } from "./systemPrompt";
 import { AVAILABLE_MODELS } from "../client/config/models";
@@ -31,6 +32,7 @@ import { AGENT_REGISTRY } from "./agents";
 import { getDefaultWorkingDirectory, ensureDirectory, validateDirectory } from "./directoryUtils";
 import { openDirectoryPicker } from "./directoryPicker";
 import type { ServerWebSocket } from "bun";
+import type { Subprocess } from "bun";
 
 // Determine if running in standalone mode
 const IS_STANDALONE = process.env.STANDALONE_BUILD === 'true';
@@ -149,6 +151,63 @@ interface ChatWebSocketData {
 
 // Store active queries for mid-stream control
 const activeQueries = new Map<string, unknown>();
+
+// Track background processes per session
+interface BackgroundProcessInfo {
+  bashId: string;
+  command: string;
+  description?: string;
+  startedAt: number;
+  sessionId: string;
+  subprocess: Subprocess;
+  workingDir: string;
+  logFile: string;
+  pid: number;
+}
+const backgroundProcesses = new Map<string, BackgroundProcessInfo>();
+
+// Helper function to spawn background process
+async function spawnBackgroundProcess(command: string, workingDir: string, bashId: string, sessionId: string, description?: string): Promise<{ subprocess: Subprocess; pid: number }> {
+  console.log(`🚀 Spawning background process outside SDK control`);
+  console.log(`   bashId: ${bashId}`);
+  console.log(`   command: ${command}`);
+  console.log(`   workingDir: ${workingDir}`);
+
+  // Use nohup to fully detach and redirect output to log file
+  // This prevents SIGPIPE when parent closes pipes
+  const logFile = `/tmp/agent-girl-${bashId}.log`;
+  const wrappedCommand = `nohup sh -c '${command.replace(/'/g, "'\"'\"'")}' > ${logFile} 2>&1 & echo $!`;
+
+  const subprocess = Bun.spawn(['sh', '-c', wrappedCommand], {
+    cwd: workingDir,
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: process.env,
+  });
+
+  // Read the PID from output
+  const output = await new Response(subprocess.stdout).text();
+  const actualPid = parseInt(output.trim());
+
+  const processInfo: BackgroundProcessInfo = {
+    bashId,
+    command,
+    description,
+    startedAt: Date.now(),
+    sessionId,
+    subprocess,
+    workingDir,
+    logFile, // Store log file path for BashOutput
+    pid: actualPid,
+  };
+
+  backgroundProcesses.set(bashId, processInfo);
+  console.log(`✅ Process spawned with PID: ${actualPid}`);
+  console.log(`   Log file: ${logFile}`);
+  console.log(`   Registry size: ${backgroundProcesses.size}`);
+
+  return { subprocess, pid: actualPid };
+}
 
 const hotReloadClients = new Set<HotReloadClient>();
 
@@ -273,14 +332,12 @@ const server = Bun.serve({
           }
 
           const workingDir = session.working_directory;
-          const originalCwd = process.cwd();
 
           // Log working directory info
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
           console.log('📂 Working Directory Info');
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
           console.log('🔹 Session ID:', sessionId);
-          console.log('🔹 Original CWD:', originalCwd);
           console.log('🔹 Session Working Dir:', workingDir);
 
           // Validate working directory
@@ -296,19 +353,7 @@ const server = Bun.serve({
           }
 
           try {
-            // Change to session's working directory
-            try {
-              process.chdir(workingDir);
-              console.log('✅ Changed to working directory:', process.cwd());
-            } catch (chdirError) {
-              console.error('❌ Failed to change directory:', chdirError);
-              const errorMessage = chdirError instanceof Error ? chdirError.message : 'Unknown error';
-              ws.send(JSON.stringify({
-                type: 'error',
-                message: `Failed to access working directory: ${errorMessage}. The directory may have been deleted.`
-              }));
-              return;
-            }
+            console.log('✅ Working directory validated:', workingDir);
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             // Build query options with provider-specific system prompt (including agent list)
@@ -336,6 +381,7 @@ Run bash commands with the understanding that this is your current working direc
               permissionMode: session.permission_mode || 'bypassPermissions', // Use session's permission mode
               includePartialMessages: true,
               agents: agentsWithWorkingDir, // Register custom agents with working dir context
+              cwd: workingDir, // Set working directory for all tool executions
             };
 
             // In standalone mode, point to the CLI in node_modules
@@ -349,6 +395,85 @@ Run bash commands with the understanding that this is your current working direc
               queryOptions.mcpServers = mcpServers;
               queryOptions.allowedTools = allowedMcpTools;
             }
+
+            // Add PreToolUse hook to intercept background Bash commands
+            queryOptions.hooks = {
+              PreToolUse: [{
+                hooks: [async (input: HookInput, toolUseID: string | undefined) => {
+                  // PreToolUse hook has tool_name and tool_input properties
+                  type PreToolUseInput = HookInput & { tool_name: string; tool_input: Record<string, unknown> };
+
+                  console.log('🔧 PreToolUse hook triggered:', { event: input.hook_event_name, tool: (input as PreToolUseInput).tool_name });
+
+                  if (input.hook_event_name !== 'PreToolUse') return {};
+
+                  const { tool_name, tool_input } = input as PreToolUseInput;
+                  console.log('🔧 Tool name:', tool_name, 'Tool input:', JSON.stringify(tool_input).slice(0, 200));
+
+                  if (tool_name !== 'Bash') return {};
+
+                  const bashInput = tool_input as Record<string, unknown>;
+                  console.log('🔧 Bash input run_in_background:', bashInput.run_in_background);
+
+                  if (bashInput.run_in_background !== true) return {};
+
+                  // This is a background Bash command - intercept it!
+                  console.log('🎯 INTERCEPTING BACKGROUND BASH COMMAND!');
+                  const command = bashInput.command as string;
+                  const description = bashInput.description as string | undefined;
+                  const bashId = toolUseID || `bg-${Date.now()}`;
+
+                  // Check if this specific command is already running for this session
+                  const existingProcess = Array.from(backgroundProcesses.values())
+                    .find(p => p.sessionId === sessionId && p.command === command);
+
+                  if (existingProcess) {
+                    // Check if the process is actually still alive
+                    try {
+                      // kill -0 doesn't kill the process, just checks if it exists
+                      process.kill(existingProcess.pid, 0);
+                      // Process is alive, block duplicate
+                      console.log(`⚠️  This command is already running for this session, skipping spawn: ${command}`);
+                      return {
+                        decision: 'approve' as const,
+                        updatedInput: {
+                          command: `echo "✓ Command already running in background (PID ${existingProcess.pid}, started at ${new Date(existingProcess.startedAt).toLocaleTimeString()})"`,
+                          description,
+                        },
+                      };
+                    } catch {
+                      // Process is dead, remove from registry and allow respawn
+                      console.log(`🧹 Process ${existingProcess.pid} is dead, removing from registry and allowing respawn`);
+                      backgroundProcesses.delete(existingProcess.bashId);
+                    }
+                  }
+
+                  // Spawn the process ourselves
+                  const { pid } = await spawnBackgroundProcess(command, workingDir, bashId, sessionId, description);
+
+                  // Notify the client
+                  ws.send(JSON.stringify({
+                    type: 'background_process_started',
+                    bashId,
+                    command,
+                    description,
+                    startedAt: Date.now(),
+                  }));
+
+                  console.log(`✅ Background process spawned (PID ${pid}), replacing command with success echo`);
+
+                  // Replace the command with an echo so the SDK gets a successful result
+                  // This prevents the agent from retrying
+                  return {
+                    decision: 'approve' as const,
+                    updatedInput: {
+                      command: `echo "✓ Background server started (PID ${pid})"`,
+                      description,
+                    },
+                  };
+                }],
+              }],
+            };
 
             // Query using the SDK (env vars already configured)
             const result = query({
@@ -408,17 +533,8 @@ Run bash commands with the understanding that this is your current working direc
                         }));
                       }
 
-                      // Check if this is a background Bash command
-                      if (block.name === 'Bash' && (block.input as Record<string, unknown>)?.run_in_background === true) {
-                        console.log('🔄 Background process detected');
-                        ws.send(JSON.stringify({
-                          type: 'background_process_started',
-                          bashId: block.id,
-                          command: (block.input as Record<string, unknown>)?.command || '',
-                          description: (block.input as Record<string, unknown>)?.description || '',
-                          sessionId: sessionId,
-                        }));
-                      }
+                      // Background processes are now intercepted and spawned via PreToolUse hook
+                      // No need for detection here since the hook blocks SDK execution
 
                       ws.send(JSON.stringify({
                         type: 'tool_use',
@@ -445,11 +561,36 @@ Run bash commands with the understanding that this is your current working direc
             console.log(`✅ Response completed. Length: ${assistantResponse.length} chars`);
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-            // Clean up active query - but NOT if waiting for plan approval
-            if (!waitingForPlanApproval) {
+            // Don't clean up query if session has background processes or waiting for plan approval
+            console.log(`🔍 Checking query cleanup for session ${sessionId}`);
+            console.log(`   Background processes registry size: ${backgroundProcesses.size}`);
+            console.log(`   All processes:`, Array.from(backgroundProcesses.entries()).map(([id, p]) => ({
+              bashId: id,
+              sessionId: p.sessionId,
+              command: p.command.substring(0, 50)
+            })));
+
+            const sessionProcesses = Array.from(backgroundProcesses.values())
+              .filter(p => p.sessionId === sessionId);
+            console.log(`   Processes for this session (${sessionId}):`, sessionProcesses.length);
+            if (sessionProcesses.length > 0) {
+              sessionProcesses.forEach(p => {
+                console.log(`     - ${p.bashId}: ${p.command}`);
+              });
+            }
+
+            const sessionHasBackgroundProcesses = sessionProcesses.length > 0;
+            console.log(`   sessionHasBackgroundProcesses: ${sessionHasBackgroundProcesses}`);
+            console.log(`   waitingForPlanApproval: ${waitingForPlanApproval}`);
+
+            if (!waitingForPlanApproval && !sessionHasBackgroundProcesses) {
+              console.log(`🗑️ Deleting query for session ${sessionId} - no background processes or plan approval needed`);
               activeQueries.delete(sessionId);
             } else {
-              console.log('⏸️ Query kept active - waiting for plan approval');
+              const reasons = [];
+              if (waitingForPlanApproval) reasons.push('waiting for plan approval');
+              if (sessionHasBackgroundProcesses) reasons.push(`${sessionProcesses.length} background process(es) running`);
+              console.log(`⏸️ Query kept alive - ${reasons.join(', ')}`);
             }
 
             // Send completion signal
@@ -461,11 +602,6 @@ Run bash commands with the understanding that this is your current working direc
               type: 'error',
               error: error instanceof Error ? error.message : 'Unknown error'
             }));
-          } finally {
-            // Always restore original working directory
-            process.chdir(originalCwd);
-            console.log('↩️  Restored to original directory:', process.cwd());
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
           }
         } else if (data.type === 'approve_plan') {
           // Handle plan approval - switch mode to bypassPermissions and continue
@@ -549,11 +685,36 @@ Run bash commands with the understanding that this is your current working direc
           try {
             console.log(`🛑 Killing background process: ${bashId}`);
 
-            // Import KillShell dynamically from SDK
-            const { query } = await import('@anthropic-ai/claude-agent-sdk');
+            const processInfo = backgroundProcesses.get(bashId);
+            if (processInfo) {
+              const pid = processInfo.subprocess.pid;
 
-            // Use Claude SDK to kill the process
-            // Note: This is a simplified approach - in production you may need to track and kill processes differently
+              if (pid) {
+                try {
+                  // Kill the entire process group (setsid makes PID the process group leader)
+                  // Using negative PID targets the process group
+                  console.log(`  Killing process group -${pid}...`);
+                  Bun.spawnSync(['kill', '-TERM', '--', `-${pid}`]);
+
+                  // Give processes a moment to terminate gracefully
+                  await new Promise(resolve => setTimeout(resolve, 100));
+
+                  // Force kill any remaining processes in the group
+                  Bun.spawnSync(['kill', '-KILL', '--', `-${pid}`]);
+
+                  // Also kill the subprocess reference
+                  processInfo.subprocess.kill();
+                  console.log(`  ✅ Killed process group -${pid}`);
+                } catch {
+                  console.log(`  ⚠️  Error during kill, forcing subprocess.kill()`);
+                  processInfo.subprocess.kill();
+                }
+              }
+            }
+
+            // Remove from registry
+            backgroundProcesses.delete(bashId);
+
             ws.send(JSON.stringify({
               type: 'background_process_killed',
               bashId
@@ -562,7 +723,7 @@ Run bash commands with the understanding that this is your current working direc
             console.error('Failed to kill background process:', error);
             ws.send(JSON.stringify({
               type: 'error',
-              error: 'Failed to kill background process'
+              error: error instanceof Error ? error.message : 'Failed to kill background process'
             }));
           }
         }
@@ -643,6 +804,38 @@ Run bash commands with the understanding that this is your current working direc
 
     if (url.pathname.match(/^\/api\/sessions\/[^/]+$/) && req.method === 'DELETE') {
       const sessionId = url.pathname.split('/').pop()!;
+
+      // Clean up background processes for this session before deleting
+      const processesToClean = Array.from(backgroundProcesses.entries())
+        .filter(([_, process]) => process.sessionId === sessionId);
+
+      if (processesToClean.length > 0) {
+        console.log(`🧹 Cleaning up ${processesToClean.length} background process(es) for session ${sessionId}`);
+
+        for (const [bashId, process] of processesToClean) {
+          const pid = process.subprocess.pid;
+
+          if (pid) {
+            try {
+              // Kill the entire process group
+              Bun.spawnSync(['kill', '-TERM', '--', `-${pid}`]);
+              Bun.spawnSync(['kill', '-KILL', '--', `-${pid}`]);
+              process.subprocess.kill();
+              console.log(`  ✅ Killed process group -${pid}: ${process.command}`);
+            } catch {
+              process.subprocess.kill();
+              console.log(`  ⚠️  Fallback killed subprocess ${pid}: ${process.command}`);
+            }
+          }
+
+          // Remove from registry
+          backgroundProcesses.delete(bashId);
+        }
+
+        // Also delete the query
+        activeQueries.delete(sessionId);
+      }
+
       const success = sessionDb.deleteSession(sessionId);
 
       return new Response(JSON.stringify({ success }), {

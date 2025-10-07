@@ -48,7 +48,22 @@ Use mcp__web-search-prime__search for all web-related queries and information ga
 `.trim();
 
 const BACKGROUND_PROCESS_INSTRUCTIONS = `
-**BACKGROUND PROCESSES:** For long-running commands (dev servers, watchers, databases), use Bash with run_in_background: true. This returns a bash_id for monitoring with BashOutput and stopping with KillShell. Background processes persist after your response completes.
+**CRITICAL: BACKGROUND PROCESSES**
+
+ALWAYS use Bash with run_in_background: true for ANY command that doesn't exit on its own.
+
+Commands that REQUIRE background mode:
+- Dev servers: npm run dev, bun dev, python -m http.server, etc.
+- Build watchers: npm run watch, tsc --watch, etc.
+- Database servers: postgres, mysql, redis, etc.
+- Any server process that stays running
+
+⚠️ NEVER run these commands in foreground - you will hang indefinitely and become unresponsive!
+
+After spawning a background process:
+- Use BashOutput tool with the returned bash_id to check output
+- Processes persist after your response completes
+- Users can kill processes via the UI
 `.trim();
 
 /**

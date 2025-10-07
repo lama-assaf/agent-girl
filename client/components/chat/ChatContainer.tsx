@@ -511,6 +511,18 @@ export function ChatContainer() {
             return newMap;
           });
         }
+      } else if (message.type === 'background_process_exited') {
+        // Handle background process that exited on its own
+        const sessionId = message.sessionId || currentSessionId;
+        if (sessionId) {
+          console.log(`Background process exited: ${message.bashId}, exitCode: ${message.exitCode}`);
+          setBackgroundProcesses(prev => {
+            const newMap = new Map(prev);
+            const processes = newMap.get(sessionId) || [];
+            newMap.set(sessionId, processes.filter(p => p.bashId !== message.bashId));
+            return newMap;
+          });
+        }
       }
     },
   });
