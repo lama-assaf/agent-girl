@@ -1,0 +1,228 @@
+name: Build, Sign & Notarize Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  build-macos:
+    name: Build & Notarize macOS
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            target: bun-darwin-arm64
+            platform: macos-arm64
+          - arch: x64
+            target: bun-darwin-x64
+            platform: macos-intel
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build CSS
+        run: bun run build:css
+
+      - name: Build client bundle
+        run: bun run build
+
+      - name: Build binary for ${{ matrix.platform }}
+        run: |
+          bun build ./server/server.ts \
+            --compile \
+            --minify \
+            --sourcemap=none \
+            --target="${{ matrix.target }}" \
+            --define 'process.env.STANDALONE_BUILD="true"' \
+            --external postcss \
+            --external @tailwindcss/postcss \
+            --external autoprefixer \
+            --outfile agent-girl
+
+      - name: Setup release directory
+        run: |
+          mkdir -p release/agent-girl-${{ matrix.platform }}
+          mv agent-girl release/agent-girl-${{ matrix.platform }}/
+          cp -r client/ release/agent-girl-${{ matrix.platform }}/client/
+          cp dist/globals.css release/agent-girl-${{ matrix.platform }}/client/globals.css
+          mkdir -p release/agent-girl-${{ matrix.platform }}/dist
+          cp dist/index.js release/agent-girl-${{ matrix.platform }}/dist/
+          cp dist/index.js.map release/agent-girl-${{ matrix.platform }}/dist/ 2>/dev/null || true
+          cp -r client/icons/ release/agent-girl-${{ matrix.platform }}/icons/ 2>/dev/null || true
+          cp credits.mp3 release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
+          cp node_modules/@anthropic-ai/claude-code/cli.js release/agent-girl-${{ matrix.platform }}/
+          cp node_modules/@anthropic-ai/claude-code/yoga.wasm release/agent-girl-${{ matrix.platform }}/
+          cp -r node_modules/@anthropic-ai/claude-code/vendor release/agent-girl-${{ matrix.platform }}/
+
+      - name: Create .env template
+        run: |
+          cat > release/agent-girl-${{ matrix.platform }}/.env << 'EOF'
+          # =============================================================================
+          # Anthropic Configuration (Claude Models)
+          # =============================================================================
+          # Get your API key from: https://console.anthropic.com/
+          ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+          # =============================================================================
+          # Z.AI Configuration (GLM Models)
+          # =============================================================================
+          # Get your API key from: https://z.ai
+          # The server automatically configures the endpoint when you select a GLM model
+          ZAI_API_KEY=your-zai-key-here
+          EOF
+
+      - name: Create README
+        run: |
+          cat > release/agent-girl-${{ matrix.platform }}/README.txt << 'EOF'
+          Agent Girl Application - macOS
+          ==============================
+
+          Setup (First Time):
+          1. Open the .env file in a text editor
+          2. Add your Anthropic API key (get from https://console.anthropic.com/)
+             Replace: ANTHROPIC_API_KEY=your-anthropic-api-key-here
+             With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
+
+          To Run:
+          - Double-click the 'agent-girl' file
+          - The app will start at http://localhost:3001
+          - Your browser should open automatically
+
+          Data Storage:
+          - Sessions stored in ~/Documents/agent-girl-app/
+          - All your conversations are saved locally
+
+          Requirements:
+          - macOS 11+ (Big Sur or later)
+          - Anthropic API key (for Claude models)
+          - No other dependencies needed!
+
+          Troubleshooting:
+          - If port 3001 is busy, kill the process: lsof -ti:3001 | xargs kill -9
+          - Make sure .env file has your real API key
+
+          Enjoy!
+          EOF
+
+      - name: Import Apple Developer Certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+          security import certificate.p12 \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # Clean up
+          rm certificate.p12
+
+      - name: Sign binary
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          codesign --force --options runtime \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            --timestamp \
+            release/agent-girl-${{ matrix.platform }}/agent-girl
+
+          # Verify signature
+          codesign --verify --verbose release/agent-girl-${{ matrix.platform }}/agent-girl
+
+      - name: Create ZIP archive
+        run: |
+          cd release
+          zip -r agent-girl-${{ matrix.platform }}.zip agent-girl-${{ matrix.platform }}/
+
+      - name: Notarize application
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Submit for notarization
+          xcrun notarytool submit release/agent-girl-${{ matrix.platform }}.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          # Note: We don't staple because it's a directory structure, not a .app bundle
+          # Users will download the notarized zip which is sufficient for Gatekeeper
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-girl-${{ matrix.platform }}
+          path: release/agent-girl-${{ matrix.platform }}.zip
+          retention-days: 7
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-macos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: Agent Girl ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/agent-girl-macos-arm64/agent-girl-macos-arm64.zip
+            artifacts/agent-girl-macos-intel/agent-girl-macos-intel.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
