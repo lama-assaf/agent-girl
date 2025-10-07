@@ -115,10 +115,10 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "Which API provider(s) do you want to use?"
 echo ""
-echo "  ${YELLOW}1)${NC} Anthropic API only (Claude models)"
-echo "  ${YELLOW}2)${NC} Z.AI API only (GLM models)"
-echo "  ${YELLOW}3)${NC} Both APIs (full model access)"
-echo "  ${YELLOW}4)${NC} Skip (configure later)"
+echo -e "  ${YELLOW}1)${NC} Anthropic API only (Claude models)"
+echo -e "  ${YELLOW}2)${NC} Z.AI API only (GLM models)"
+echo -e "  ${YELLOW}3)${NC} Both APIs (full model access)"
+echo -e "  ${YELLOW}4)${NC} Skip (configure later)"
 echo ""
 read -p "Enter choice [1-4]: " api_choice < /dev/tty
 
@@ -129,26 +129,26 @@ case $api_choice in
   1)
     echo ""
     echo -e "${BLUE}📝 Anthropic API Setup${NC}"
-    echo "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
+    echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
     echo ""
     read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
     ;;
   2)
     echo ""
     echo -e "${BLUE}📝 Z.AI API Setup${NC}"
-    echo "Get your API key from: ${BLUE}https://z.ai${NC}"
+    echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
     echo ""
     read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
     ;;
   3)
     echo ""
     echo -e "${BLUE}📝 Anthropic API Setup${NC}"
-    echo "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
+    echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
     echo ""
     read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
     echo ""
     echo -e "${BLUE}📝 Z.AI API Setup${NC}"
-    echo "Get your API key from: ${BLUE}https://z.ai${NC}"
+    echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
     echo ""
     read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
     ;;
@@ -254,10 +254,10 @@ echo ""
 echo "This means:"
 echo "  • You can use, modify, and distribute this software"
 echo "  • If you modify and run it as a service, you must share your changes"
-echo "  • Full license text available at: ${BLUE}$INSTALL_DIR/LICENSE${NC}"
+echo -e "  • Full license text available at: ${BLUE}$INSTALL_DIR/LICENSE${NC}"
 echo ""
 echo "By using this software, you agree to the AGPL-3.0 terms."
-echo "Learn more: ${BLUE}https://www.gnu.org/licenses/agpl-3.0.html${NC}"
+echo -e "Learn more: ${BLUE}https://www.gnu.org/licenses/agpl-3.0.html${NC}"
 echo ""
 
 # Success message
