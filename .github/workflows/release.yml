@@ -184,9 +184,117 @@ jobs:
           path: release/agent-girl-${{ matrix.platform }}.zip
           retention-days: 7
 
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build client bundle
+        run: bun run build
+
+      - name: Build binary for Windows
+        run: |
+          bun build ./server/server.ts `
+            --compile `
+            --minify `
+            --sourcemap=none `
+            --target=bun-windows-x64 `
+            --define 'process.env.STANDALONE_BUILD="true"' `
+            --external postcss `
+            --external @tailwindcss/postcss `
+            --external autoprefixer `
+            --outfile agent-girl.exe
+
+      - name: Setup release directory
+        run: |
+          New-Item -ItemType Directory -Force -Path release\agent-girl-windows-x64
+          Move-Item -Force agent-girl.exe release\agent-girl-windows-x64\
+          Copy-Item -Recurse -Force client release\agent-girl-windows-x64\client
+          New-Item -ItemType Directory -Force -Path release\agent-girl-windows-x64\dist
+          Copy-Item -Force dist\index.js release\agent-girl-windows-x64\dist\
+          if (Test-Path dist\index.js.map) { Copy-Item -Force dist\index.js.map release\agent-girl-windows-x64\dist\ }
+          if (Test-Path client\icons) { Copy-Item -Recurse -Force client\icons release\agent-girl-windows-x64\icons }
+          if (Test-Path credits.mp3) { Copy-Item -Force credits.mp3 release\agent-girl-windows-x64\ }
+          Copy-Item -Force node_modules\@anthropic-ai\claude-code\cli.js release\agent-girl-windows-x64\
+          Copy-Item -Force node_modules\@anthropic-ai\claude-code\yoga.wasm release\agent-girl-windows-x64\
+          Copy-Item -Recurse -Force node_modules\@anthropic-ai\claude-code\vendor release\agent-girl-windows-x64\
+
+      - name: Create .env template
+        run: |
+          @"
+          # =============================================================================
+          # Anthropic Configuration (Claude Models)
+          # =============================================================================
+          # Get your API key from: https://console.anthropic.com/
+          ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+          # =============================================================================
+          # Z.AI Configuration (GLM Models)
+          # =============================================================================
+          # Get your API key from: https://z.ai
+          # The server automatically configures the endpoint when you select a GLM model
+          ZAI_API_KEY=your-zai-key-here
+          "@ | Out-File -FilePath release\agent-girl-windows-x64\.env -Encoding UTF8
+
+      - name: Create README
+        run: |
+          @"
+          Agent Girl Application - Windows
+          =================================
+
+          Setup (First Time):
+          1. Open the .env file in a text editor
+          2. Add your Anthropic API key (get from https://console.anthropic.com/)
+             Replace: ANTHROPIC_API_KEY=your-anthropic-api-key-here
+             With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
+
+          To Run:
+          - Double-click 'agent-girl.exe'
+          - The app will start at http://localhost:3001
+          - Your browser should open automatically
+
+          Data Storage:
+          - Sessions stored in %USERPROFILE%\Documents\agent-girl-app\
+          - All your conversations are saved locally
+
+          Requirements:
+          - Windows 10 or later
+          - Anthropic API key (for Claude models)
+          - No other dependencies needed!
+
+          Troubleshooting:
+          - If port 3001 is busy, kill the process using Task Manager
+          - Make sure .env file has your real API key
+          - Windows Defender might scan the exe on first run (this is normal)
+
+          Enjoy!
+          "@ | Out-File -FilePath release\agent-girl-windows-x64\README.txt -Encoding UTF8
+
+      - name: Create ZIP archive
+        run: |
+          Compress-Archive -Path release\agent-girl-windows-x64 -DestinationPath release\agent-girl-windows-x64.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-girl-windows-x64
+          path: release/agent-girl-windows-x64.zip
+          retention-days: 7
+
   create-release:
     name: Create GitHub Release
-    needs: build-macos
+    needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -220,5 +328,6 @@ jobs:
           files: |
             artifacts/agent-girl-macos-arm64/agent-girl-macos-arm64.zip
             artifacts/agent-girl-macos-intel/agent-girl-macos-intel.zip
+            artifacts/agent-girl-windows-x64/agent-girl-windows-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
