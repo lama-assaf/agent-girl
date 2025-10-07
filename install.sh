@@ -219,21 +219,25 @@ cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
     fi
   fi
 
-  # Check if /usr/local/bin is in PATH
+  # Add /usr/local/bin to PATH if not already there
   if [[ -n "$LAUNCHER_PATH" ]] && [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
     echo ""
-    echo -e "${YELLOW}⚠️  Note: /usr/local/bin is not in your PATH${NC}"
-    echo "To use the ${YELLOW}$APP_NAME${NC} command from anywhere, add this to your shell profile:"
-    echo ""
+    echo -e "${BLUE}Adding /usr/local/bin to PATH...${NC}"
+
     if [[ "$SHELL" == *"zsh"* ]]; then
-      echo "  ${BLUE}echo 'export PATH=\"/usr/local/bin:\$PATH\"' >> ~/.zshrc${NC}"
-      echo "  ${BLUE}source ~/.zshrc${NC}"
+      SHELL_RC="$HOME/.zshrc"
     else
-      echo "  ${BLUE}echo 'export PATH=\"/usr/local/bin:\$PATH\"' >> ~/.bash_profile${NC}"
-      echo "  ${BLUE}source ~/.bash_profile${NC}"
+      SHELL_RC="$HOME/.bash_profile"
     fi
-    echo ""
-    echo "Or run directly: ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
+
+    # Add PATH export if it doesn't already exist in the file
+    if ! grep -q 'export PATH="/usr/local/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
+      echo 'export PATH="/usr/local/bin:$PATH"' >> "$SHELL_RC"
+      echo -e "${GREEN}✓${NC} Added /usr/local/bin to PATH in $SHELL_RC"
+      echo -e "${YELLOW}Note:${NC} Restart your terminal or run: ${BLUE}source $SHELL_RC${NC}"
+    else
+      echo -e "${GREEN}✓${NC} /usr/local/bin already configured in $SHELL_RC"
+    fi
   fi
   echo ""
 fi
