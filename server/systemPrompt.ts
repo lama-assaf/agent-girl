@@ -47,6 +47,10 @@ DO NOT use websearch or webfetch tools - they are not available for GLM models.
 Use mcp__web-search-prime__search for all web-related queries and information gathering.
 `.trim();
 
+const BACKGROUND_PROCESS_INSTRUCTIONS = `
+**BACKGROUND PROCESSES:** For long-running commands (dev servers, watchers, databases), use Bash with run_in_background: true. This returns a bash_id for monitoring with BashOutput and stopping with KillShell. Background processes persist after your response completes.
+`.trim();
+
 /**
  * Build agent instructions from agent registry
  */
@@ -103,7 +107,7 @@ export function injectWorkingDirIntoAgents(
 
 /**
  * Get system prompt based on provider and available agents
- * GLM models get additional instructions about using MCP web search
+ * Includes background process instructions and provider-specific features
  */
 export function getSystemPrompt(provider: ProviderType, agents?: Record<string, AgentDefinition>): string {
   let prompt = BASE_PROMPT;
@@ -112,6 +116,9 @@ export function getSystemPrompt(provider: ProviderType, agents?: Record<string, 
   if (agents && Object.keys(agents).length > 0) {
     prompt = `${prompt}\n\n${buildAgentInstructions(agents)}`;
   }
+
+  // Add background process management instructions (universal for all providers)
+  prompt = `${prompt}\n\n${BACKGROUND_PROCESS_INSTRUCTIONS}`;
 
   // Add provider-specific instructions
   if (provider === 'z-ai') {

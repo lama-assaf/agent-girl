@@ -633,6 +633,7 @@
   background-color: rgb(var(--bg-input)); /* dark:bg-[#26282A] */
   color: rgb(var(--text-primary));
   font-size: 1rem; /* 16px */
+  white-space: pre-wrap; /* Preserve line breaks and spacing */
 }
 
 .message-user-actions {

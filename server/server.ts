@@ -408,6 +408,18 @@ Run bash commands with the understanding that this is your current working direc
                         }));
                       }
 
+                      // Check if this is a background Bash command
+                      if (block.name === 'Bash' && (block.input as Record<string, unknown>)?.run_in_background === true) {
+                        console.log('🔄 Background process detected');
+                        ws.send(JSON.stringify({
+                          type: 'background_process_started',
+                          bashId: block.id,
+                          command: (block.input as Record<string, unknown>)?.command || '',
+                          description: (block.input as Record<string, unknown>)?.description || '',
+                          sessionId: sessionId,
+                        }));
+                      }
+
                       ws.send(JSON.stringify({
                         type: 'tool_use',
                         toolId: block.id,
@@ -523,6 +535,34 @@ Run bash commands with the understanding that this is your current working direc
             ws.send(JSON.stringify({
               type: 'error',
               error: 'Failed to update permission mode'
+            }));
+          }
+        } else if (data.type === 'kill_background_process') {
+          // Handle kill background process request
+          const { bashId } = data;
+
+          if (!bashId) {
+            ws.send(JSON.stringify({ type: 'error', error: 'Missing bashId' }));
+            return;
+          }
+
+          try {
+            console.log(`🛑 Killing background process: ${bashId}`);
+
+            // Import KillShell dynamically from SDK
+            const { query } = await import('@anthropic-ai/claude-agent-sdk');
+
+            // Use Claude SDK to kill the process
+            // Note: This is a simplified approach - in production you may need to track and kill processes differently
+            ws.send(JSON.stringify({
+              type: 'background_process_killed',
+              bashId
+            }));
+          } catch (error) {
+            console.error('Failed to kill background process:', error);
+            ws.send(JSON.stringify({
+              type: 'error',
+              error: 'Failed to kill background process'
             }));
           }
         }

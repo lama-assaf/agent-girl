@@ -32,6 +32,7 @@ import { useSessionAPI, type Session } from '../../hooks/useSessionAPI';
 import { Menu, Edit3 } from 'lucide-react';
 import type { Message } from '../message/types';
 import { toast } from '../../utils/toast';
+import type { BackgroundProcess } from '../process/BackgroundProcessMonitor';
 
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -66,6 +67,9 @@ export function ChatContainer() {
 
   // Plan approval
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
+
+  // Background processes (per-session)
+  const [backgroundProcesses, setBackgroundProcesses] = useState<Map<string, BackgroundProcess[]>>(new Map());
 
   const sessionAPI = useSessionAPI();
 
@@ -480,9 +484,54 @@ export function ChatContainer() {
       } else if (message.type === 'permission_mode_changed') {
         // Handle permission mode change confirmation
         setIsPlanMode(message.mode === 'plan');
+      } else if (message.type === 'background_process_started') {
+        // Handle background process started
+        const sessionId = message.sessionId || currentSessionId;
+        if (sessionId) {
+          setBackgroundProcesses(prev => {
+            const newMap = new Map(prev);
+            const processes = newMap.get(sessionId) || [];
+            newMap.set(sessionId, [...processes, {
+              bashId: message.bashId,
+              command: message.command,
+              description: message.description,
+              startedAt: Date.now()
+            }]);
+            return newMap;
+          });
+        }
+      } else if (message.type === 'background_process_killed') {
+        // Handle background process killed confirmation
+        const sessionId = message.sessionId || currentSessionId;
+        if (sessionId) {
+          setBackgroundProcesses(prev => {
+            const newMap = new Map(prev);
+            const processes = newMap.get(sessionId) || [];
+            newMap.set(sessionId, processes.filter(p => p.bashId !== message.bashId));
+            return newMap;
+          });
+        }
       }
     },
   });
+
+  // Handle killing a background process
+  const handleKillProcess = (bashId: string) => {
+    if (!currentSessionId) return;
+
+    sendMessage({
+      type: 'kill_background_process',
+      bashId
+    });
+
+    // Optimistically remove from UI
+    setBackgroundProcesses(prev => {
+      const newMap = new Map(prev);
+      const processes = newMap.get(currentSessionId) || [];
+      newMap.set(currentSessionId, processes.filter(p => p.bashId !== bashId));
+      return newMap;
+    });
+  };
 
   const handleSubmit = async (files?: import('../message/types').FileAttachment[]) => {
     if (!inputValue.trim()) return;
@@ -674,6 +723,8 @@ export function ChatContainer() {
               isGenerating={isLoading}
               isPlanMode={isPlanMode}
               onTogglePlanMode={handleTogglePlanMode}
+              backgroundProcesses={backgroundProcesses.get(currentSessionId || '') || []}
+              onKillProcess={handleKillProcess}
             />
           </>
         )}
