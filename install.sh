@@ -220,6 +220,23 @@ cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
   echo ""
 fi
 
+# License notification
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}   License Information${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo -e "${YELLOW}Agent Girl is free and open source software${NC}"
+echo -e "Licensed under ${YELLOW}GNU AGPL-3.0${NC} (Affero General Public License)"
+echo ""
+echo "This means:"
+echo "  • You can use, modify, and distribute this software"
+echo "  • If you modify and run it as a service, you must share your changes"
+echo "  • Full license text available at: ${BLUE}$INSTALL_DIR/LICENSE${NC}"
+echo ""
+echo "By using this software, you agree to the AGPL-3.0 terms."
+echo "Learn more: ${BLUE}https://www.gnu.org/licenses/agpl-3.0.html${NC}"
+echo ""
+
 # Success message
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}   Installation Successful! 🎉${NC}"
