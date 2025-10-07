@@ -13,7 +13,9 @@
 Seamless AI conversations with real-time streaming, session management, and specialized sub-agents. Built with React, TypeScript, and Bun for blazing-fast performance.
 
 [Getting Started](#-quick-start) • [Features](#-features) • [Installation](#-installation) • [Contributing](#-contributing)
+
 <img src="agentgirl.png" alt="Agent Girl" width="600" />
+
 </div>
 
 ---
