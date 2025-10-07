@@ -64,6 +64,7 @@ jobs:
           cp dist/index.js.map release/agent-girl-${{ matrix.platform }}/dist/ 2>/dev/null || true
           cp -r client/icons/ release/agent-girl-${{ matrix.platform }}/icons/ 2>/dev/null || true
           cp credits.mp3 release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
+          cp LICENSE release/agent-girl-${{ matrix.platform }}/
           cp node_modules/@anthropic-ai/claude-code/cli.js release/agent-girl-${{ matrix.platform }}/
           cp node_modules/@anthropic-ai/claude-code/yoga.wasm release/agent-girl-${{ matrix.platform }}/
           cp -r node_modules/@anthropic-ai/claude-code/vendor release/agent-girl-${{ matrix.platform }}/
