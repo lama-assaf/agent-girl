@@ -90,37 +90,36 @@ Agent Girl is a **desktop-first chat interface** that brings the power of Anthro
 
 ## 🚀 Installation
 
-### macOS (Recommended)
+### Universal One-Line Install
 
-**One-line install:**
+**Works on macOS, Linux, and Windows (Git Bash/WSL):**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/KenKaiii/agent-girl/master/install.sh | bash
 ```
 
 **What it does:**
-- ✅ Detects your Mac architecture (Intel vs Apple Silicon)
-- ✅ Downloads the latest notarized release
-- ✅ Installs to `~/Applications/agent-girl-app/`
-- ✅ Creates global `agent-girl` command
+- ✅ Auto-detects your OS and architecture
+- ✅ Downloads the correct release for your platform
+- ✅ Installs to platform-specific location
+- ✅ Creates global command (macOS/Linux)
 - ✅ Sets up API key configuration
-- ✅ No Gatekeeper warnings (Apple-signed & notarized)
+- ✅ macOS: Apple-signed & notarized (no warnings)
 
-### Windows
+**Supported Platforms:**
+- macOS (Intel + Apple Silicon)
+- Linux (x64 + ARM64)
+- Windows x64 (via Git Bash/WSL)
 
-**One-line install:**
+### Windows PowerShell (Alternative)
+
+**For native Windows PowerShell:**
 
 ```powershell
 iwr -useb https://raw.githubusercontent.com/KenKaiii/agent-girl/master/install.ps1 | iex
 ```
 
-**What it does:**
-- ✅ Detects Windows x64 architecture
-- ✅ Downloads the latest release
-- ✅ Installs to `%LOCALAPPDATA%\Programs\agent-girl-app\`
-- ✅ Creates global `agent-girl` command
-- ✅ Sets up API key configuration
-- ✅ Automatic PATH setup
+Provides better Windows integration with automatic PATH setup.
 
 ### Manual Download
 

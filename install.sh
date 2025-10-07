@@ -18,32 +18,65 @@ echo -e "${BLUE}   Agent Girl Installer${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-# Detect architecture
-ARCH=$(uname -m)
-case $ARCH in
-  x86_64)
-    PLATFORM="macos-intel"
-    ARCH_NAME="Intel (x86_64)"
+# Detect OS
+OS=$(uname -s)
+case $OS in
+  Darwin)
+    OS_NAME="macOS"
+    OS_PREFIX="macos"
+    INSTALL_DIR="$HOME/Applications/agent-girl-app"
     ;;
-  arm64|aarch64)
-    PLATFORM="macos-arm64"
-    ARCH_NAME="Apple Silicon (ARM64)"
+  Linux)
+    OS_NAME="Linux"
+    OS_PREFIX="linux"
+    INSTALL_DIR="$HOME/.local/share/agent-girl-app"
+    ;;
+  MINGW*|MSYS*|CYGWIN*)
+    OS_NAME="Windows"
+    OS_PREFIX="windows"
+    INSTALL_DIR="$LOCALAPPDATA/Programs/agent-girl-app"
     ;;
   *)
-    echo -e "${RED}❌ Unsupported architecture: $ARCH${NC}"
-    echo "This installer supports Intel (x86_64) and Apple Silicon (arm64) macOS only."
+    echo -e "${RED}❌ Unsupported OS: $OS${NC}"
+    echo "This installer supports macOS, Linux, and Windows only."
     exit 1
     ;;
 esac
 
+# Detect architecture
+ARCH=$(uname -m)
+case $ARCH in
+  x86_64|amd64)
+    if [[ "$OS_PREFIX" == "macos" ]]; then
+      PLATFORM="macos-intel"
+      ARCH_NAME="Intel (x86_64)"
+    elif [[ "$OS_PREFIX" == "windows" ]]; then
+      PLATFORM="windows-x64"
+      ARCH_NAME="x64"
+    else
+      PLATFORM="linux-x64"
+      ARCH_NAME="x86_64"
+    fi
+    ;;
+  arm64|aarch64)
+    if [[ "$OS_PREFIX" == "macos" ]]; then
+      PLATFORM="macos-arm64"
+      ARCH_NAME="Apple Silicon (ARM64)"
+    else
+      PLATFORM="linux-arm64"
+      ARCH_NAME="ARM64"
+    fi
+    ;;
+  *)
+    echo -e "${RED}❌ Unsupported architecture: $ARCH${NC}"
+    echo "This installer supports x86_64 and ARM64 only."
+    exit 1
+    ;;
+esac
+
+echo -e "${GREEN}✓${NC} Detected OS: ${YELLOW}$OS_NAME${NC}"
 echo -e "${GREEN}✓${NC} Detected architecture: ${YELLOW}$ARCH_NAME${NC}"
 echo ""
-
-# Check if running on macOS
-if [[ "$OSTYPE" != "darwin"* ]]; then
-  echo -e "${RED}❌ This installer is for macOS only${NC}"
-  exit 1
-fi
 
 # Get latest release
 echo -e "${BLUE}📡 Fetching latest release...${NC}"
@@ -190,56 +223,65 @@ EOF
 fi
 echo ""
 
-# Create global launcher - try without sudo first, then offer sudo option
-LAUNCHER_PATH="/usr/local/bin/$APP_NAME"
-if [[ ! -f "$LAUNCHER_PATH" ]]; then
-  echo -e "${BLUE}🔗 Setting up global command...${NC}"
+# Create global launcher (skip on Windows - use direct path or PowerShell installer instead)
+LAUNCHER_PATH=""
+NEEDS_RESTART=false
 
-  # Create launcher script content
-  LAUNCHER_SCRIPT="#!/bin/bash
+if [[ "$OS_PREFIX" != "windows" ]]; then
+  LAUNCHER_PATH="/usr/local/bin/$APP_NAME"
+
+  if [[ ! -f "$LAUNCHER_PATH" ]]; then
+    echo -e "${BLUE}🔗 Setting up global command...${NC}"
+
+    # Create launcher script content
+    LAUNCHER_SCRIPT="#!/bin/bash
 cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
 "
 
-  # Try to create without sudo
-  if echo "$LAUNCHER_SCRIPT" > "$LAUNCHER_PATH" 2>/dev/null && chmod +x "$LAUNCHER_PATH" 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} Global launcher created at $LAUNCHER_PATH"
-  else
-    # Needs sudo - ask user
-    echo -e "${YELLOW}⚠️  Creating global command requires admin permissions${NC}"
-    read -p "Create global launcher with sudo? [y/N]: " use_sudo < /dev/tty
-
-    if [[ "$use_sudo" =~ ^[Yy]$ ]]; then
-      echo "$LAUNCHER_SCRIPT" | sudo tee "$LAUNCHER_PATH" > /dev/null
-      sudo chmod +x "$LAUNCHER_PATH"
+    # Try to create without sudo
+    if echo "$LAUNCHER_SCRIPT" > "$LAUNCHER_PATH" 2>/dev/null && chmod +x "$LAUNCHER_PATH" 2>/dev/null; then
       echo -e "${GREEN}✓${NC} Global launcher created at $LAUNCHER_PATH"
     else
-      echo -e "${YELLOW}⚠️  Skipped global launcher${NC}"
-      echo "You can still run: ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
-      LAUNCHER_PATH=""  # Clear path so we don't show the global command instructions
-    fi
-  fi
+      # Needs sudo - ask user
+      echo -e "${YELLOW}⚠️  Creating global command requires admin permissions${NC}"
+      read -p "Create global launcher with sudo? [y/N]: " use_sudo < /dev/tty
 
-  # Add /usr/local/bin to PATH if not already there
-  NEEDS_RESTART=false
-  if [[ -n "$LAUNCHER_PATH" ]] && [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+      if [[ "$use_sudo" =~ ^[Yy]$ ]]; then
+        echo "$LAUNCHER_SCRIPT" | sudo tee "$LAUNCHER_PATH" > /dev/null
+        sudo chmod +x "$LAUNCHER_PATH"
+        echo -e "${GREEN}✓${NC} Global launcher created at $LAUNCHER_PATH"
+      else
+        echo -e "${YELLOW}⚠️  Skipped global launcher${NC}"
+        echo "You can still run: ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
+        LAUNCHER_PATH=""  # Clear path so we don't show the global command instructions
+      fi
+    fi
+
+    # Add /usr/local/bin to PATH if not already there
+    if [[ -n "$LAUNCHER_PATH" ]] && [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+      echo ""
+      echo -e "${BLUE}Adding /usr/local/bin to PATH...${NC}"
+
+      if [[ "$SHELL" == *"zsh"* ]]; then
+        SHELL_RC="$HOME/.zshrc"
+      else
+        SHELL_RC="$HOME/.bash_profile"
+      fi
+
+      # Add PATH export if it doesn't already exist in the file
+      if ! grep -q 'export PATH="/usr/local/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
+        echo 'export PATH="/usr/local/bin:$PATH"' >> "$SHELL_RC"
+        echo -e "${GREEN}✓${NC} Added /usr/local/bin to PATH"
+        NEEDS_RESTART=true
+      else
+        echo -e "${GREEN}✓${NC} /usr/local/bin already in PATH"
+      fi
+    fi
     echo ""
-    echo -e "${BLUE}Adding /usr/local/bin to PATH...${NC}"
-
-    if [[ "$SHELL" == *"zsh"* ]]; then
-      SHELL_RC="$HOME/.zshrc"
-    else
-      SHELL_RC="$HOME/.bash_profile"
-    fi
-
-    # Add PATH export if it doesn't already exist in the file
-    if ! grep -q 'export PATH="/usr/local/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
-      echo 'export PATH="/usr/local/bin:$PATH"' >> "$SHELL_RC"
-      echo -e "${GREEN}✓${NC} Added /usr/local/bin to PATH"
-      NEEDS_RESTART=true
-    else
-      echo -e "${GREEN}✓${NC} /usr/local/bin already in PATH"
-    fi
   fi
+else
+  # Windows (Git Bash/WSL) - skip global launcher
+  echo -e "${YELLOW}ℹ️  On Windows, run directly from install directory or use Start Menu${NC}"
   echo ""
 fi
 
@@ -268,8 +310,17 @@ echo ""
 echo -e "${BLUE}How to start Agent Girl:${NC}"
 echo ""
 
-# Check if global launcher was created
-if [[ -f "$LAUNCHER_PATH" ]]; then
+# Platform-specific launch instructions
+if [[ "$OS_PREFIX" == "windows" ]]; then
+  echo -e "  ${YELLOW}Option 1 - Double-click:${NC}"
+  echo -e "    Open ${BLUE}$INSTALL_DIR${NC} in File Explorer"
+  echo -e "    Double-click ${YELLOW}agent-girl.exe${NC}"
+  echo ""
+  echo -e "  ${YELLOW}Option 2 - From terminal:${NC}"
+  echo -e "    Run ${YELLOW}\"$INSTALL_DIR/agent-girl.exe\"${NC}"
+  echo ""
+  echo -e "  ${YELLOW}Tip:${NC} Use PowerShell installer for better Windows integration"
+elif [[ -f "$LAUNCHER_PATH" ]]; then
   if [[ "$NEEDS_RESTART" == "true" ]]; then
     echo -e "  ${YELLOW}→ Restart your terminal, then type:${NC} ${GREEN}$APP_NAME${NC}"
   else
@@ -278,9 +329,15 @@ if [[ -f "$LAUNCHER_PATH" ]]; then
   echo ""
   echo -e "  The app will start at ${BLUE}http://localhost:3001${NC}"
 else
-  echo -e "  ${YELLOW}Option 1 - From Finder:${NC}"
-  echo -e "    Open ${BLUE}$INSTALL_DIR${NC}"
-  echo -e "    Double-click ${YELLOW}$APP_NAME${NC}"
+  if [[ "$OS_PREFIX" == "macos" ]]; then
+    echo -e "  ${YELLOW}Option 1 - From Finder:${NC}"
+    echo -e "    Open ${BLUE}$INSTALL_DIR${NC}"
+    echo -e "    Double-click ${YELLOW}$APP_NAME${NC}"
+  else
+    echo -e "  ${YELLOW}Option 1 - From file manager:${NC}"
+    echo -e "    Navigate to ${BLUE}$INSTALL_DIR${NC}"
+    echo -e "    Run ${YELLOW}$APP_NAME${NC}"
+  fi
   echo ""
   echo -e "  ${YELLOW}Option 2 - From Terminal:${NC}"
   echo -e "    Run ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
