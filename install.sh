@@ -120,7 +120,7 @@ echo "  ${YELLOW}2)${NC} Z.AI API only (GLM models)"
 echo "  ${YELLOW}3)${NC} Both APIs (full model access)"
 echo "  ${YELLOW}4)${NC} Skip (configure later)"
 echo ""
-read -p "Enter choice [1-4]: " api_choice
+read -p "Enter choice [1-4]: " api_choice < /dev/tty
 
 ANTHROPIC_KEY=""
 ZAI_KEY=""
@@ -131,26 +131,26 @@ case $api_choice in
     echo -e "${BLUE}📝 Anthropic API Setup${NC}"
     echo "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
     echo ""
-    read -p "Enter your Anthropic API key: " ANTHROPIC_KEY
+    read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
     ;;
   2)
     echo ""
     echo -e "${BLUE}📝 Z.AI API Setup${NC}"
     echo "Get your API key from: ${BLUE}https://z.ai${NC}"
     echo ""
-    read -p "Enter your Z.AI API key: " ZAI_KEY
+    read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
     ;;
   3)
     echo ""
     echo -e "${BLUE}📝 Anthropic API Setup${NC}"
     echo "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
     echo ""
-    read -p "Enter your Anthropic API key: " ANTHROPIC_KEY
+    read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
     echo ""
     echo -e "${BLUE}📝 Z.AI API Setup${NC}"
     echo "Get your API key from: ${BLUE}https://z.ai${NC}"
     echo ""
-    read -p "Enter your Z.AI API key: " ZAI_KEY
+    read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
     ;;
   4)
     echo ""
@@ -206,7 +206,7 @@ cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
   else
     # Needs sudo - ask user
     echo -e "${YELLOW}⚠️  Creating global command requires admin permissions${NC}"
-    read -p "Create global launcher with sudo? [y/N]: " use_sudo
+    read -p "Create global launcher with sudo? [y/N]: " use_sudo < /dev/tty
 
     if [[ "$use_sudo" =~ ^[Yy]$ ]]; then
       echo "$LAUNCHER_SCRIPT" | sudo tee "$LAUNCHER_PATH" > /dev/null
