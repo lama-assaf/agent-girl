@@ -46,7 +46,7 @@ function question(query: string): Promise<string> {
   });
 }
 
-async function setup() {
+export async function runSetup() {
   printBanner();
 
   // Load existing config
@@ -98,12 +98,15 @@ async function setup() {
   console.log(colorize(`  Display Name: ${getUserDisplayName({ firstName, lastName })}`, 'blue'));
   console.log('');
   console.log(colorize('You can run this setup again anytime with:', 'yellow'));
+  console.log(colorize('  agent-girl --setup', 'cyan'));
   console.log(colorize('  bun run setup', 'cyan'));
   console.log('');
 }
 
-// Run setup
-setup().catch((error) => {
-  console.error(colorize('\n❌ Setup failed:', 'yellow'), error);
-  process.exit(1);
-});
+// Run setup if executed directly
+if (import.meta.main) {
+  runSetup().catch((error) => {
+    console.error(colorize('\n❌ Setup failed:', 'yellow'), error);
+    process.exit(1);
+  });
+}

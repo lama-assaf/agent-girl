@@ -18,6 +18,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+// Check for --setup flag before starting the server
+if (process.argv.includes('--setup')) {
+  const { runSetup } = await import('../setup');
+  await runSetup();
+  process.exit(0);
+}
+
 import { watch } from "fs";
 import { getDefaultWorkingDirectory, ensureDirectory } from "./directoryUtils";
 import { handleStaticFile } from "./staticFileServer";

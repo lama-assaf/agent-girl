@@ -18,11 +18,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ChatContainer } from "./components/chat/ChatContainer";
+import { PreLoader } from "./components/preloader/PreLoader";
 import { Toaster } from "sonner";
 
 const App: React.FC = () => {
+  const [showPreLoader, setShowPreLoader] = useState(true);
+
   // Preload the agent icon to prevent broken image on first render
   useEffect(() => {
     const img = new Image();
@@ -31,6 +34,7 @@ const App: React.FC = () => {
 
   return (
     <>
+      {showPreLoader && <PreLoader onComplete={() => setShowPreLoader(false)} />}
       <ChatContainer />
       <Toaster
         position="bottom-right"
