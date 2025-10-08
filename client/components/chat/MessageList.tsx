@@ -21,14 +21,16 @@
 import React, { useEffect, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { MessageRenderer } from '../message/MessageRenderer';
+import { Zap } from 'lucide-react';
 import type { Message } from '../message/types';
 
 interface MessageListProps {
   messages: Message[];
   isLoading?: boolean;
+  liveTokenCount?: number;
 }
 
-export function MessageList({ messages, isLoading }: MessageListProps) {
+export function MessageList({ messages, isLoading, liveTokenCount = 0 }: MessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -94,10 +96,52 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
             </div>
             {isLoading && (
               <div className="message-container">
-                <div className="loading-dots">
-                  <div className="loading-dot" />
-                  <div className="loading-dot" />
-                  <div className="loading-dot" />
+                <div className="loading-indicator-wrapper" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.75rem', flexWrap: 'nowrap' }}>
+                  <div className="loading-dots">
+                    <div className="loading-dot" />
+                    <div className="loading-dot" />
+                    <div className="loading-dot" />
+                  </div>
+                  {liveTokenCount > 0 && (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        padding: '0.375rem 0.625rem',
+                        background: 'linear-gradient(135deg, rgba(218, 238, 255, 0.1) 0%, rgba(218, 238, 255, 0.05) 100%)',
+                        border: '1px solid rgba(218, 238, 255, 0.15)',
+                        borderRadius: '12px',
+                        backdropFilter: 'blur(8px)',
+                        boxShadow: '0 0 0 1px rgba(218, 238, 255, 0.1), 0 2px 8px rgba(218, 238, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                        animation: 'tokenGlow 2s ease-in-out infinite',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    >
+                      <Zap
+                        size={12}
+                        strokeWidth={2.5}
+                        style={{
+                          color: 'rgb(218, 238, 255)',
+                          animation: 'tokenPulse 1.5s ease-in-out infinite',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        key={liveTokenCount}
+                        style={{
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          color: 'rgb(218, 238, 255)',
+                          fontVariantNumeric: 'tabular-nums',
+                          letterSpacing: '0.02em',
+                          animation: 'tokenCountIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        }}
+                      >
+                        {liveTokenCount.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

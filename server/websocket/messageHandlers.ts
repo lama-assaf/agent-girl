@@ -388,6 +388,7 @@ Run bash commands with the understanding that this is your current working direc
     // Track full message content structure for saving to database
     const fullMessageContent: unknown[] = [];
     let waitingForPlanApproval = false;
+    let totalCharCount = 0; // Count ALL characters (text + tool inputs)
 
     // Stream the response - query() is an AsyncGenerator
     for await (const message of result) {
@@ -395,14 +396,38 @@ Run bash commands with the understanding that this is your current working direc
         // Handle streaming events for real-time updates
         const event = message.event;
 
-        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-          const text = event.delta.text;
-          assistantResponse += text;
-          ws.send(JSON.stringify({
-            type: 'assistant_message',
-            content: text,
-            sessionId: sessionId,  // Include sessionId for client-side filtering
-          }));
+        if (event.type === 'content_block_delta') {
+          // Count all delta types: text_delta and input_json_delta
+          let deltaChars = 0;
+
+          if (event.delta?.type === 'text_delta') {
+            const text = event.delta.text;
+            assistantResponse += text;
+            deltaChars = text.length;
+
+            ws.send(JSON.stringify({
+              type: 'assistant_message',
+              content: text,
+              sessionId: sessionId,  // Include sessionId for client-side filtering
+            }));
+          } else if (event.delta?.type === 'input_json_delta') {
+            // Tool input being generated (like Write tool file content)
+            const jsonDelta = event.delta.partial_json || '';
+            deltaChars = jsonDelta.length;
+          }
+
+          // Update total character count and estimate tokens (~4 chars/token)
+          totalCharCount += deltaChars;
+          const estimatedTokens = Math.floor(totalCharCount / 4);
+
+          // Send estimated token count update
+          if (deltaChars > 0) {
+            ws.send(JSON.stringify({
+              type: 'token_update',
+              outputTokens: estimatedTokens,
+              sessionId: sessionId,
+            }));
+          }
         }
       } else if (message.type === 'assistant') {
         // Log assistant message details

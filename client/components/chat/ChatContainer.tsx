@@ -46,6 +46,9 @@ export function ChatContainer() {
   const [_isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [currentSessionMode, setCurrentSessionMode] = useState<'general' | 'coder'>('general');
 
+  // Live token count during streaming (for loading indicator)
+  const [liveTokenCount, setLiveTokenCount] = useState(0);
+
   // Message cache to preserve streaming state across session switches
   const messageCache = useRef<Map<string, Message[]>>(new Map());
 
@@ -332,6 +335,11 @@ export function ChatContainer() {
         setMessages((prev) => {
           const lastMessage = prev[prev.length - 1];
 
+          // Reset token count on first assistant message (start of new response)
+          if (!lastMessage || lastMessage.type !== 'assistant') {
+            setLiveTokenCount(0);
+          }
+
           // If last message is from assistant, append to the last text block
           if (lastMessage && lastMessage.type === 'assistant') {
             const content = Array.isArray(lastMessage.content) ? lastMessage.content : [];
@@ -453,16 +461,24 @@ export function ChatContainer() {
             },
           ];
         });
+      } else if (message.type === 'token_update' && 'outputTokens' in message) {
+        // Update live token count during streaming
+        const tokenUpdate = message as { type: 'token_update'; outputTokens: number };
+        setLiveTokenCount(tokenUpdate.outputTokens);
       } else if (message.type === 'result') {
         if (currentSessionId) {
           setSessionLoading(currentSessionId, false);
           // Clear message cache for this session since messages are now saved to DB
           messageCache.current.delete(currentSessionId);
           console.log(`[Message Cache] Cleared cache for session ${currentSessionId} (stream completed)`);
+          // Clear live token count when response completes
+          setLiveTokenCount(0);
         }
       } else if (message.type === 'error') {
         // Handle error messages from server
         if (currentSessionId) setSessionLoading(currentSessionId, false);
+        // Clear live token count on error
+        setLiveTokenCount(0);
         const errorMsg = 'message' in message ? message.message : ('error' in message ? message.error : undefined);
         const errorMessage = errorMsg || 'An error occurred';
 
@@ -785,7 +801,7 @@ export function ChatContainer() {
           // Chat Interface
           <>
             {/* Messages */}
-            <MessageList messages={messages} isLoading={isCurrentSessionLoading} />
+            <MessageList messages={messages} isLoading={isCurrentSessionLoading} liveTokenCount={liveTokenCount} />
 
             {/* Input */}
             <ChatInput
