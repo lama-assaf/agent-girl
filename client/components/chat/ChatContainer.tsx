@@ -44,6 +44,7 @@ export function ChatContainer() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [_isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [currentSessionMode, setCurrentSessionMode] = useState<'general' | 'coder'>('general');
 
   // Message cache to preserve streaming state across session switches
   const messageCache = useRef<Map<string, Message[]>>(new Map());
@@ -125,11 +126,13 @@ export function ChatContainer() {
 
     setCurrentSessionId(sessionId);
 
-    // Load session details to get permission mode
+    // Load session details to get permission mode and mode
     const sessions = await sessionAPI.fetchSessions();
     const session = sessions.find(s => s.id === sessionId);
     if (session) {
       setIsPlanMode(session.permission_mode === 'plan');
+      setCurrentSessionMode(session.mode);
+      console.log('🎭 Session mode loaded:', session.mode, 'for session:', sessionId);
     }
 
     // Check cache first before loading from database
@@ -187,6 +190,7 @@ export function ChatContainer() {
 
     if (newSession) {
       setCurrentSessionId(newSession.id);
+      setCurrentSessionMode(newSession.mode);
       setMessages([]);
       setInputValue('');
 
@@ -206,6 +210,7 @@ export function ChatContainer() {
       // If deleting current session, clear messages and session
       if (chatId === currentSessionId) {
         setCurrentSessionId(null);
+        setCurrentSessionMode('general');
         setMessages([]);
       }
       await loadSessions(); // Reload sessions to reflect deletion
@@ -551,7 +556,7 @@ export function ChatContainer() {
     });
   };
 
-  const handleSubmit = async (files?: import('../message/types').FileAttachment[]) => {
+  const handleSubmit = async (files?: import('../message/types').FileAttachment[], mode?: 'general' | 'coder') => {
     if (!inputValue.trim()) return;
 
     if (!isConnected) return;
@@ -566,7 +571,7 @@ export function ChatContainer() {
       // Create new session if none exists
       let sessionId = currentSessionId;
       if (!sessionId) {
-        const newSession = await sessionAPI.createSession();
+        const newSession = await sessionAPI.createSession(undefined, mode || 'general');
         if (!newSession) {
           toast.error('Failed to create chat session');
           return;
@@ -574,9 +579,13 @@ export function ChatContainer() {
 
         sessionId = newSession.id;
 
+        // Store mode immediately for UI display
+        setCurrentSessionMode(newSession.mode);
+        console.log('🎭 Session created with mode:', newSession.mode, '(requested:', mode, ')');
+
         // Apply current permission mode to new session
-        const mode = isPlanMode ? 'plan' : 'bypassPermissions';
-        await sessionAPI.updatePermissionMode(sessionId, mode);
+        const permissionMode = isPlanMode ? 'plan' : 'bypassPermissions';
+        await sessionAPI.updatePermissionMode(sessionId, permissionMode);
 
         // Update state and load sessions
         setCurrentSessionId(sessionId);
@@ -791,6 +800,7 @@ export function ChatContainer() {
               onTogglePlanMode={handleTogglePlanMode}
               backgroundProcesses={backgroundProcesses.get(currentSessionId || '') || []}
               onKillProcess={handleKillProcess}
+              mode={currentSessionId ? currentSessionMode : undefined}
             />
           </>
         )}

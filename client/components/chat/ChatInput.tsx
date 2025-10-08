@@ -22,11 +22,12 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Send, Plus, X, Square } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 import type { BackgroundProcess } from '../process/BackgroundProcessMonitor';
+import { ModeIndicator } from './ModeIndicator';
 
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (files?: FileAttachment[]) => void;
+  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'coder') => void;
   onStop?: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
@@ -35,13 +36,15 @@ interface ChatInputProps {
   onTogglePlanMode?: () => void;
   backgroundProcesses?: BackgroundProcess[];
   onKillProcess?: (bashId: string) => void;
+  mode?: 'general' | 'coder';
 }
 
-export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess, mode }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [modeIndicatorWidth, setModeIndicatorWidth] = useState(80);
 
   // Auto-focus on mount with slight delay to ensure DOM is ready
   useEffect(() => {
@@ -50,6 +53,19 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Reset height to recalculate
+    textarea.style.height = '72px';
+
+    // Set height based on scrollHeight, capped at max
+    const newHeight = Math.min(textarea.scrollHeight, 144);
+    textarea.style.height = `${newHeight}px`;
+  }, [value]);
 
   // Prevent browser default drag behavior (allows drop zones to work)
   useEffect(() => {
@@ -102,7 +118,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (value.trim() && !disabled) {
-        onSubmit(attachedFiles.length > 0 ? attachedFiles : undefined);
+        onSubmit(attachedFiles.length > 0 ? attachedFiles : undefined, mode);
         setAttachedFiles([]);
         // Refocus input after submit
         setTimeout(() => textareaRef.current?.focus(), 0);
@@ -111,7 +127,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
   };
 
   const handleSubmit = () => {
-    onSubmit(attachedFiles.length > 0 ? attachedFiles : undefined);
+    onSubmit(attachedFiles.length > 0 ? attachedFiles : undefined, mode);
     setAttachedFiles([]);
     // Refocus input after submit
     setTimeout(() => textareaRef.current?.focus(), 0);
@@ -275,19 +291,26 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
           )}
 
           {/* Textarea */}
-          <div className="relative" style={{ padding: '0 0.625rem' }}>
+          <div className="overflow-hidden relative px-2.5">
+            {/* Mode Indicator */}
+            {mode && <ModeIndicator mode={mode} onWidthChange={setModeIndicatorWidth} />}
+
             <textarea
               ref={textareaRef}
               id="chat-input"
               dir="auto"
-              rows={3}
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               placeholder={placeholder || "Send a Message"}
-              className="input"
-              style={{ height: '72px', overflowY: 'auto' }}
+              className="px-1 pt-3 w-full text-sm bg-transparent resize-none scrollbar-hidden dark:text-gray-100 outline-hidden dark:placeholder:text-white/40"
+              style={{
+                minHeight: '72px',
+                maxHeight: '144px',
+                overflowY: 'auto',
+                textIndent: mode ? `${modeIndicatorWidth}px` : '0px'
+              }}
             />
           </div>
 
