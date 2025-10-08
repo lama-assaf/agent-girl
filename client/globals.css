@@ -188,8 +188,7 @@
 /* Textarea styling */
 .input {
   width: 100%;
-  padding: 0.75rem 0.625rem 0.25rem; /* pt-3 px-2.5 pb-1 */
-  margin: 0 0.625rem; /* mx-2.5 */
+  padding: 0.75rem 0.25rem 0.25rem; /* pt-3 px-1 pb-1 */
   border: none;
   background-color: transparent;
   color: rgb(var(--text-primary));
@@ -199,7 +198,13 @@
   resize: none;
   outline: none;
   height: 72px;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-width: none; /* Hide scrollbar (Firefox) */
+  -ms-overflow-style: none; /* Hide scrollbar (IE/Edge) */
+}
+
+.input::-webkit-scrollbar {
+  display: none; /* Hide scrollbar (Chrome/Safari) */
 }
 
 .input::placeholder {

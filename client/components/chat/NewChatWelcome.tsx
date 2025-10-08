@@ -315,17 +315,19 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
               )}
 
               {/* Textarea */}
-              <div className="overflow-hidden relative px-2.5">
+              <div className="relative" style={{ padding: '0 0.625rem' }}>
                 <textarea
                   ref={textareaRef}
                   id="chat-input"
+                  dir="auto"
                   rows={3}
                   value={inputValue}
                   onChange={(e) => onInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onPaste={handlePaste}
-                  className="px-1 pt-3 w-full text-sm bg-transparent resize-none scrollbar-hidden dark:text-gray-100 outline-none dark:placeholder:text-white/40"
                   placeholder="How can I help you today?"
+                  className="input dark:text-gray-100 dark:placeholder:text-white/40"
+                  style={{ height: '72px', overflowY: 'auto' }}
                   disabled={disabled}
                 />
               </div>

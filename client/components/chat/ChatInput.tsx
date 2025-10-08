@@ -275,7 +275,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
           )}
 
           {/* Textarea */}
-          <div className="overflow-hidden relative" style={{ padding: '0 0.625rem' }}>
+          <div className="relative" style={{ padding: '0 0.625rem' }}>
             <textarea
               ref={textareaRef}
               id="chat-input"
@@ -287,7 +287,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
               onPaste={handlePaste}
               placeholder={placeholder || "Send a Message"}
               className="input"
-              style={{ height: '72px' }}
+              style={{ height: '72px', overflowY: 'auto' }}
             />
           </div>
 
