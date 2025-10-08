@@ -29,6 +29,7 @@ export interface Session {
   message_count: number;
   working_directory: string;
   permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
+  mode: 'general' | 'coder';
 }
 
 export interface SessionMessage {
@@ -110,7 +111,7 @@ export function useSessionAPI() {
   /**
    * Create a new session
    */
-  const createSession = useCallback(async (title?: string): Promise<Session | null> => {
+  const createSession = useCallback(async (title?: string, mode?: 'general' | 'coder'): Promise<Session | null> => {
     setIsLoading(true);
     setError(null);
 
@@ -120,7 +121,7 @@ export function useSessionAPI() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title: title || 'New Chat' }),
+        body: JSON.stringify({ title: title || 'New Chat', mode: mode || 'general' }),
       });
 
       if (!response.ok) {

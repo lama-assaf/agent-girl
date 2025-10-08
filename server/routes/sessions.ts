@@ -32,8 +32,8 @@ export async function handleSessionRoutes(
 
   // POST /api/sessions - Create new session
   if (url.pathname === '/api/sessions' && req.method === 'POST') {
-    const body = await req.json() as { title?: string; workingDirectory?: string };
-    const session = sessionDb.createSession(body.title || 'New Chat', body.workingDirectory);
+    const body = await req.json() as { title?: string; workingDirectory?: string; mode?: 'general' | 'coder' };
+    const session = sessionDb.createSession(body.title || 'New Chat', body.workingDirectory, body.mode || 'general');
     return new Response(JSON.stringify(session), {
       headers: { 'Content-Type': 'application/json' },
     });

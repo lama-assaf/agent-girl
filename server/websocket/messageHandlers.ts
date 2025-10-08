@@ -230,10 +230,11 @@ async function handleChatMessage(
 
   // Log working directory info
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📂 Working Directory Info');
+  console.log('📂 Working Directory & Mode Info');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🔹 Session ID:', sessionId);
   console.log('🔹 Session Working Dir:', workingDir);
+  console.log('🎭 Session Mode:', session.mode);
 
   // Validate working directory
   const validation = validateDirectory(workingDir);
@@ -257,7 +258,7 @@ async function handleChatMessage(
 
     // Build query options with provider-specific system prompt (including agent list)
     // Add working directory context to system prompt AND all agent prompts
-    const baseSystemPrompt = getSystemPrompt(providerType, AGENT_REGISTRY, userConfig, timezone as string | undefined);
+    const baseSystemPrompt = getSystemPrompt(providerType, AGENT_REGISTRY, userConfig, timezone as string | undefined, session.mode);
     const systemPromptWithContext = `${baseSystemPrompt}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -22,6 +22,7 @@ import type { ProviderType } from '../client/config/models';
 import type { AgentDefinition } from './agents';
 import type { UserConfig } from './userConfig';
 import { getUserDisplayName } from './userConfig';
+import { loadModePrompt } from './modes';
 
 /**
  * Format current date and time for the given timezone
@@ -91,7 +92,7 @@ function buildBasePrompt(userConfig?: UserConfig): string {
     : '';
 
   return `
-You are Agent Girl, an AI assistant with access to powerful tools including file operations, bash commands, and more.
+You are Agent Girl, an AI assistant made by Ken Kai.
 
 ${userGreeting}Your personality:
 - Swearing is fine - we're all adults here
@@ -220,7 +221,8 @@ export function getSystemPrompt(
   provider: ProviderType,
   agents?: Record<string, AgentDefinition>,
   userConfig?: UserConfig,
-  timezone?: string
+  timezone?: string,
+  mode?: string
 ): string {
   let prompt = buildBasePrompt(userConfig);
 
@@ -242,6 +244,14 @@ export function getSystemPrompt(
   if (provider === 'z-ai') {
     prompt = `${prompt}\n\n${GLM_WEB_SEARCH_INSTRUCTIONS}`;
     prompt = `${prompt}\n\n${GLM_VISION_INSTRUCTIONS}`;
+  }
+
+  // Add mode-specific prompt extension
+  if (mode && mode !== 'general') {
+    const modePrompt = loadModePrompt(mode);
+    if (modePrompt) {
+      prompt = `${prompt}\n\n${modePrompt}`;
+    }
   }
 
   return prompt;

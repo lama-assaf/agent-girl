@@ -33,6 +33,7 @@ export interface Session {
   message_count: number;
   working_directory: string;
   permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
+  mode: 'general' | 'coder';
 }
 
 export interface SessionMessage {
@@ -96,6 +97,9 @@ class SessionDatabase {
 
     // Migration: Add permission_mode column if it doesn't exist
     this.migratePermissionMode();
+
+    // Migration: Add mode column if it doesn't exist
+    this.migrateMode();
   }
 
   private migrateWorkingDirectory() {
@@ -163,8 +167,36 @@ class SessionDatabase {
     }
   }
 
+  private migrateMode() {
+    try {
+      // Check if mode column exists
+      const columns = this.db.query<{ name: string }, []>(
+        "PRAGMA table_info(sessions)"
+      ).all();
+
+      const hasMode = columns.some(col => col.name === 'mode');
+
+      if (!hasMode) {
+        console.log('📦 Migrating database: Adding mode column');
+
+        // Add the column with default value
+        this.db.run(`
+          ALTER TABLE sessions
+          ADD COLUMN mode TEXT NOT NULL DEFAULT 'general'
+        `);
+
+        console.log('✅ mode column added successfully');
+      } else {
+        console.log('✅ mode column already exists');
+      }
+    } catch (error) {
+      console.error('❌ Database migration failed:', error);
+      throw error;
+    }
+  }
+
   // Session operations
-  createSession(title: string = "New Chat", workingDirectory?: string): Session {
+  createSession(title: string = "New Chat", workingDirectory?: string, mode: 'general' | 'coder' = 'general'): Session {
     const id = randomUUID();
     const now = new Date().toISOString();
 
@@ -188,10 +220,11 @@ class SessionDatabase {
     }
 
     console.log('📁 Creating session with working directory:', finalWorkingDir);
+    console.log('🎭 Mode:', mode);
 
     this.db.run(
-      "INSERT INTO sessions (id, title, created_at, updated_at, working_directory, permission_mode) VALUES (?, ?, ?, ?, ?, ?)",
-      [id, title, now, now, finalWorkingDir, 'bypassPermissions']
+      "INSERT INTO sessions (id, title, created_at, updated_at, working_directory, permission_mode, mode) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [id, title, now, now, finalWorkingDir, 'bypassPermissions', mode]
     );
 
     return {
@@ -202,6 +235,7 @@ class SessionDatabase {
       message_count: 0,
       working_directory: finalWorkingDir,
       permission_mode: 'bypassPermissions',
+      mode,
     };
   }
 
@@ -237,6 +271,7 @@ class SessionDatabase {
           s.updated_at,
           s.working_directory,
           s.permission_mode,
+          s.mode,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -275,6 +310,7 @@ class SessionDatabase {
           s.updated_at,
           s.working_directory,
           s.permission_mode,
+          s.mode,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
