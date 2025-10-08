@@ -24,6 +24,7 @@ import { handleStaticFile } from "./staticFileServer";
 import { initializeStartup } from "./startup";
 import { handleSessionRoutes } from "./routes/sessions";
 import { handleDirectoryRoutes } from "./routes/directory";
+import { handleUserConfigRoutes } from "./routes/userConfig";
 import { handleWebSocketMessage } from "./websocket/messageHandlers";
 import type { ServerWebSocket } from "bun";
 
@@ -120,6 +121,12 @@ const server = Bun.serve({
     const directoryResponse = await handleDirectoryRoutes(req, url);
     if (directoryResponse) {
       return directoryResponse;
+    }
+
+    // Try user config routes
+    const userConfigResponse = await handleUserConfigRoutes(req, url);
+    if (userConfigResponse) {
+      return userConfigResponse;
     }
 
     // Try to handle as static file

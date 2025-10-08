@@ -20,24 +20,101 @@
 
 import type { ProviderType } from '../client/config/models';
 import type { AgentDefinition } from './agents';
+import type { UserConfig } from './userConfig';
+import { getUserDisplayName } from './userConfig';
 
-const BASE_PROMPT = `
+/**
+ * Format current date and time for the given timezone
+ */
+function formatCurrentDateTime(timezone?: string): string {
+  const tz = timezone || 'UTC';
+  const now = new Date();
+
+  try {
+    // Format date: "Tuesday, October 8, 2025"
+    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const formattedDate = dateFormatter.format(now);
+
+    // Format time: "2:30 PM"
+    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const formattedTime = timeFormatter.format(now);
+
+    // Get timezone abbreviation (e.g., "PST", "EST")
+    const tzFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      timeZoneName: 'short',
+    });
+    const parts = tzFormatter.formatToParts(now);
+    const tzAbbr = parts.find(part => part.type === 'timeZoneName')?.value || tz;
+
+    return `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏰ CURRENT DATE & TIME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Date: ${formattedDate}
+Time: ${formattedTime}
+Timezone: ${tz} (${tzAbbr})
+
+Use this for time-sensitive queries and scheduling tasks.
+`.trim();
+  } catch (error) {
+    console.error('Error formatting date/time:', error);
+    return `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏰ CURRENT DATE & TIME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Date: ${now.toISOString().split('T')[0]}
+Time: ${now.toISOString().split('T')[1].split('.')[0]} UTC
+Timezone: UTC
+`.trim();
+  }
+}
+
+function buildBasePrompt(userConfig?: UserConfig): string {
+  const userName = userConfig ? getUserDisplayName(userConfig) : null;
+
+  const userGreeting = userName
+    ? `You are chatting with ${userName}. Use their name naturally in conversation - it makes responses more personal and engaging. `
+    : '';
+
+  return `
 You are Agent Girl, an AI assistant with access to powerful tools including file operations, bash commands, and more.
 
-Your personality:
-- Concise and to the point - no rambling or bullshit
-- Humorous when appropriate
-- Direct and efficient in your responses
-- Use your tools effectively to get the job done
+${userGreeting}Your personality:
+- Swearing is fine - we're all adults here
+- Dark humor, sarcasm, and tech jokes are your bread and butter
+- Brutally honest but never mean - roast the code, not the person
+- No rambling, no hand-holding - get to the point with a smile (or smirk)
+- When users make questionable choices, gentle mockery is acceptable
+- Bottom line: Be funny, be real, be helpful - in that order
+
+RESEARCH AND ACCURACY:
+Your training data is outdated. Always research to ensure correctness:
+- Use web search for current documentation, APIs, and best practices
+- Verify library versions, syntax, and implementation details
+- Check official docs rather than assuming - your knowledge may be stale
+- Research first, answer second - never guess on technical details
 
 IMPORTANT FILE HANDLING:
 - Check your environment context for the current working directory
 - When the user asks you to create files for their project, use the working directory
 - For temporary analysis or one-off reports, use appropriate system locations (/tmp, ~/Desktop, etc.)
 - Use your judgment based on the user's intent
-
-Get straight to the answer, add a touch of humor, and keep it real.
 `.trim();
+}
 
 const GLM_WEB_SEARCH_INSTRUCTIONS = `
 
@@ -139,8 +216,16 @@ export function injectWorkingDirIntoAgents(
  * Get system prompt based on provider and available agents
  * Includes background process instructions and provider-specific features
  */
-export function getSystemPrompt(provider: ProviderType, agents?: Record<string, AgentDefinition>): string {
-  let prompt = BASE_PROMPT;
+export function getSystemPrompt(
+  provider: ProviderType,
+  agents?: Record<string, AgentDefinition>,
+  userConfig?: UserConfig,
+  timezone?: string
+): string {
+  let prompt = buildBasePrompt(userConfig);
+
+  // Add current date/time information
+  prompt = `${prompt}\n\n${formatCurrentDateTime(timezone)}`;
 
   // Add agent instructions if agents are provided
   if (agents && Object.keys(agents).length > 0) {
@@ -163,4 +248,4 @@ export function getSystemPrompt(provider: ProviderType, agents?: Record<string, 
 }
 
 // Keep original export for backwards compatibility
-export const SYSTEM_PROMPT = BASE_PROMPT;
+export const SYSTEM_PROMPT = buildBasePrompt();

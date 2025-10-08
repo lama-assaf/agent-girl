@@ -9,6 +9,7 @@
     "build:js": "bun build ./client/index.tsx --outdir=./dist --minify",
     "build": "bun run build:css && bun run build:js",
     "start": "bun run server/server.ts",
+    "setup": "bun run setup.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "lint": "eslint .",

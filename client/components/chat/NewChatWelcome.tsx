@@ -52,6 +52,23 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
 
+  // User config state
+  const [userName, setUserName] = useState<string | null>(null);
+
+  // Load user config on mount
+  useEffect(() => {
+    fetch('/api/user-config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.displayName) {
+          setUserName(data.displayName);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load user config:', err);
+      });
+  }, []);
+
   // Auto-focus on mount with slight delay to ensure DOM is ready
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -244,7 +261,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
         <div className="flex flex-col gap-1 justify-center items-center mb-8">
           <div className="flex flex-row justify-center gap-3 w-fit px-5">
             <div className="text-[40px] font-semibold line-clamp-1 text-gradient">
-              Hi, Ken Kai. I&apos;m Agent girl
+              {userName ? `Hi, ${userName}. I'm Agent girl` : "Hi. I'm Agent girl"}
             </div>
           </div>
 

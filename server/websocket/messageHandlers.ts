@@ -15,6 +15,7 @@ import { AGENT_REGISTRY } from "../agents";
 import { validateDirectory } from "../directoryUtils";
 import { saveImageToSessionPictures, saveFileToSessionFiles } from "../imageUtils";
 import { backgroundProcessManager } from "../backgroundProcessManager";
+import { loadUserConfig } from "../userConfig";
 
 interface ChatWebSocketData {
   type: 'hot-reload' | 'chat';
@@ -67,7 +68,7 @@ async function handleChatMessage(
   IS_STANDALONE: boolean,
   BINARY_DIR: string
 ): Promise<void> {
-  const { content, sessionId, model } = data;
+  const { content, sessionId, model, timezone } = data;
 
   if (!content || !sessionId) {
     ws.send(JSON.stringify({ type: 'error', error: 'Missing content or sessionId' }));
@@ -251,9 +252,12 @@ async function handleChatMessage(
 
   try {
 
+    // Load user configuration
+    const userConfig = loadUserConfig();
+
     // Build query options with provider-specific system prompt (including agent list)
     // Add working directory context to system prompt AND all agent prompts
-    const baseSystemPrompt = getSystemPrompt(providerType, AGENT_REGISTRY);
+    const baseSystemPrompt = getSystemPrompt(providerType, AGENT_REGISTRY, userConfig, timezone as string | undefined);
     const systemPromptWithContext = `${baseSystemPrompt}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

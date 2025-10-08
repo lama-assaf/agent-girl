@@ -638,12 +638,16 @@ export function ChatContainer() {
         messageContent = contentBlocks;
       }
 
+      // Detect user's timezone
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       // Use local sessionId variable (guaranteed to be set)
       sendMessage({
         type: 'chat',
         content: messageContent,
         sessionId: sessionId,
         model: selectedModel,
+        timezone: userTimezone,
       });
 
       setInputValue('');
