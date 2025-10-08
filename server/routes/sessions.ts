@@ -1,0 +1,163 @@
+/**
+ * Session API Routes
+ * Handles all session-related REST endpoints
+ */
+
+import { sessionDb } from "../database";
+import { backgroundProcessManager } from "../backgroundProcessManager";
+
+/**
+ * Handle session-related API routes
+ * Returns Response if route was handled, undefined otherwise
+ */
+export async function handleSessionRoutes(
+  req: Request,
+  url: URL,
+  activeQueries: Map<string, unknown>
+): Promise<Response | undefined> {
+
+  // GET /api/sessions - List all sessions
+  if (url.pathname === '/api/sessions' && req.method === 'GET') {
+    const { sessions, recreatedDirectories } = sessionDb.getSessions();
+
+    return new Response(JSON.stringify({
+      sessions,
+      warning: recreatedDirectories.length > 0
+        ? `Recreated ${recreatedDirectories.length} missing director${recreatedDirectories.length === 1 ? 'y' : 'ies'}`
+        : undefined
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // POST /api/sessions - Create new session
+  if (url.pathname === '/api/sessions' && req.method === 'POST') {
+    const body = await req.json() as { title?: string; workingDirectory?: string };
+    const session = sessionDb.createSession(body.title || 'New Chat', body.workingDirectory);
+    return new Response(JSON.stringify(session), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // GET /api/sessions/:id - Get session by ID
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+$/) && req.method === 'GET') {
+    const sessionId = url.pathname.split('/').pop()!;
+    const session = sessionDb.getSession(sessionId);
+
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'Session not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify(session), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // DELETE /api/sessions/:id - Delete session
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+$/) && req.method === 'DELETE') {
+    const sessionId = url.pathname.split('/').pop()!;
+
+    // Clean up background processes for this session before deleting
+    await backgroundProcessManager.cleanupSession(sessionId);
+
+    // Also delete the query
+    activeQueries.delete(sessionId);
+
+    const success = sessionDb.deleteSession(sessionId);
+
+    return new Response(JSON.stringify({ success }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // PATCH /api/sessions/:id - Rename session folder
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+$/) && req.method === 'PATCH') {
+    const sessionId = url.pathname.split('/').pop()!;
+    const body = await req.json() as { folderName: string };
+
+    console.log('📝 API: Rename folder request:', {
+      sessionId,
+      folderName: body.folderName
+    });
+
+    const result = sessionDb.renameFolderAndSession(sessionId, body.folderName);
+
+    if (result.success) {
+      const session = sessionDb.getSession(sessionId);
+      return new Response(JSON.stringify({ success: true, session }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      return new Response(JSON.stringify({ success: false, error: result.error }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // GET /api/sessions/:id/messages - Get session messages
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+\/messages$/) && req.method === 'GET') {
+    const sessionId = url.pathname.split('/')[3];
+    const messages = sessionDb.getSessionMessages(sessionId);
+
+    return new Response(JSON.stringify(messages), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // PATCH /api/sessions/:id/directory - Update working directory
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+\/directory$/) && req.method === 'PATCH') {
+    const sessionId = url.pathname.split('/')[3];
+    const body = await req.json() as { workingDirectory: string };
+
+    console.log('📁 API: Update working directory request:', {
+      sessionId,
+      directory: body.workingDirectory
+    });
+
+    const success = sessionDb.updateWorkingDirectory(sessionId, body.workingDirectory);
+
+    if (success) {
+      const session = sessionDb.getSession(sessionId);
+      return new Response(JSON.stringify({ success: true, session }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      return new Response(JSON.stringify({ success: false, error: 'Invalid directory or session not found' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // PATCH /api/sessions/:id/mode - Update permission mode
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+\/mode$/) && req.method === 'PATCH') {
+    const sessionId = url.pathname.split('/')[3];
+    const body = await req.json() as { mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' };
+
+    console.log('🔐 API: Update permission mode request:', {
+      sessionId,
+      mode: body.mode
+    });
+
+    const success = sessionDb.updatePermissionMode(sessionId, body.mode);
+
+    if (success) {
+      const session = sessionDb.getSession(sessionId);
+      return new Response(JSON.stringify({ success: true, session }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      return new Response(JSON.stringify({ success: false, error: 'Session not found' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // Route not handled by this module
+  return undefined;
+}
