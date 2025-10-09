@@ -425,7 +425,8 @@ extract_and_install() {
   # Extract archive
   log_info "Extracting files..."
 
-  EXTRACT_PATH="/tmp/$APP_NAME-$PLATFORM-$$"
+  # The zip contains a directory named agent-girl-{platform}
+  EXTRACT_PATH="/tmp/$APP_NAME-$PLATFORM"
   TEMP_FILES+=("$EXTRACT_PATH")
 
   if ! unzip -q -o "$DOWNLOAD_PATH" -d "/tmp/" 2>&1; then

@@ -385,7 +385,8 @@ function Install-Application {
     # Extract archive
     Write-Info "Extracting files..."
 
-    $extractPath = "$env:TEMP\$APP_NAME-$script:Platform-$PID"
+    # The zip contains a directory named agent-girl-{platform}
+    $extractPath = "$env:TEMP\$APP_NAME-$script:Platform"
     $script:TempFiles += $extractPath
 
     try {
