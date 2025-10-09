@@ -6,7 +6,7 @@
 import type { ServerWebSocket } from "bun";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk/sdkTypes";
-import { sessionDb } from "../database";
+import { sessionDb, type SessionMessage } from "../database";
 import { getSystemPrompt, injectWorkingDirIntoAgents } from "../systemPrompt";
 import { AVAILABLE_MODELS } from "../../client/config/models";
 import { configureProvider, getProviders, getMaskedApiKey } from "../providers";
@@ -32,6 +32,27 @@ AVAILABLE_MODELS.forEach(model => {
     provider: model.provider,
   };
 });
+
+// Platform-specific conversation history byte limits
+// These limits prevent ENAMETOOLONG errors when spawning CLI subprocesses
+const CONVERSATION_LIMITS = {
+  win32: 10000,   // 10KB - Windows CreateProcess has 32KB total limit
+  darwin: 200000, // 200KB - macOS has 1MB total limit, plenty of headroom
+  linux: 200000,  // 200KB - Linux has 2MB total limit, even more headroom
+};
+
+// Validate platform and get conversation byte limit
+const platform = process.platform as keyof typeof CONVERSATION_LIMITS;
+if (!(platform in CONVERSATION_LIMITS)) {
+  throw new Error(
+    `Unsupported platform: ${process.platform}. ` +
+    `Supported platforms: ${Object.keys(CONVERSATION_LIMITS).join(', ')}. ` +
+    `Please report this issue with your OS details.`
+  );
+}
+
+const MAX_CONVERSATION_BYTES = CONVERSATION_LIMITS[platform];
+console.log(`📏 Platform: ${platform}, Conversation limit: ${MAX_CONVERSATION_BYTES} bytes`);
 
 export async function handleWebSocketMessage(
   ws: ServerWebSocket<ChatWebSocketData>,
@@ -59,6 +80,70 @@ export async function handleWebSocketMessage(
       error: error instanceof Error ? error.message : 'Invalid message format'
     }));
   }
+}
+
+/**
+ * Build conversation history string with automatic trimming to fit byte limit.
+ * Removes oldest messages first until under the limit, always keeping at least 1 message.
+ * Also injects file/image attachment paths into the prompt.
+ */
+function buildConversationHistoryWithLimit(
+  messages: SessionMessage[],
+  maxBytes: number,
+  attachmentInfo: { imagePaths: string[], filePaths: string[] }
+): { prompt: string; messagesIncluded: number; totalMessages: number } {
+
+  // Helper to build prompt string from messages array
+  const buildPromptString = (msgs: SessionMessage[]): string => {
+    return msgs.map(msg => {
+      // Parse JSON content for structured messages
+      let displayContent = msg.content;
+      try {
+        const parsed = JSON.parse(msg.content);
+        if (Array.isArray(parsed)) {
+          displayContent = parsed
+            .filter((block: Record<string, unknown>) => block.type === 'text')
+            .map((block: Record<string, unknown>) => block.text)
+            .join('\n');
+        }
+      } catch {
+        // Not JSON, use as-is
+      }
+      return `${msg.type === 'user' ? 'User' : 'Assistant'}: ${displayContent}`;
+    }).join('\n\n');
+  };
+
+  const totalMessages = messages.length;
+  let prompt = buildPromptString(messages);
+  let messagesIncluded = messages.length;
+
+  // Trim oldest messages until under limit (keep at least 1)
+  while (Buffer.byteLength(prompt, 'utf8') > maxBytes && messagesIncluded > 1) {
+    messages = messages.slice(1); // Remove oldest
+    prompt = buildPromptString(messages);
+    messagesIncluded = messages.length;
+  }
+
+  // Inject attachment paths into final prompt
+  if (attachmentInfo.imagePaths.length > 0 || attachmentInfo.filePaths.length > 0) {
+    const attachmentLines: string[] = [];
+    attachmentInfo.imagePaths.forEach(p => attachmentLines.push(`[Image attached: ${p}]`));
+    attachmentInfo.filePaths.forEach(p => attachmentLines.push(`[File attached: ${p}]`));
+
+    const pathsText = attachmentLines.join('\n');
+    const lastUserIndex = prompt.lastIndexOf('User: ');
+    if (lastUserIndex !== -1) {
+      const beforeUser = prompt.substring(0, lastUserIndex + 6);
+      const afterUser = prompt.substring(lastUserIndex + 6);
+      prompt = `${beforeUser}${pathsText}\n\n${afterUser}`;
+    }
+  }
+
+  return {
+    prompt,
+    messagesIncluded,
+    totalMessages
+  };
 }
 
 async function handleChatMessage(
@@ -134,51 +219,20 @@ async function handleChatMessage(
   sessionDb.addMessage(sessionId as string, 'user', contentForDb);
 
   // Get conversation history
-  const messages = sessionDb.getSessionMessages(sessionId as string);
+  const allMessages = sessionDb.getSessionMessages(sessionId as string);
 
-  // Build conversation context for Claude
-  // Parse JSON content for messages with images (array format)
-  const conversationHistory = messages
-    .map(msg => {
-      let displayContent = msg.content;
-      // Try to parse JSON for structured content
-      try {
-        const parsed = JSON.parse(msg.content);
-        if (Array.isArray(parsed)) {
-          // Extract text from blocks
-          displayContent = parsed
-            .filter((block: Record<string, unknown>) => block.type === 'text')
-            .map((block: Record<string, unknown>) => block.text)
-            .join('\n');
-        }
-      } catch {
-        // Not JSON, use as-is
-      }
-      return `${msg.type === 'user' ? 'User' : 'Assistant'}: ${displayContent}`;
-    })
-    .join('\n\n');
+  // Build conversation with automatic trimming to prevent ENAMETOOLONG errors
+  const { prompt, messagesIncluded, totalMessages } = buildConversationHistoryWithLimit(
+    allMessages,
+    MAX_CONVERSATION_BYTES,
+    { imagePaths, filePaths }
+  );
 
-  let prompt = conversationHistory;
-
-  // Inject attachment paths for model access
-  if (imagePaths.length > 0 || filePaths.length > 0) {
-    const attachmentLines: string[] = [];
-
-    // Add image paths (for MCP vision tools on GLM models)
-    imagePaths.forEach(p => attachmentLines.push(`[Image attached: ${p}]`));
-
-    // Add file paths (for Read tool on all models)
-    filePaths.forEach(p => attachmentLines.push(`[File attached: ${p}]`));
-
-    const pathsText = attachmentLines.join('\n');
-
-    // Find the last "User: " in the prompt and inject paths after it
-    const lastUserIndex = prompt.lastIndexOf('User: ');
-    if (lastUserIndex !== -1) {
-      const beforeUser = prompt.substring(0, lastUserIndex + 6); // "User: "
-      const afterUser = prompt.substring(lastUserIndex + 6);
-      prompt = `${beforeUser}${pathsText}\n\n${afterUser}`;
-    }
+  // Log conversation size and trimming info
+  const promptBytes = Buffer.byteLength(prompt, 'utf8');
+  console.log(`📊 Conversation: ${messagesIncluded}/${totalMessages} messages, ${promptBytes} bytes`);
+  if (messagesIncluded < totalMessages) {
+    console.log(`⚠️  Trimmed ${totalMessages - messagesIncluded} oldest messages to fit ${MAX_CONVERSATION_BYTES} byte limit`);
   }
 
   // Get model configuration
