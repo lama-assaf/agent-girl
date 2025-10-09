@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class', // Force dark mode via class instead of media query
   content: [
     "./client/**/*.{html,js,ts,jsx,tsx}",
   ],

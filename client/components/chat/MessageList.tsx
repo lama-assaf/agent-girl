@@ -38,6 +38,10 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0 }: Message
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const startTimeRef = useRef<number | null>(null);
 
+  // Smooth token count animation
+  const [displayedTokenCount, setDisplayedTokenCount] = useState(0);
+  const animationFrameRef = useRef<number | null>(null);
+
   // Track elapsed time when loading
   useEffect(() => {
     if (isLoading) {
@@ -59,6 +63,46 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0 }: Message
       setElapsedSeconds(0);
     }
   }, [isLoading]);
+
+  // Smooth token count animation
+  useEffect(() => {
+    const startValue = displayedTokenCount;
+    const endValue = liveTokenCount;
+    const duration = 300; // 300ms animation duration
+    const startTime = Date.now();
+
+    if (startValue === endValue) return;
+
+    const animate = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Ease-out cubic function for smooth deceleration
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+
+      const currentValue = Math.floor(startValue + (endValue - startValue) * easeOut);
+      setDisplayedTokenCount(currentValue);
+
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplayedTokenCount(endValue);
+      }
+    };
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [liveTokenCount]);
 
   // Virtual scrolling setup
   const virtualizer = useVirtualizer({
@@ -174,7 +218,7 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0 }: Message
                   )}
 
                   {/* Token count indicator */}
-                  {liveTokenCount > 0 && (
+                  {displayedTokenCount > 0 && (
                     <div
                       style={{
                         display: 'inline-flex',
@@ -186,7 +230,6 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0 }: Message
                         borderRadius: '12px',
                         backdropFilter: 'blur(8px)',
                         boxShadow: '0 0 0 1px rgba(218, 238, 255, 0.1), 0 2px 8px rgba(218, 238, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-                        animation: 'tokenGlow 2s ease-in-out infinite',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                       }}
                     >
@@ -195,22 +238,19 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0 }: Message
                         strokeWidth={2.5}
                         style={{
                           color: 'rgb(218, 238, 255)',
-                          animation: 'tokenPulse 1.5s ease-in-out infinite',
                           flexShrink: 0,
                         }}
                       />
                       <span
-                        key={liveTokenCount}
                         style={{
                           fontSize: '0.8125rem',
                           fontWeight: 600,
                           color: 'rgb(218, 238, 255)',
                           fontVariantNumeric: 'tabular-nums',
                           letterSpacing: '0.02em',
-                          animation: 'tokenCountIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         }}
                       >
-                        {liveTokenCount.toLocaleString()}
+                        {displayedTokenCount.toLocaleString()}
                       </span>
                     </div>
                   )}

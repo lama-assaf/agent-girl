@@ -286,9 +286,9 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
 
           {/* Typewriter capabilities */}
           <div className="flex justify-center items-center mt-2 h-8">
-            <div className="text-lg text-gray-600 dark:text-gray-400 font-medium flex items-center">
+            <div className="text-lg text-gray-400 font-medium flex items-center">
               <span>{displayedText}</span>
-              <span className="inline-block w-[3px] h-[18px] bg-gray-600 dark:bg-gray-400 ml-0.5 animate-blink"></span>
+              <span className="inline-block w-[3px] h-[18px] bg-gray-400 ml-0.5 animate-blink"></span>
             </div>
           </div>
         </div>
@@ -296,7 +296,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
         {/* Input Container */}
         <div className="w-full max-w-[960px] mx-auto">
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="flex gap-1.5 w-full">
-            <div className="flex-1 flex flex-col relative w-full rounded-xl border-b-2 border-black/20 dark:border-white/10 transition bg-white/90 dark:bg-[#26282A]">
+            <div className="flex-1 flex flex-col relative w-full rounded-xl border-b-2 border-white/10 transition hover:bg-[#374151]" style={{ backgroundColor: 'rgb(38, 40, 42)' }}>
               {/* File attachments preview */}
               {attachedFiles.length > 0 && (
                 <div className="flex flex-wrap gap-2 items-center mx-2 mt-2.5 -mb-1">
@@ -304,11 +304,11 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                     <button
                       key={file.id}
                       type="button"
-                      className="flex relative gap-1 items-center p-1.5 w-60 text-left bg-gray-100 rounded-2xl border border-gray-200 group dark:bg-gray-800 dark:border-gray-700"
+                      className="flex relative gap-1 items-center p-1.5 w-60 text-left bg-gray-800 rounded-2xl border border-gray-700 group"
                     >
                       {/* Preview thumbnail */}
                       <div className="flex justify-center items-center">
-                        <div className="overflow-hidden relative flex-shrink-0 w-12 h-12 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="overflow-hidden relative flex-shrink-0 w-12 h-12 rounded-lg border border-gray-700">
                           {file.preview && file.type.startsWith('image/') ? (
                             <img
                               src={file.preview}
@@ -317,7 +317,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                               draggable="false"
                             />
                           ) : (
-                            <div className="flex items-center justify-center w-full h-full bg-gray-100 dark:bg-gray-800 text-gray-400 text-xs font-medium">
+                            <div className="flex items-center justify-center w-full h-full bg-gray-800 text-gray-400 text-xs font-medium">
                               {file.name.split('.').pop()?.toUpperCase()}
                             </div>
                           )}
@@ -326,7 +326,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
 
                       {/* File info */}
                       <div className="flex flex-col justify-center px-2.5 -space-y-0.5 flex-1 min-w-0 overflow-hidden">
-                        <div className="mb-1 text-sm font-medium dark:text-gray-100 truncate w-full">
+                        <div className="mb-1 text-sm font-medium text-gray-100 truncate w-full">
                           {file.name}
                         </div>
                         <div className="flex justify-between text-xs text-gray-500 line-clamp-1">
@@ -364,7 +364,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                   onKeyDown={handleKeyDown}
                   onPaste={handlePaste}
                   placeholder="How can I help you today?"
-                  className="px-1 pt-3 w-full text-sm bg-transparent resize-none scrollbar-hidden dark:text-gray-100 outline-hidden dark:placeholder:text-white/40"
+                  className="px-1 pt-3 w-full text-sm bg-transparent resize-none scrollbar-hidden text-gray-100 outline-hidden placeholder:text-white/40"
                   style={{
                     minHeight: '72px',
                     maxHeight: '144px',
@@ -391,7 +391,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                     <button
                       onClick={handleFileClick}
                       type="button"
-                      className="border rounded-lg border-black/10 dark:border-white/10 bg-transparent transition p-1.5 outline-none focus:outline-none hover:bg-gray-100 text-gray-800 dark:text-white dark:hover:bg-gray-800"
+                      className="border rounded-lg border-white/10 bg-transparent transition p-1.5 outline-none focus:outline-none text-white hover:bg-gray-800"
                       aria-label="Upload files"
                     >
                       <Plus className="size-5" />
@@ -402,7 +402,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                       <button
                         onClick={onTogglePlanMode}
                         type="button"
-                        className={`${isPlanMode ? 'send-button-active' : 'border border-black/10 dark:border-white/10 bg-transparent text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800'} rounded-lg transition outline-none focus:outline-none`}
+                        className={`${isPlanMode ? 'send-button-active' : 'border border-white/10 bg-transparent text-white hover:bg-gray-800'} rounded-lg transition outline-none focus:outline-none`}
                         style={{
                           fontSize: '0.75rem',
                           fontWeight: 500,
@@ -435,7 +435,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                       className={`transition rounded-lg p-2 self-center ${
                         !disabled && inputValue.trim()
                           ? 'send-button-active'
-                          : 'bg-gray-200 dark:bg-gray-500 text-white dark:text-white/40 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-500 text-white/40 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600'
                       }`}
                       aria-label="Send Message"
                     >

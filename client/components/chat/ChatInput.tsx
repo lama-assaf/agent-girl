@@ -244,11 +244,11 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                 <button
                   key={file.id}
                   type="button"
-                  className="flex relative gap-1 items-center p-1.5 w-60 max-w-60 text-left bg-gray-100 rounded-2xl border border-gray-200 group dark:bg-gray-800 dark:border-gray-700"
+                  className="flex relative gap-1 items-center p-1.5 w-60 max-w-60 text-left bg-gray-800 rounded-2xl border border-gray-700 group"
                 >
                   {/* Preview thumbnail */}
                   <div className="flex justify-center items-center">
-                    <div className="overflow-hidden relative flex-shrink-0 w-12 h-12 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="overflow-hidden relative flex-shrink-0 w-12 h-12 rounded-lg border border-gray-700">
                       {file.preview && file.type.startsWith('image/') ? (
                         <img
                           src={file.preview}
@@ -257,7 +257,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                           draggable="false"
                         />
                       ) : (
-                        <div className="flex items-center justify-center w-full h-full bg-gray-100 dark:bg-gray-800 text-gray-400 text-xs font-medium">
+                        <div className="flex items-center justify-center w-full h-full bg-gray-800 text-gray-400 text-xs font-medium">
                           {file.name.split('.').pop()?.toUpperCase()}
                         </div>
                       )}
@@ -266,7 +266,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
 
                   {/* File info */}
                   <div className="flex flex-col justify-center px-2.5 -space-y-0.5 flex-1 min-w-0 overflow-hidden">
-                    <div className="mb-1 text-sm font-medium dark:text-gray-100 truncate w-full">
+                    <div className="mb-1 text-sm font-medium text-gray-100 truncate w-full">
                       {file.name}
                     </div>
                     <div className="flex justify-between text-xs text-gray-500 line-clamp-1">
@@ -304,7 +304,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               placeholder={placeholder || "Send a Message"}
-              className="px-1 pt-3 w-full text-sm bg-transparent resize-none scrollbar-hidden dark:text-gray-100 outline-hidden dark:placeholder:text-white/40"
+              className="px-1 pt-3 w-full text-sm bg-transparent resize-none scrollbar-hidden text-gray-100 outline-hidden placeholder:text-white/40"
               style={{
                 minHeight: '72px',
                 maxHeight: '144px',

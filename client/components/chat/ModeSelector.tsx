@@ -63,7 +63,7 @@ export function ModeSelector({ selectedMode, onSelectMode }: ModeSelectorProps) 
             className={`promptCard waterfall flex flex-col shrink-0 px-4 py-2 rounded-lg group items-center justify-center text-center ${
               isSelected
                 ? 'border-none'
-                : 'bg-white/80 dark:bg-[#26282A] border-b-2 border-black/10 dark:border-white/10 hover:bg-[#DAEEFF] dark:hover:bg-[#DAEEFF2A] hover:border-black/20 dark:hover:border-white/20 text-black/90 dark:text-white/90 hover:text-black dark:hover:text-white transition'
+                : 'border-b-2 border-white/10 hover:border-white/20 text-white/90 hover:text-white transition'
             }`}
             style={{
               animationDelay: `${index * 60}ms`,
@@ -72,7 +72,9 @@ export function ModeSelector({ selectedMode, onSelectMode }: ModeSelectorProps) 
                 backgroundSize: '200% auto',
                 animation: 'shimmer 3s linear infinite',
                 opacity: 1,
-              } : {}),
+              } : {
+                backgroundColor: 'rgb(38, 40, 42)', // #26282A
+              }),
             }}
           >
             <div className="flex gap-3 justify-between items-center w-full h-7"

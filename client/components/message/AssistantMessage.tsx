@@ -127,17 +127,17 @@ function BashToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const input = toolUse.input;
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Terminal icon */}
           <svg className="size-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" strokeWidth="2">
             <path d="M282.88 788.48l-35.84-35.84L486.4 512c-42.24-38.4-142.08-130.56-225.28-215.04L243.2 279.04l35.84-35.84 17.92 17.92c107.52 107.52 241.92 230.4 243.2 231.68 5.12 5.12 7.68 11.52 8.96 17.92 0 6.4-2.56 14.08-7.68 19.2L282.88 788.48zM503.04 733.44h281.6v51.2h-281.6v-51.2z" fill="currentColor" />
           </svg>
           <span className="text-sm font-medium leading-6">Shell</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {input.command as string}
           </span>
         </div>
@@ -156,23 +156,23 @@ function BashToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-black/30 text-sm space-y-2">
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Command:</span>
-            <div className="font-mono text-sm mt-1 bg-black/5 dark:bg-black/20 px-2 py-1 rounded">
+            <span className="text-xs font-semibold text-white/60">Command:</span>
+            <div className="font-mono text-sm mt-1 bg-black/20 px-2 py-1 rounded">
               <span className="text-[#2ddc44]">$</span>{' '}
-              <span className="text-black dark:text-white">{input.command}</span>
+              <span className="text-white">{input.command}</span>
             </div>
           </div>
           {input.description && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Description:</span>
+              <span className="text-xs font-semibold text-white/60">Description:</span>
               <div className="text-sm mt-1">{input.description as string}</div>
             </div>
           )}
           {input.timeout && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Timeout:</span>
+              <span className="text-xs font-semibold text-white/60">Timeout:</span>
               <div className="text-sm mt-1">{input.timeout as number}ms</div>
             </div>
           )}
@@ -188,17 +188,17 @@ function BashOutputToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const input = toolUse.input;
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Terminal icon */}
           <svg className="size-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" strokeWidth="2">
             <path d="M282.88 788.48l-35.84-35.84L486.4 512c-42.24-38.4-142.08-130.56-225.28-215.04L243.2 279.04l35.84-35.84 17.92 17.92c107.52 107.52 241.92 230.4 243.2 231.68 5.12 5.12 7.68 11.52 8.96 17.92 0 6.4-2.56 14.08-7.68 19.2L282.88 788.48zM503.04 733.44h281.6v51.2h-281.6v-51.2z" fill="currentColor" />
           </svg>
           <span className="text-sm font-medium leading-6">Shell Output</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {input.bash_id ? `Shell ${input.bash_id}` : 'Retrieve output'}
           </span>
         </div>
@@ -217,16 +217,16 @@ function BashOutputToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-black/30 text-sm space-y-2">
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Shell ID:</span>
-            <div className="font-mono text-sm mt-1 bg-black/5 dark:bg-black/20 px-2 py-1 rounded">
+            <span className="text-xs font-semibold text-white/60">Shell ID:</span>
+            <div className="font-mono text-sm mt-1 bg-black/20 px-2 py-1 rounded">
               {input.bash_id as string}
             </div>
           </div>
           {input.filter ? (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Filter:</span>
+              <span className="text-xs font-semibold text-white/60">Filter:</span>
               <div className="text-sm mt-1 font-mono">{String(input.filter)}</div>
             </div>
           ) : null}
@@ -242,9 +242,9 @@ function KillShellToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const input = toolUse.input;
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Terminal icon with X */}
           <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -252,8 +252,8 @@ function KillShellToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             <path d="M8 9l8 8M16 9l-8 8"/>
           </svg>
           <span className="text-sm font-medium leading-6">Kill Shell</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {input.shell_id ? `Shell ${input.shell_id}` : 'Terminate shell'}
           </span>
         </div>
@@ -272,10 +272,10 @@ function KillShellToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-black/30 text-sm space-y-2">
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Shell ID:</span>
-            <div className="font-mono text-sm mt-1 bg-black/5 dark:bg-black/20 px-2 py-1 rounded">
+            <span className="text-xs font-semibold text-white/60">Shell ID:</span>
+            <div className="font-mono text-sm mt-1 bg-black/20 px-2 py-1 rounded">
               {input.shell_id as string}
             </div>
           </div>
@@ -291,9 +291,9 @@ function WebToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const input = toolUse.input;
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Globe icon */}
           <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -302,8 +302,8 @@ function WebToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className="text-sm font-medium leading-6">{toolUse.name}</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {toolUse.name === 'WebSearch'
               ? (input.query as string)
               : (input.url as string)}
@@ -324,22 +324,22 @@ function WebToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-black/30 text-sm space-y-2">
           {toolUse.name === 'WebSearch' ? (
             <>
               <div>
-                <span className="text-xs font-semibold text-black/60 dark:text-white/60">Query:</span>
+                <span className="text-xs font-semibold text-white/60">Query:</span>
                 <div className="text-sm mt-1">{input.query as string}</div>
               </div>
               {input.allowed_domains && (input.allowed_domains as string[]).length > 0 && (
                 <div>
-                  <span className="text-xs font-semibold text-black/60 dark:text-white/60">Allowed Domains:</span>
+                  <span className="text-xs font-semibold text-white/60">Allowed Domains:</span>
                   <div className="text-sm mt-1">{(input.allowed_domains as string[]).join(', ')}</div>
                 </div>
               )}
               {input.blocked_domains && (input.blocked_domains as string[]).length > 0 && (
                 <div>
-                  <span className="text-xs font-semibold text-black/60 dark:text-white/60">Blocked Domains:</span>
+                  <span className="text-xs font-semibold text-white/60">Blocked Domains:</span>
                   <div className="text-sm mt-1">{(input.blocked_domains as string[]).join(', ')}</div>
                 </div>
               )}
@@ -347,11 +347,11 @@ function WebToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
           ) : (
             <>
               <div>
-                <span className="text-xs font-semibold text-black/60 dark:text-white/60">URL:</span>
+                <span className="text-xs font-semibold text-white/60">URL:</span>
                 <div className="text-sm mt-1 break-all font-mono">{input.url as string}</div>
               </div>
               <div>
-                <span className="text-xs font-semibold text-black/60 dark:text-white/60">Prompt:</span>
+                <span className="text-xs font-semibold text-white/60">Prompt:</span>
                 <div className="text-sm mt-1">{input.prompt as string}</div>
               </div>
             </>
@@ -368,17 +368,17 @@ function ReadToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const input = toolUse.input;
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Document icon */}
           <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className="text-sm font-medium leading-6">Read</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {input.file_path as string}
           </span>
         </div>
@@ -397,20 +397,20 @@ function ReadToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-black/30 text-sm space-y-2">
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">File Path:</span>
+            <span className="text-xs font-semibold text-white/60">File Path:</span>
             <div className="text-sm mt-1 font-mono">{input.file_path as string}</div>
           </div>
           {input.offset && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Offset:</span>
+              <span className="text-xs font-semibold text-white/60">Offset:</span>
               <div className="text-sm mt-1">{input.offset} lines</div>
             </div>
           )}
           {input.limit && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Limit:</span>
+              <span className="text-xs font-semibold text-white/60">Limit:</span>
               <div className="text-sm mt-1">{input.limit} lines</div>
             </div>
           )}
@@ -426,17 +426,17 @@ function GrepToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const input = toolUse.input;
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Search icon */}
           <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className="text-sm font-medium leading-6">Grep</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {input.pattern as string}
           </span>
         </div>
@@ -455,32 +455,32 @@ function GrepToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-black/30 text-sm space-y-2">
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Pattern:</span>
+            <span className="text-xs font-semibold text-white/60">Pattern:</span>
             <div className="text-sm mt-1 font-mono bg-yellow-500/10 px-2 py-1 rounded">{input.pattern as string}</div>
           </div>
           {input.path && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Path:</span>
+              <span className="text-xs font-semibold text-white/60">Path:</span>
               <div className="text-sm mt-1 font-mono">{input.path as string}</div>
             </div>
           )}
           {input.glob && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Glob:</span>
+              <span className="text-xs font-semibold text-white/60">Glob:</span>
               <div className="text-sm mt-1 font-mono">{input.glob as string}</div>
             </div>
           )}
           {input.output_mode && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Mode:</span>
+              <span className="text-xs font-semibold text-white/60">Mode:</span>
               <div className="text-sm mt-1">{input.output_mode as string}</div>
             </div>
           )}
           {(input['-i'] || input['-n'] || input.multiline) && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Options:</span>
+              <span className="text-xs font-semibold text-white/60">Options:</span>
               <div className="flex gap-2 mt-1">
                 {input['-i'] && <span className="text-xs bg-white/60 dark:bg-black/20 px-2 py-0.5 rounded">case-insensitive</span>}
                 {input['-n'] && <span className="text-xs bg-white/60 dark:bg-black/20 px-2 py-0.5 rounded">line-numbers</span>}
@@ -500,17 +500,17 @@ function GlobToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const input = toolUse.input;
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Files icon */}
           <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className="text-sm font-medium leading-6">Glob</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {input.pattern as string}
           </span>
         </div>
@@ -529,14 +529,14 @@ function GlobToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-black/30 text-sm space-y-2">
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Pattern:</span>
+            <span className="text-xs font-semibold text-white/60">Pattern:</span>
             <div className="text-sm mt-1 font-mono">{input.pattern as string}</div>
           </div>
           {input.path && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Path:</span>
+              <span className="text-xs font-semibold text-white/60">Path:</span>
               <div className="text-sm mt-1 font-mono">{input.path as string}</div>
             </div>
           )}
@@ -582,13 +582,13 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   // Error state rendering
   if (error) {
     return (
-      <div className="w-full border border-red-500/30 rounded-xl my-3 p-4 bg-red-50 dark:bg-red-900/20">
-        <div className="text-sm text-red-600 dark:text-red-400">
+      <div className="w-full border border-red-500/30 rounded-xl my-3 p-4 bg-red-900/20">
+        <div className="text-sm text-red-400">
           <strong>Task Tool Error:</strong> {error.message}
         </div>
         <details className="mt-2 text-xs">
           <summary className="cursor-pointer">View Details</summary>
-          <pre className="mt-2 p-2 bg-black/10 dark:bg-black/30 rounded overflow-auto max-h-40">
+          <pre className="mt-2 p-2 bg-black/30 rounded overflow-auto max-h-40">
             {error.stack}
           </pre>
         </details>
@@ -597,9 +597,9 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   }
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Robot icon */}
           <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -608,8 +608,8 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             <path d="M9 12.75h6a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className={`text-sm leading-6 ${gradientClass}`}>{agentName}</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {nestedToolsCount && nestedToolsCount > 0 ? `Used ${nestedToolsCount} tool${nestedToolsCount !== 1 ? 's' : ''}` : 'Running...'}
           </span>
         </div>
@@ -634,30 +634,30 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-3">
+        <div className="p-4 bg-black/30 text-sm space-y-3">
           {(() => {
             try {
               return (
                 <>
                   {input?.subagent_type && (
                     <div>
-                      <span className="text-xs font-semibold text-black/60 dark:text-white/60">Agent Type:</span>
+                      <span className="text-xs font-semibold text-white/60">Agent Type:</span>
                       <div className="text-sm mt-1">{String(input.subagent_type)}</div>
                     </div>
                   )}
                   {input?.description && (
                     <div>
-                      <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Description:</span>
+                      <span className="text-xs font-semibold text-white/60">Task Description:</span>
                       <div className="text-sm mt-1">{String(input.description)}</div>
                     </div>
                   )}
                   {input?.prompt && (
                     <div>
-                      <span className="text-xs font-semibold text-black/60 dark:text-white/60">Task Prompt:</span>
+                      <span className="text-xs font-semibold text-white/60">Task Prompt:</span>
                       <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-white/60 dark:bg-black/20 p-2 rounded whitespace-pre-wrap break-words">
                         {String(input.prompt).substring(0, 5000)}
                         {String(input.prompt).length > 5000 && (
-                          <span className="text-xs text-black/40 dark:text-white/40"> (truncated)</span>
+                          <span className="text-xs text-white/40"> (truncated)</span>
                         )}
                       </div>
                     </div>
@@ -666,14 +666,14 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                   {/* Nested tools from spawned agent */}
                   {nestedToolsCount && nestedToolsCount > 0 && (
                     <div>
-                      <span className="text-xs font-semibold text-black/60 dark:text-white/60">Tools Used ({nestedToolsCount}):</span>
+                      <span className="text-xs font-semibold text-white/60">Tools Used ({nestedToolsCount}):</span>
                       <div className="mt-2 space-y-2">
                         {toolUse.nestedTools?.map((nestedTool, index) => {
                           try {
                             return <NestedToolDisplay key={nestedTool.id || index} toolUse={nestedTool} />;
                           } catch (e) {
                             return (
-                              <div key={index} className="text-xs text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                              <div key={index} className="text-xs text-red-500 p-2 bg-red-900/20 rounded">
                                 Error rendering tool: {(e as Error).message}
                               </div>
                             );
@@ -686,7 +686,7 @@ function TaskToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
               );
             } catch (e) {
               return (
-                <div className="text-sm text-red-600 dark:text-red-400">
+                <div className="text-sm text-red-400">
                   Error rendering content: {(e as Error).message}
                 </div>
               );
@@ -703,8 +703,8 @@ function NestedToolDisplay({ toolUse }: { toolUse: ToolUseBlock }) {
   try {
     if (!toolUse || !toolUse.name) {
       return (
-        <div className="border border-red-500/30 rounded-lg bg-red-50 dark:bg-red-900/20 p-2">
-          <div className="text-xs text-red-600 dark:text-red-400">
+        <div className="border border-red-500/30 rounded-lg bg-red-900/20 p-2">
+          <div className="text-xs text-red-400">
             Invalid tool data
           </div>
         </div>
@@ -712,11 +712,11 @@ function NestedToolDisplay({ toolUse }: { toolUse: ToolUseBlock }) {
     }
 
     return (
-      <div className="border border-black/5 dark:border-white/5 rounded-lg bg-black/5 dark:bg-white/5 p-2">
+      <div className="border border-black/5 dark:border-white/5 rounded-lg bg-white/5 p-2">
         <div className="flex items-center gap-2">
           <ToolIcon toolName={toolUse.name} />
           <span className="text-xs font-medium">{toolUse.name}</span>
-          <span className="text-xs text-black/40 dark:text-white/40">
+          <span className="text-xs text-white/40">
             {getToolSummary(toolUse)}
           </span>
         </div>
@@ -724,8 +724,8 @@ function NestedToolDisplay({ toolUse }: { toolUse: ToolUseBlock }) {
     );
   } catch (e) {
     return (
-      <div className="border border-red-500/30 rounded-lg bg-red-50 dark:bg-red-900/20 p-2">
-        <div className="text-xs text-red-600 dark:text-red-400">
+      <div className="border border-red-500/30 rounded-lg bg-red-900/20 p-2">
+        <div className="text-xs text-red-400">
           Error: {(e as Error).message}
         </div>
       </div>
@@ -823,9 +823,9 @@ function McpToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   };
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Globe icon for web search, default icon for others */}
           {server === 'web-search-prime' ? (
@@ -840,8 +840,8 @@ function McpToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             </svg>
           )}
           <span className="text-sm font-medium leading-6">{getDisplayName()}</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {getMainParam()}
           </span>
         </div>
@@ -860,18 +860,18 @@ function McpToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-black/30 text-sm space-y-2">
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">MCP Server:</span>
+            <span className="text-xs font-semibold text-white/60">MCP Server:</span>
             <div className="text-sm mt-1">{server}</div>
           </div>
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Tool:</span>
+            <span className="text-xs font-semibold text-white/60">Tool:</span>
             <div className="text-sm mt-1">{tool}</div>
           </div>
           {Object.entries(input).map(([key, value]) => (
             <div key={key}>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">{key}:</span>
+              <span className="text-xs font-semibold text-white/60">{key}:</span>
               <div className="text-sm mt-1 break-all">
                 {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
               </div>
@@ -889,17 +889,17 @@ function NotebookEditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const input = toolUse.input;
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Notebook icon */}
           <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className="text-sm font-medium leading-6">Notebook Edit</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {input.notebook_path as string}
           </span>
         </div>
@@ -918,34 +918,34 @@ function NotebookEditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm space-y-2">
+        <div className="p-4 bg-black/30 text-sm space-y-2">
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Notebook Path:</span>
+            <span className="text-xs font-semibold text-white/60">Notebook Path:</span>
             <div className="text-sm mt-1 font-mono">{input.notebook_path as string}</div>
           </div>
           {input.cell_id && (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">Cell ID:</span>
+              <span className="text-xs font-semibold text-white/60">Cell ID:</span>
               <div className="text-sm mt-1 font-mono">{input.cell_id as string}</div>
             </div>
           )}
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Cell Type:</span>
+            <span className="text-xs font-semibold text-white/60">Cell Type:</span>
             <div className="text-sm mt-1">{(input.cell_type as string) || 'default'}</div>
           </div>
           <div>
-            <span className="text-xs font-semibold text-black/60 dark:text-white/60">Edit Mode:</span>
+            <span className="text-xs font-semibold text-white/60">Edit Mode:</span>
             <div className="text-sm mt-1">{(input.edit_mode as string) || 'replace'}</div>
           </div>
           {input.new_source ? (
             <div>
-              <span className="text-xs font-semibold text-black/60 dark:text-white/60">New Source:</span>
-              <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-black/5 dark:bg-black/20 p-2 rounded font-mono whitespace-pre-wrap">
+              <span className="text-xs font-semibold text-white/60">New Source:</span>
+              <div className="text-sm mt-1 max-h-32 overflow-y-auto bg-black/20 p-2 rounded font-mono whitespace-pre-wrap">
                 {String(input.new_source).substring(0, 500)}
                 {(() => {
                   const sourceStr = String(input.new_source);
                   return sourceStr.length > 500 ? (
-                    <span className="text-xs text-black/40 dark:text-white/40"> (truncated)</span>
+                    <span className="text-xs text-white/40"> (truncated)</span>
                   ) : null;
                 })()}
               </div>
@@ -969,17 +969,17 @@ function TodoToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const pendingCount = todos.filter(t => t.status === 'pending').length;
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Todo list icon */}
           <svg className="size-4" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="32" height="32" strokeWidth="1.5">
             <path d="M266.304 104.544l-105.408 105.92-41.408-41.6a31.904 31.904 0 0 0-54.496 13.888c-2.88 11.424 0.672 23.552 9.28 31.552l64 64.32a31.904 31.904 0 0 0 45.216 0l128-128.64a32.256 32.256 0 0 0-0.864-44.576 31.904 31.904 0 0 0-44.352-0.864h0.032zM176 384a112 112 0 1 1 0 224 112 112 0 0 1 0-224z m9.376 64.8a48.064 48.064 0 1 0 24.416 81.216 48.064 48.064 0 0 0-24.416-81.216zM928.064 160H416a32 32 0 0 0 0 64h512.064a32 32 0 0 0 0-64zM928.064 480H416a32 32 0 0 0 0 64h512.064a32 32 0 0 0 0-64zM176 720a112 112 0 1 1 0 224 112 112 0 0 1 0-224z m9.376 64.8a48.064 48.064 0 1 0 24.416 81.216 48.064 48.064 0 0 0-24.416-81.216zM928.064 800H416a32 32 0 0 0 0 64h512.064a32 32 0 0 0 0-64z" fill="currentColor" stroke="currentColor"/>
           </svg>
           <span className="text-sm font-medium leading-6">Task List</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {completedCount}/{todos.length} completed
             {inProgressCount > 0 && ` · ${inProgressCount} in progress`}
             {pendingCount > 0 && ` · ${pendingCount} pending`}
@@ -1000,7 +1000,7 @@ function TodoToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Content */}
       {isExpanded && (
-        <div className="p-4 bg-white/60 dark:bg-black/30 text-sm">
+        <div className="p-4 bg-black/30 text-sm">
           <div className="space-y-1">
             {todos.map((todo: TodoItem, i: number) => (
               <div key={i} className="flex gap-2 items-center py-1.5 px-2 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
@@ -1027,11 +1027,11 @@ function TodoToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
                 {/* Task text */}
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs text-black/40 dark:text-white/40 mr-1">{i + 1}.</span>
+                  <span className="text-xs text-white/40 mr-1">{i + 1}.</span>
                   <span
                     className={`${
                       todo.status === 'completed'
-                        ? 'text-black/40 dark:text-white/40 line-through'
+                        ? 'text-white/40 line-through'
                         : todo.status === 'in_progress'
                         ? 'font-medium text-blue-600 dark:text-blue-400'
                         : 'text-black/70 dark:text-white/70'
@@ -1209,9 +1209,9 @@ function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   const stats = calculateStats();
 
   return (
-    <div className="w-full border border-black/10 dark:border-white/10 rounded-xl my-3 overflow-hidden">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between px-4 py-2 w-full text-xs bg-white/60 dark:bg-[#0C0E10] border-b border-black/10 dark:border-white/10">
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           {/* Code icon */}
           <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1227,8 +1227,8 @@ function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             </defs>
           </svg>
           <span className="text-sm font-medium leading-6">{toolUse.name}</span>
-          <div className="bg-black/10 dark:bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
-          <span className="flex-1 min-w-0 text-xs truncate text-black/60 dark:text-white/60">
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
             {input.file_path as string}
           </span>
         </div>
@@ -1250,7 +1250,7 @@ function EditToolComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
       {/* Diff Viewer */}
       {isExpanded && (
-        <div className="max-h-[124px] overflow-auto bg-white/60 dark:bg-black/30">
+        <div className="max-h-[124px] overflow-auto bg-black/30">
           {/* Deleted chunk (old_string) */}
           {input.old_string && (
             <div className="bg-red-500/10 border-l-2 border-red-500">
@@ -1424,8 +1424,8 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
   
   return (
     <div className="w-full">
-      <div className="flex flex-col flex-1 bg-white/60 dark:bg-[#0C0E10]">
-        <div className="flex justify-between items-center px-4 py-2.5 border-b border-black/10 dark:border-white/10">
+      <div className="flex flex-col flex-1 bg-[#0C0E10]">
+        <div className="flex justify-between items-center px-4 py-2.5 border-b border-white/10">
           <div className="flex gap-2 items-center">
             <ToolIcon toolName={toolUse.name} />
             <div className="text-sm font-medium leading-5">{toolUse.name}</div>

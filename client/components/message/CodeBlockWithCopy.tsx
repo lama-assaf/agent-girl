@@ -44,15 +44,13 @@ export function CodeBlockWithCopy({ code, language, customStyle, wrapperClassNam
     }
   };
 
-  // Detect dark mode
-  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-
+  // Always use dark mode
   const buttonStyle = (buttonName: string) => ({
     cursor: 'pointer',
     backgroundColor: hoveredButton === buttonName
-      ? (isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)')
-      : (isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'),
-    color: isDarkMode ? '#ffffff' : '#000000',
+      ? 'rgba(255, 255, 255, 0.15)'
+      : 'rgba(255, 255, 255, 0.1)',
+    color: '#ffffff',
   });
 
   const codeStyle: { [key: string]: React.CSSProperties } = vscDarkPlus as unknown as { [key: string]: React.CSSProperties };
@@ -60,12 +58,12 @@ export function CodeBlockWithCopy({ code, language, customStyle, wrapperClassNam
   return (
     <div className={`relative my-2 flex flex-col rounded-lg ${wrapperClassName || ''}`} dir="ltr">
       {/* Language label */}
-      <div className="absolute py-1.5 pl-4 text-xs font-medium text-gray-300 dark:text-white" style={{ zIndex: 20 }}>
+      <div className="absolute py-1.5 pl-4 text-xs font-medium text-white" style={{ zIndex: 20 }}>
         {language}
       </div>
 
       {/* Toolbar buttons - positioned on top of title bar */}
-      <div className="sticky flex items-center justify-end text-xs text-black dark:text-white" style={{ top: '2rem', zIndex: 11, height: '2rem', paddingTop: '0.25rem', paddingBottom: '0.25rem', paddingRight: '0.75rem' }}>
+      <div className="sticky flex items-center justify-end text-xs text-white" style={{ top: '2rem', zIndex: 11, height: '2rem', paddingTop: '0.25rem', paddingBottom: '0.25rem', paddingRight: '0.75rem' }}>
         <div className="flex items-center gap-0.5">
           {/* Copy button */}
           <button
@@ -89,7 +87,7 @@ export function CodeBlockWithCopy({ code, language, customStyle, wrapperClassNam
           height: '2rem',
           paddingLeft: '0.5rem',
           paddingRight: '0.5rem',
-          backgroundColor: isDarkMode ? '#0C0E10' : 'rgba(255, 255, 255, 0.6)',
+          backgroundColor: '#0C0E10', // Always use dark mode
           borderTopLeftRadius: '0.5rem',
           borderTopRightRadius: '0.5rem',
           marginBottom: 0,
