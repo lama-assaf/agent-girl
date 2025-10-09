@@ -32,6 +32,7 @@ import { useSessionAPI, type Session } from '../../hooks/useSessionAPI';
 import { Menu, Edit3 } from 'lucide-react';
 import type { Message } from '../message/types';
 import { toast } from '../../utils/toast';
+import { showError } from '../../utils/errorMessages';
 import type { BackgroundProcess } from '../process/BackgroundProcessMonitor';
 
 export function ChatContainer() {
@@ -218,6 +219,7 @@ export function ChatContainer() {
       }
       await loadSessions(); // Reload sessions to reflect deletion
     }
+    // Error already shown by sessionAPI
   };
 
   // Handle chat rename
@@ -589,7 +591,7 @@ export function ChatContainer() {
       if (!sessionId) {
         const newSession = await sessionAPI.createSession(undefined, mode || 'general');
         if (!newSession) {
-          toast.error('Failed to create chat session');
+          // Error already shown by sessionAPI
           return;
         }
 
@@ -677,8 +679,8 @@ export function ChatContainer() {
 
       setInputValue('');
     } catch (error) {
-      console.error('Failed to submit message:', error);
-      toast.error('Failed to send message');
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      showError('SEND_MESSAGE', errorMsg);
       if (currentSessionId) setSessionLoading(currentSessionId, false);
     }
   };

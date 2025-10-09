@@ -34,9 +34,7 @@ AVAILABLE_MODELS.forEach(model => {
 export async function handleWebSocketMessage(
   ws: ServerWebSocket<ChatWebSocketData>,
   message: string,
-  activeQueries: Map<string, unknown>,
-  IS_STANDALONE: boolean,
-  BINARY_DIR: string
+  activeQueries: Map<string, unknown>
 ): Promise<void> {
   if (ws.data?.type === 'hot-reload') return;
 
@@ -44,7 +42,7 @@ export async function handleWebSocketMessage(
     const data = JSON.parse(message);
 
     if (data.type === 'chat') {
-      await handleChatMessage(ws, data, activeQueries, IS_STANDALONE, BINARY_DIR);
+      await handleChatMessage(ws, data, activeQueries);
     } else if (data.type === 'approve_plan') {
       await handleApprovePlan(ws, data, activeQueries);
     } else if (data.type === 'set_permission_mode') {
@@ -64,9 +62,7 @@ export async function handleWebSocketMessage(
 async function handleChatMessage(
   ws: ServerWebSocket<ChatWebSocketData>,
   data: Record<string, unknown>,
-  activeQueries: Map<string, unknown>,
-  IS_STANDALONE: boolean,
-  BINARY_DIR: string
+  activeQueries: Map<string, unknown>
 ): Promise<void> {
   const { content, sessionId, model, timezone } = data;
 
@@ -284,11 +280,8 @@ Run bash commands with the understanding that this is your current working direc
       cwd: workingDir, // Set working directory for all tool executions
     };
 
-    // In standalone mode, point to the CLI in node_modules
-    if (IS_STANDALONE) {
-      queryOptions.pathToClaudeCodeExecutable = `${BINARY_DIR}/node_modules/@anthropic-ai/claude-code/cli.js`;
-      console.log('🔧 Using Claude Code CLI at:', queryOptions.pathToClaudeCodeExecutable);
-    }
+    // SDK automatically uses its bundled CLI at @anthropic-ai/claude-agent-sdk/cli.js
+    // No need to specify pathToClaudeCodeExecutable - the SDK handles this internally
 
     // Add MCP servers and allowed tools if provider has them
     if (Object.keys(mcpServers).length > 0) {

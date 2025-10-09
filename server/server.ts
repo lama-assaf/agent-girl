@@ -87,7 +87,7 @@ const server = Bun.serve({
     },
 
     async message(ws: ServerWebSocket<ChatWebSocketData>, message: string) {
-      await handleWebSocketMessage(ws, message, activeQueries, IS_STANDALONE, BINARY_DIR);
+      await handleWebSocketMessage(ws, message, activeQueries);
     },
 
     close(ws: ServerWebSocket<ChatWebSocketData>) {

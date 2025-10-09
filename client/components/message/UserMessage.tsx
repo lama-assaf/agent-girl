@@ -20,6 +20,7 @@
 
 import React, { useState } from 'react';
 import { UserMessage as UserMessageType, UserToolResultMessage } from './types';
+import { showError } from '../../utils/errorMessages';
 
 interface UserMessageProps {
   message: UserMessageType | UserToolResultMessage;
@@ -56,7 +57,8 @@ export function UserMessage({ message }: UserMessageProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      showError('COPY_FAILED', errorMsg);
     }
   };
   const isToolResult = 'content' in message && Array.isArray(message.content) && 

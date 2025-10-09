@@ -25,6 +25,7 @@ import { SyntaxHighlighter, vscDarkPlus } from '../../utils/syntaxHighlighter';
 import { AssistantMessage as AssistantMessageType, ToolUseBlock, TextBlock, TodoItem } from './types';
 import { ThinkingBlock } from './ThinkingBlock';
 import { Shield } from 'lucide-react';
+import { showError } from '../../utils/errorMessages';
 
 interface AssistantMessageProps {
   message: AssistantMessageType;
@@ -1599,7 +1600,8 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      showError('COPY_FAILED', errorMsg);
     }
   };
 

@@ -20,6 +20,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from '../utils/toast';
+import { showError } from '../utils/errorMessages';
 
 export interface Session {
   id: string;
@@ -77,6 +78,7 @@ export function useSessionAPI() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch sessions';
       setError(errorMsg);
+      showError('LOAD_CHATS', errorMsg);
       return [];
     } finally {
       setIsLoading(false);
@@ -102,6 +104,7 @@ export function useSessionAPI() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch messages';
       setError(errorMsg);
+      showError('LOAD_MESSAGES', errorMsg);
       return [];
     } finally {
       setIsLoading(false);
@@ -133,6 +136,7 @@ export function useSessionAPI() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to create session';
       setError(errorMsg);
+      showError('CREATE_CHAT', errorMsg);
       return null;
     } finally {
       setIsLoading(false);
@@ -159,6 +163,7 @@ export function useSessionAPI() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to delete session';
       setError(errorMsg);
+      showError('DELETE_CHAT', errorMsg);
       return false;
     } finally {
       setIsLoading(false);
@@ -255,6 +260,7 @@ export function useSessionAPI() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to validate directory';
       setError(errorMsg);
+      showError('INVALID_DIRECTORY', errorMsg);
       return { valid: false, error: errorMsg };
     } finally {
       setIsLoading(false);
@@ -289,6 +295,7 @@ export function useSessionAPI() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to update permission mode';
       setError(errorMsg);
+      showError('UPDATE_MODE', errorMsg);
       return { success: false, error: errorMsg };
     } finally {
       setIsLoading(false);

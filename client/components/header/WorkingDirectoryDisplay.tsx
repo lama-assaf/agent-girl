@@ -20,7 +20,7 @@
 
 import React, { useState } from 'react';
 import { FolderOpen } from 'lucide-react';
-import { toast } from '../../utils/toast';
+import { showError } from '../../utils/errorMessages';
 
 interface WorkingDirectoryDisplayProps {
   directory: string;
@@ -58,15 +58,11 @@ export function WorkingDirectoryDisplay({ directory, sessionId, onChangeDirector
         console.log('Directory picker cancelled');
       } else {
         // Error occurred
-        toast.error('Error', {
-          description: result.error || 'Failed to open directory picker'
-        });
+        showError('DIRECTORY_PICKER', result.error || 'Unknown error');
       }
     } catch (error) {
-      console.error('Failed to open directory picker:', error);
-      toast.error('Error', {
-        description: 'Failed to open directory picker'
-      });
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      showError('DIRECTORY_PICKER', errorMsg);
     } finally {
       setIsChanging(false);
     }

@@ -43,7 +43,9 @@ mkdir data
 
 ### Core Integration Pattern
 
-The application uses the **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) for AI interactions. Key integration points:
+The application uses the **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) for AI interactions. The SDK bundles the Claude Code CLI internally and spawns it as a subprocess to handle tool execution (Read, Write, Bash, etc.).
+
+Key integration points:
 
 1. **WebSocket-based Streaming**: Real-time message streaming via `server/server.ts:145-183`
 2. **Session Persistence**: SQLite database manages conversation history via `server/database.ts`
@@ -51,6 +53,7 @@ The application uses the **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`)
 4. **Multi-provider Support**: Provider configuration in `server/providers.ts` (Anthropic, Z.AI)
 5. **Custom Agents**: Specialized agents defined in `server/agents.ts` (researcher, code-reviewer, debugger, test-writer, documenter)
 6. **MCP Integration**: MCP servers configured per-provider in `server/mcpServers.ts`
+7. **Bundled CLI**: SDK includes Claude Code CLI at `node_modules/@anthropic-ai/claude-agent-sdk/cli.js` for tool execution
 
 ### Claude Agent SDK Usage
 

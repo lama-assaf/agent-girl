@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { showError } from '../utils/errorMessages';
 
 interface BaseWebSocketMessage {
   type: string;
@@ -163,7 +164,8 @@ export function useWebSocket({
           const message = JSON.parse(event.data);
           onMessageRef.current?.(message);
         } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
+          const errorMsg = error instanceof Error ? error.message : 'Unknown parse error';
+          showError('WEBSOCKET_PARSE', errorMsg);
         }
       };
 
