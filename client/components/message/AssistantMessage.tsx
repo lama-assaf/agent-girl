@@ -25,6 +25,7 @@ import { SyntaxHighlighter, vscDarkPlus } from '../../utils/syntaxHighlighter';
 import { AssistantMessage as AssistantMessageType, ToolUseBlock, TextBlock, TodoItem } from './types';
 import { ThinkingBlock } from './ThinkingBlock';
 import { CodeBlockWithCopy } from './CodeBlockWithCopy';
+import { URLBadge } from './URLBadge';
 import { Shield } from 'lucide-react';
 import { showError } from '../../utils/errorMessages';
 
@@ -1092,7 +1093,9 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
               remarkPlugins={[remarkGfm]}
               components={{
                 a: (props) => (
-                  <a {...props} target="_blank" rel="noopener noreferrer" className="plan-text-gradient hover:opacity-80 underline transition-opacity" />
+                  <URLBadge href={props.href || '#'}>
+                    {props.children}
+                  </URLBadge>
                 ),
                 code: ({ className, children }) => {
                   const match = /language-(\w+)/.exec(className || '');
@@ -1465,9 +1468,11 @@ function TextComponent({ text }: { text: TextBlock }) {
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
-            // Customize link rendering
+            // Customize link rendering with URL badges
             a: (props) => (
-              <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(var(--blue-accent))' }} className="hover:opacity-80 underline transition-opacity" />
+              <URLBadge href={props.href || '#'}>
+                {props.children}
+              </URLBadge>
             ),
             // Customize code rendering
             code: ({ className, children }) => {
