@@ -75,10 +75,17 @@ export function updateUserConfig(updates: Partial<UserConfig>): UserConfig {
 export function getUserDisplayName(config?: UserConfig): string | null {
   const userConfig = config || loadUserConfig();
 
+  // Full name if both parts exist
   if (userConfig.firstName && userConfig.lastName) {
     return `${userConfig.firstName} ${userConfig.lastName}`;
   }
 
+  // First name only
+  if (userConfig.firstName) {
+    return userConfig.firstName;
+  }
+
+  // Legacy name field
   if (userConfig.name) {
     return userConfig.name;
   }

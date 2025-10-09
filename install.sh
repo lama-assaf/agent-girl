@@ -476,11 +476,17 @@ extract_and_install() {
 # =============================================================================
 
 configure_api_keys() {
-  # Skip if .env already exists (upgrade scenario)
-  if [[ -f "$INSTALL_DIR/.env" ]] && grep -q "sk-ant-" "$INSTALL_DIR/.env" 2>/dev/null; then
-    log_section "API Configuration"
-    log_success "Existing API keys preserved"
-    return
+  # Skip if .env already exists with REAL keys (not placeholders)
+  if [[ -f "$INSTALL_DIR/.env" ]]; then
+    # Check if real keys exist (not just placeholders)
+    local has_real_anthropic=$(grep "^ANTHROPIC_API_KEY=" "$INSTALL_DIR/.env" 2>/dev/null | grep -v "sk-ant-your-key-here" | wc -l)
+    local has_real_zai=$(grep "^ZAI_API_KEY=" "$INSTALL_DIR/.env" 2>/dev/null | grep -v "your-zai-key-here" | wc -l)
+
+    if [[ $has_real_anthropic -gt 0 || $has_real_zai -gt 0 ]]; then
+      log_section "API Configuration"
+      log_success "Existing API keys preserved"
+      return
+    fi
   fi
 
   log_section "API Key Setup"

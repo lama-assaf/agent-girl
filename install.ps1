@@ -431,11 +431,17 @@ function Install-Application {
 # =============================================================================
 
 function Set-ApiConfiguration {
-    # Skip if .env already exists with valid key (upgrade scenario)
-    if ((Test-Path "$INSTALL_DIR\.env") -and ((Get-Content "$INSTALL_DIR\.env") -match "sk-ant-")) {
-        Write-Section "API Configuration"
-        Write-Success "Existing API keys preserved"
-        return
+    # Skip if .env already exists with REAL keys (not placeholders)
+    if (Test-Path "$INSTALL_DIR\.env") {
+        $envContent = Get-Content "$INSTALL_DIR\.env" -Raw
+        $hasRealAnthropic = $envContent -match "ANTHROPIC_API_KEY=(?!sk-ant-your-key-here)"
+        $hasRealZai = $envContent -match "ZAI_API_KEY=(?!your-zai-key-here)"
+
+        if ($hasRealAnthropic -or $hasRealZai) {
+            Write-Section "API Configuration"
+            Write-Success "Existing API keys preserved"
+            return
+        }
     }
 
     Write-Section "API Key Setup"
