@@ -279,8 +279,6 @@ Run bash commands with the understanding that this is your current working direc
       agents: agentsWithWorkingDir, // Register custom agents with working dir context
       cwd: workingDir, // Set working directory for all tool executions
       executable: 'bun', // Explicitly specify bun as the runtime for SDK subprocess
-      // TODO: Re-enable once SDK/API issue is resolved
-      // maxThinkingTokens: 10000, // Enable extended thinking with 10k token budget
 
       // Capture stderr from SDK's bundled CLI for debugging
       stderr: (data: string) => {
@@ -288,7 +286,14 @@ Run bash commands with the understanding that this is your current working direc
       },
     };
 
-    // console.log('🧠 Extended thinking enabled with maxThinkingTokens:', queryOptions.maxThinkingTokens);
+    // Enable extended thinking only for Anthropic models
+    // Z.AI's Anthropic-compatible API doesn't support maxThinkingTokens parameter
+    if (providerType === 'anthropic') {
+      queryOptions.maxThinkingTokens = 10000;
+      console.log('🧠 Extended thinking enabled with maxThinkingTokens:', queryOptions.maxThinkingTokens);
+    } else {
+      console.log('⚠️ Extended thinking not supported for provider:', providerType);
+    }
 
     // SDK automatically uses its bundled CLI at @anthropic-ai/claude-agent-sdk/cli.js
     // No need to specify pathToClaudeCodeExecutable - the SDK handles this internally

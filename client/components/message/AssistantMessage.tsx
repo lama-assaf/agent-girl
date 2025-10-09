@@ -1635,7 +1635,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                 } else if (block.type === 'tool_use') {
                   return <ToolUseComponent key={index} toolUse={block} />;
                 } else if (block.type === 'thinking') {
-                  return <ThinkingBlock key={index} title="Thinking..." content={block.thinking} />;
+                  return <ThinkingBlock key={index} title="Agent Girl's thoughts..." content={block.thinking} />;
                 }
                 return null;
               })}
