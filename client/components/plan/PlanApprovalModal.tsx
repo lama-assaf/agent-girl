@@ -22,6 +22,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { SyntaxHighlighter, vscDarkPlus } from '../../utils/syntaxHighlighter';
+import { CodeBlockWithCopy } from '../message/CodeBlockWithCopy';
 import { Shield } from 'lucide-react';
 
 interface PlanApprovalModalProps {
@@ -121,22 +122,18 @@ export function PlanApprovalModal({ plan, onApprove, onReject }: PlanApprovalMod
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const inline = !className;
-                  const codeStyle: { [key: string]: React.CSSProperties } = vscDarkPlus as unknown as { [key: string]: React.CSSProperties };
 
                   return !inline ? (
-                    <SyntaxHighlighter
-                      style={codeStyle}
-                      language={language || 'text'}
-                      PreTag="div"
+                    <CodeBlockWithCopy
+                      code={String(children).replace(/\n$/, '')}
+                      language={language}
                       customStyle={{
                         margin: '1rem 0',
                         borderRadius: '0.5rem',
                         fontSize: '0.875rem',
                         border: '1px solid rgba(255, 255, 255, 0.1)',
                       }}
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
+                    />
                   ) : (
                     <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'rgb(var(--text-primary))' }}>
                       {children}

@@ -24,6 +24,7 @@ import remarkGfm from 'remark-gfm';
 import { SyntaxHighlighter, vscDarkPlus } from '../../utils/syntaxHighlighter';
 import { AssistantMessage as AssistantMessageType, ToolUseBlock, TextBlock, TodoItem } from './types';
 import { ThinkingBlock } from './ThinkingBlock';
+import { CodeBlockWithCopy } from './CodeBlockWithCopy';
 import { Shield } from 'lucide-react';
 import { showError } from '../../utils/errorMessages';
 
@@ -1097,25 +1098,19 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const inline = !className;
-                  const codeStyle: { [key: string]: React.CSSProperties } = vscDarkPlus as unknown as { [key: string]: React.CSSProperties };
 
                   return !inline ? (
-                    <div className="plan-code-border">
-                      <SyntaxHighlighter
-                        style={codeStyle}
-                        language={language || 'text'}
-                        PreTag="div"
-                        customStyle={{
-                          margin: 0,
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          border: 'none',
-                          backgroundColor: 'rgba(168, 199, 250, 0.05)',
-                        }}
-                      >
-                        {String(children).replace(/\n$/, '')}
-                      </SyntaxHighlighter>
-                    </div>
+                    <CodeBlockWithCopy
+                      code={String(children).replace(/\n$/, '')}
+                      language={language}
+                      customStyle={{
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        border: 'none',
+                        backgroundColor: 'rgba(168, 199, 250, 0.05)',
+                      }}
+                      wrapperClassName="plan-code-border"
+                    />
                   ) : (
                     <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(168, 199, 250, 0.15)', color: '#DAEEFF' }}>
                       {children}
@@ -1479,22 +1474,18 @@ function TextComponent({ text }: { text: TextBlock }) {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : '';
               const inline = !className;
-              const codeStyle: { [key: string]: React.CSSProperties } = vscDarkPlus as unknown as { [key: string]: React.CSSProperties };
 
               return !inline ? (
-                <SyntaxHighlighter
-                  style={codeStyle}
-                  language={language || 'text'}
-                  PreTag="div"
+                <CodeBlockWithCopy
+                  code={String(children).replace(/\n$/, '')}
+                  language={language}
                   customStyle={{
                     margin: '1rem 0',
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
-                >
-                  {String(children).replace(/\n$/, '')}
-                </SyntaxHighlighter>
+                />
               ) : (
                 <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'rgb(var(--text-primary))' }}>
                   {children}
