@@ -186,6 +186,36 @@ export class TimeoutController {
     }
   }
 
+  /** Reset the timeout timer (used for inactivity timeout) */
+  reset(): void {
+    this.startTime = Date.now();
+    this.warningFired = false;
+    this.timeoutFired = false;
+
+    // Clear existing timers
+    if (this.warningTimer) {
+      clearTimeout(this.warningTimer);
+    }
+    if (this.timeoutTimer) {
+      clearTimeout(this.timeoutTimer);
+    }
+
+    // Restart timers
+    this.warningTimer = setTimeout(() => {
+      if (!this.warningFired) {
+        this.warningFired = true;
+        this.onWarning?.();
+      }
+    }, this.warningMs);
+
+    this.timeoutTimer = setTimeout(() => {
+      if (!this.timeoutFired) {
+        this.timeoutFired = true;
+        this.onTimeout?.();
+      }
+    }, this.timeoutMs);
+  }
+
   /** Throw error if timeout was reached */
   checkTimeout(): void {
     if (this.timeoutFired) {

@@ -488,7 +488,9 @@ Run bash commands with the understanding that this is your current working direc
 
         // Stream the response - query() is an AsyncGenerator
         for await (const message of result) {
-          // Check timeout on each message
+          // Reset timeout on each message (inactivity timer)
+          timeoutController.reset();
+          // Check if timeout was already fired before reset
           timeoutController.checkTimeout();
 
           if (message.type === 'stream_event') {
