@@ -562,6 +562,44 @@ EOF
     echo ""
     log_success "API keys configured"
   fi
+
+  # Personalization Setup
+  echo ""
+  echo -e "${BLUE}🎨 Personalization (Optional)${NC}"
+  echo "Agent Girl can personalize your experience with your name."
+  echo ""
+  read -p "Enter your name (or press Enter to skip): " user_name < /dev/tty
+
+  if [[ -n "$user_name" ]]; then
+    # Parse name into firstName and lastName
+    local name_parts=($user_name)
+    local first_name="${name_parts[0]}"
+    local last_name="${name_parts[@]:1}"
+
+    # Create data directory and user-config.json
+    mkdir -p "$INSTALL_DIR/data"
+
+    if [[ -n "$last_name" ]]; then
+      cat > "$INSTALL_DIR/data/user-config.json" << EOF
+{
+  "firstName": "$first_name",
+  "lastName": "$last_name"
+}
+EOF
+    else
+      cat > "$INSTALL_DIR/data/user-config.json" << EOF
+{
+  "firstName": "$first_name"
+}
+EOF
+    fi
+
+    echo ""
+    log_success "Personalization configured"
+    log_info "Your name will appear in the interface as: ${YELLOW}$user_name${NC}"
+  else
+    log_info "Skipped personalization (you can run 'agent-girl --setup' later)"
+  fi
 }
 
 # =============================================================================

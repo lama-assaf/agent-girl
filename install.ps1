@@ -516,6 +516,43 @@ ZAI_API_KEY=$zaiKey
         Write-Host ""
         Write-Success "API keys configured"
     }
+
+    # Personalization Setup
+    Write-Host ""
+    Write-ColorMessage "🎨 Personalization (Optional)" "Cyan"
+    Write-Host "Agent Girl can personalize your experience with your name."
+    Write-Host ""
+    $userName = Read-Host "Enter your name (or press Enter to skip)"
+
+    if ($userName) {
+        # Parse name into firstName and lastName
+        $nameParts = $userName.Trim() -split '\s+' | Where-Object { $_ }
+        $firstName = $nameParts[0]
+        $lastName = if ($nameParts.Length -gt 1) { $nameParts[1..($nameParts.Length-1)] -join ' ' } else { $null }
+
+        # Create data directory
+        New-Item -ItemType Directory -Force -Path "$INSTALL_DIR\data" | Out-Null
+
+        # Create user-config.json
+        if ($lastName) {
+            $userConfig = @{
+                firstName = $firstName
+                lastName = $lastName
+            } | ConvertTo-Json
+        } else {
+            $userConfig = @{
+                firstName = $firstName
+            } | ConvertTo-Json
+        }
+
+        $userConfig | Out-File -FilePath "$INSTALL_DIR\data\user-config.json" -Encoding UTF8 -Force
+
+        Write-Host ""
+        Write-Success "Personalization configured"
+        Write-Info "Your name will appear in the interface as: $userName"
+    } else {
+        Write-Info "Skipped personalization (you can run 'agent-girl --setup' later)"
+    }
 }
 
 # =============================================================================
