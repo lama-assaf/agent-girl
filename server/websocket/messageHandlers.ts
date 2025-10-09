@@ -325,6 +325,9 @@ Run bash commands with the understanding that this is your current working direc
     // Inject working directory context into all custom agent prompts
     const agentsWithWorkingDir = injectWorkingDirIntoAgents(AGENT_REGISTRY, workingDir);
 
+    // Capture stderr output for better error messages
+    let stderrOutput = '';
+
     const queryOptions: Record<string, unknown> = {
       model: apiModelId,
       systemPrompt: systemPromptWithContext,
@@ -334,9 +337,36 @@ Run bash commands with the understanding that this is your current working direc
       cwd: workingDir, // Set working directory for all tool executions
       executable: 'bun', // Explicitly specify bun as the runtime for SDK subprocess
 
-      // Capture stderr from SDK's bundled CLI for debugging
+      // Capture stderr from SDK's bundled CLI for debugging and error context
       stderr: (data: string) => {
-        console.error('🔴 SDK CLI stderr:', data.trim());
+        const trimmedData = data.trim();
+        console.error('🔴 SDK CLI stderr:', trimmedData);
+
+        // Only capture lines that look like actual errors, not debug output or command echoes
+        const lowerData = trimmedData.toLowerCase();
+        const isActualError =
+          lowerData.includes('error:') ||
+          lowerData.includes('error ') ||
+          lowerData.includes('invalid api key') ||
+          lowerData.includes('authentication') ||
+          lowerData.includes('unauthorized') ||
+          lowerData.includes('permission') ||
+          lowerData.includes('forbidden') ||
+          lowerData.includes('credit') ||
+          lowerData.includes('insufficient') ||
+          lowerData.includes('quota') ||
+          lowerData.includes('billing') ||
+          lowerData.includes('rate limit') ||
+          lowerData.includes('failed') ||
+          lowerData.includes('401') ||
+          lowerData.includes('403') ||
+          lowerData.includes('429') ||
+          (lowerData.includes('status') && (lowerData.includes('4') || lowerData.includes('5'))); // 4xx/5xx errors
+
+        if (isActualError) {
+          // Only keep actual error messages, limit to 300 chars
+          stderrOutput = (stderrOutput + '\n' + trimmedData).slice(-300);
+        }
       },
     };
 
@@ -673,13 +703,14 @@ Run bash commands with the understanding that this is your current working direc
         _lastError = error;
         console.error(`❌ Query attempt ${attemptNumber}/${MAX_RETRIES} failed:`, error);
 
-        // Parse error
-        const parsedError = parseApiError(error);
+        // Parse error with stderr context for better error messages
+        const parsedError = parseApiError(error, stderrOutput);
         console.log('📊 Parsed error:', {
           type: parsedError.type,
           message: parsedError.message,
           isRetryable: parsedError.isRetryable,
           requestId: parsedError.requestId,
+          stderrContext: parsedError.stderrContext ? parsedError.stderrContext.slice(0, 100) + '...' : undefined,
         });
 
         // Check if error is retryable
@@ -749,6 +780,7 @@ Run bash commands with the understanding that this is your current working direc
   } catch (error) {
     // This catch is for errors outside the retry loop (e.g., session validation)
     console.error('WebSocket handler error:', error);
+    // No stderr context available here since this is before SDK initialization
     const parsedError = parseApiError(error);
     ws.send(JSON.stringify({
       type: 'error',

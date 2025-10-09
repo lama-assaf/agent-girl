@@ -19,6 +19,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { NewChatWelcome } from './NewChatWelcome';
@@ -427,7 +428,12 @@ export function ChatContainer() {
       } else if (message.type === 'tool_use' && 'toolId' in message && 'toolName' in message && 'toolInput' in message) {
         // Handle tool use messages
         const toolUseMsg = message as { type: 'tool_use'; toolId: string; toolName: string; toolInput: Record<string, unknown> };
-        setMessages((prev) => {
+
+        // Use flushSync to prevent React batching from causing tools to be lost
+        // When multiple tool_use messages arrive rapidly, React batches setState calls
+        // causing all but the last update to be overwritten. flushSync forces synchronous updates.
+        flushSync(() => {
+          setMessages((prev) => {
           const lastMessage = prev[prev.length - 1];
 
           const toolUseBlock = {
@@ -442,6 +448,15 @@ export function ChatContainer() {
           // If last message is assistant, check for Task tool nesting
           if (lastMessage && lastMessage.type === 'assistant') {
             const content = Array.isArray(lastMessage.content) ? lastMessage.content : [];
+
+            // Check for duplicate tool_use blocks (prevents race condition issues)
+            const isDuplicate = content.some(block =>
+              block.type === 'tool_use' && block.id === toolUseMsg.toolId
+            );
+
+            if (isDuplicate) {
+              return prev; // Skip duplicate
+            }
 
             // Find all active Task tools (Tasks without a text block after them)
             const activeTaskIndices: number[] = [];
@@ -482,6 +497,15 @@ export function ChatContainer() {
             // Nest this tool under the selected Task
             const updatedContent = content.map((block, index) => {
               if (index === targetTaskIndex && block.type === 'tool_use') {
+                // Check for duplicate in nested tools as well
+                const isNestedDuplicate = (block.nestedTools || []).some(
+                  nested => nested.id === toolUseMsg.toolId
+                );
+
+                if (isNestedDuplicate) {
+                  return block; // Don't add duplicate
+                }
+
                 return {
                   ...block,
                   nestedTools: [...(block.nestedTools || []), toolUseBlock]
@@ -507,6 +531,7 @@ export function ChatContainer() {
               timestamp: new Date().toISOString(),
             },
           ];
+          });
         });
       } else if (message.type === 'token_update' && 'outputTokens' in message) {
         // Update live token count during streaming

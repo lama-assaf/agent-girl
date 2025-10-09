@@ -14,6 +14,8 @@ export type ApiErrorType =
   | 'overloaded_error'           // 529 - API overloaded
   | 'timeout_error'              // 408/504 - Request timeout
   | 'network_error'              // Network/connection failure
+  | 'insufficient_credits'       // Credit exhaustion
+  | 'sdk_process_error'          // SDK subprocess exit error
   | 'unknown_error';             // Fallback
 
 export interface ParsedApiError {
@@ -23,6 +25,7 @@ export interface ParsedApiError {
   retryAfterSeconds?: number;
   requestId?: string;
   statusCode?: number;
+  stderrContext?: string;
   originalError?: unknown;
 }
 
@@ -41,19 +44,117 @@ export function isRetryableError(errorType: ApiErrorType): boolean {
 
 /**
  * Parse error from API response or exception
+ * @param error The error object to parse
+ * @param stderrContext Optional stderr output from SDK subprocess for context
  */
-export function parseApiError(error: unknown): ParsedApiError {
+export function parseApiError(error: unknown, stderrContext?: string): ParsedApiError {
   // Default unknown error
   const defaultError: ParsedApiError = {
     type: 'unknown_error',
     message: 'An unexpected error occurred',
     isRetryable: false,
     originalError: error,
+    stderrContext,
   };
 
   // Handle Error objects
   if (error instanceof Error) {
     const errorMessage = error.message.toLowerCase();
+    const stderrLower = stderrContext?.toLowerCase() || '';
+
+    // Check for authentication errors in error message or stderr (check first, most critical)
+    if (
+      errorMessage.includes('invalid api key') ||
+      errorMessage.includes('authentication') ||
+      errorMessage.includes('unauthorized') ||
+      errorMessage.includes('401') ||
+      stderrLower.includes('invalid api key') ||
+      stderrLower.includes('authentication') ||
+      stderrLower.includes('unauthorized') ||
+      stderrLower.includes('401')
+    ) {
+      return {
+        type: 'authentication_error',
+        message: 'Invalid API key. Please check your API key configuration.',
+        isRetryable: false,
+        stderrContext,
+        originalError: error,
+      };
+    }
+
+    // Check for permission errors in error message or stderr
+    if (
+      errorMessage.includes('permission') ||
+      errorMessage.includes('forbidden') ||
+      errorMessage.includes('403') ||
+      stderrLower.includes('permission') ||
+      stderrLower.includes('forbidden') ||
+      stderrLower.includes('403')
+    ) {
+      return {
+        type: 'permission_error',
+        message: 'Your API key does not have permission to access this model or resource.',
+        isRetryable: false,
+        stderrContext,
+        originalError: error,
+      };
+    }
+
+    // Check for rate limit errors in error message or stderr
+    if (
+      errorMessage.includes('rate limit') ||
+      errorMessage.includes('429') ||
+      stderrLower.includes('rate limit') ||
+      stderrLower.includes('429')
+    ) {
+      return {
+        type: 'rate_limit_error',
+        message: 'Rate limit exceeded. Please wait a moment and try again.',
+        isRetryable: true,
+        stderrContext,
+        originalError: error,
+      };
+    }
+
+    // Check for credit exhaustion in error message or stderr
+    if (
+      errorMessage.includes('credit') ||
+      errorMessage.includes('insufficient') ||
+      errorMessage.includes('quota') ||
+      errorMessage.includes('billing') ||
+      stderrLower.includes('credit') ||
+      stderrLower.includes('insufficient') ||
+      stderrLower.includes('quota') ||
+      stderrLower.includes('billing')
+    ) {
+      return {
+        type: 'insufficient_credits',
+        message: 'Insufficient credits. Please check your account balance and add more credits.',
+        isRetryable: false,
+        stderrContext,
+        originalError: error,
+      };
+    }
+
+    // Check for SDK process exit errors
+    if (
+      errorMessage.includes('process exited') ||
+      errorMessage.includes('exit code') ||
+      errorMessage.includes('subprocess') ||
+      errorMessage.includes('spawn')
+    ) {
+      // Extract exit code if present
+      const exitCodeMatch = errorMessage.match(/exit(?:ed with)? code (\d+)/i);
+      const exitCode = exitCodeMatch ? exitCodeMatch[1] : 'unknown';
+
+      return {
+        type: 'sdk_process_error',
+        message: `SDK subprocess exited with code ${exitCode}. ${stderrContext ? 'Details: ' + stderrContext : 'Check server logs for details.'}`,
+        isRetryable: false,
+        stderrContext,
+        originalError: error,
+      };
+    }
 
     // Network/connection errors
     if (
@@ -67,6 +168,7 @@ export function parseApiError(error: unknown): ParsedApiError {
         type: 'network_error',
         message: 'Network connection failed. Check your internet connection.',
         isRetryable: true,
+        stderrContext,
         originalError: error,
       };
     }
@@ -81,6 +183,7 @@ export function parseApiError(error: unknown): ParsedApiError {
         type: 'timeout_error',
         message: 'Request timed out. Please try again.',
         isRetryable: true,
+        stderrContext,
         originalError: error,
       };
     }
@@ -92,7 +195,7 @@ export function parseApiError(error: unknown): ParsedApiError {
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         if (parsed.error) {
-          return parseStructuredError(parsed, error);
+          return parseStructuredError(parsed, error, stderrContext);
         }
       }
     } catch {
@@ -112,13 +215,13 @@ export function parseApiError(error: unknown): ParsedApiError {
 
     // Anthropic API error format: { type: "error", error: { type: "...", message: "..." } }
     if (err.type === 'error' && typeof err.error === 'object' && err.error !== null) {
-      return parseStructuredError(err, error);
+      return parseStructuredError(err, error, stderrContext);
     }
 
     // HTTP response-like errors
     if (typeof err.status === 'number' || typeof err.statusCode === 'number') {
       const statusCode = (err.status || err.statusCode) as number;
-      return parseHttpError(statusCode, err, error);
+      return parseHttpError(statusCode, err, error, stderrContext);
     }
   }
 
@@ -128,7 +231,7 @@ export function parseApiError(error: unknown): ParsedApiError {
 /**
  * Parse structured API error (Anthropic format)
  */
-function parseStructuredError(errorObj: Record<string, unknown>, originalError: unknown): ParsedApiError {
+function parseStructuredError(errorObj: Record<string, unknown>, originalError: unknown, stderrContext?: string): ParsedApiError {
   const error = errorObj.error as Record<string, unknown>;
   const errorType = error.type as string;
   const message = error.message as string || 'Unknown error';
@@ -149,6 +252,7 @@ function parseStructuredError(errorObj: Record<string, unknown>, originalError: 
     isRetryable: isRetryableError(mappedType),
     retryAfterSeconds,
     requestId,
+    stderrContext,
     originalError,
   };
 }
@@ -156,7 +260,7 @@ function parseStructuredError(errorObj: Record<string, unknown>, originalError: 
 /**
  * Parse HTTP status code errors
  */
-function parseHttpError(statusCode: number, errorObj: Record<string, unknown>, originalError: unknown): ParsedApiError {
+function parseHttpError(statusCode: number, errorObj: Record<string, unknown>, originalError: unknown, stderrContext?: string): ParsedApiError {
   const message = (errorObj.message || errorObj.error || 'Unknown error') as string;
 
   let type: ApiErrorType;
@@ -209,6 +313,7 @@ function parseHttpError(statusCode: number, errorObj: Record<string, unknown>, o
     message,
     isRetryable,
     statusCode,
+    stderrContext,
     originalError,
   };
 }
@@ -236,6 +341,21 @@ function mapErrorType(errorType: string): ApiErrorType {
  */
 export function getUserFriendlyMessage(parsedError: ParsedApiError): string {
   switch (parsedError.type) {
+    case 'insufficient_credits':
+      return 'Insufficient credits. Your Anthropic account has run out of credits. Please visit console.anthropic.com to add more credits to your account.';
+
+    case 'sdk_process_error':
+      // If we have clean stderr context (not too long, looks like actual error), show it
+      if (parsedError.stderrContext) {
+        const cleanStderr = parsedError.stderrContext.trim();
+        // Only show stderr if it's concise and looks like an actual error message
+        if (cleanStderr.length < 200 && !cleanStderr.includes('WORKING DIRECTORY') && !cleanStderr.includes('--')) {
+          return `Claude SDK error: ${cleanStderr}`;
+        }
+      }
+      // Otherwise provide clean fallback
+      return 'Claude SDK encountered an error. This may be due to insufficient credits, API rate limits, or network issues. Check your account balance and try again.';
+
     case 'authentication_error':
       return 'Invalid API key. Please check your API key configuration.';
 
@@ -261,7 +381,12 @@ export function getUserFriendlyMessage(parsedError: ParsedApiError): string {
       return 'Network connection failed. Please check your internet connection.';
 
     case 'invalid_request_error':
-      return `Invalid request: ${parsedError.message}`;
+      // Clean up API error message - only show if it's concise and useful
+      if (parsedError.message && parsedError.message.length < 150) {
+        const cleanMessage = parsedError.message.replace(/\n/g, ' ').trim();
+        return `Invalid request: ${cleanMessage}`;
+      }
+      return 'Invalid request. Please check your input and try again.';
 
     case 'request_too_large':
       return 'Your request is too large (exceeds 32 MB). Try reducing the size of attachments or splitting into multiple messages.';
