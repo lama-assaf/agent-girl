@@ -476,117 +476,120 @@ extract_and_install() {
 # =============================================================================
 
 configure_api_keys() {
-  # Skip if .env already exists with REAL keys (not placeholders)
-  if [[ -f "$INSTALL_DIR/.env" ]]; then
-    # Check if real keys exist (not just placeholders)
-    local has_real_anthropic=$(grep "^ANTHROPIC_API_KEY=" "$INSTALL_DIR/.env" 2>/dev/null | grep -v "sk-ant-your-key-here" | wc -l)
-    local has_real_zai=$(grep "^ZAI_API_KEY=" "$INSTALL_DIR/.env" 2>/dev/null | grep -v "your-zai-key-here" | wc -l)
-
-    if [[ $has_real_anthropic -gt 0 || $has_real_zai -gt 0 ]]; then
-      log_section "API Configuration"
-      log_success "Existing API keys preserved"
-      return
-    fi
-  fi
-
   log_section "API Key Setup"
 
-  echo "Which API provider(s) do you want to use?"
-  echo ""
-  echo -e "  ${YELLOW}1)${NC} Anthropic API only (Claude models)"
-  echo -e "  ${YELLOW}2)${NC} Z.AI API only (GLM models)"
-  echo -e "  ${YELLOW}3)${NC} Both APIs (full model access)"
-  echo -e "  ${YELLOW}4)${NC} Skip (configure later)"
-  echo ""
+  # Check for existing real keys (not placeholders)
+  local existing_anthropic=""
+  local existing_zai=""
 
-  local api_choice
-  read -p "Enter choice [1-4]: " api_choice < /dev/tty
+  if [[ -f "$INSTALL_DIR/.env" ]]; then
+    # Extract existing keys if they're not placeholders
+    existing_anthropic=$(grep "^ANTHROPIC_API_KEY=" "$INSTALL_DIR/.env" 2>/dev/null | grep -v "sk-ant-your-key-here" | cut -d'=' -f2- || echo "")
+    existing_zai=$(grep "^ZAI_API_KEY=" "$INSTALL_DIR/.env" 2>/dev/null | grep -v "your-zai-key-here" | cut -d'=' -f2- || echo "")
 
-  local ANTHROPIC_KEY=""
-  local ZAI_KEY=""
+    # If both keys are configured, skip
+    if [[ -n "$existing_anthropic" && -n "$existing_zai" ]]; then
+      log_success "Both API keys already configured"
+      return
+    fi
 
-  case $api_choice in
-    1)
-      echo ""
-      echo -e "${BLUE}📝 Anthropic API Setup${NC}"
-      echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
-      echo ""
-      read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
-      ;;
-    2)
-      echo ""
-      echo -e "${BLUE}📝 Z.AI API Setup${NC}"
-      echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
-      echo ""
-      read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
-      ;;
-    3)
-      echo ""
-      echo -e "${BLUE}📝 Anthropic API Setup${NC}"
-      echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
-      echo ""
-      read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
-      echo ""
-      echo -e "${BLUE}📝 Z.AI API Setup${NC}"
-      echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
-      echo ""
-      read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
-      ;;
-    4)
-      echo ""
-      log_warning "Skipping API configuration"
-      echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agent Girl"
-      ;;
-    *)
-      echo ""
-      log_warning "Invalid choice. Skipping API configuration."
-      ;;
-  esac
-
-  # Update .env with actual keys
-  if [[ -n "$ANTHROPIC_KEY" ]] || [[ -n "$ZAI_KEY" ]]; then
-    # Check if only one key was provided
-    local has_anthropic_key=false
-    local has_zai_key=false
-
-    [[ -n "$ANTHROPIC_KEY" && "$ANTHROPIC_KEY" != "sk-ant-your-key-here" ]] && has_anthropic_key=true
-    [[ -n "$ZAI_KEY" && "$ZAI_KEY" != "your-zai-key-here" ]] && has_zai_key=true
-
-    # Notify if only one key is configured
-    if [[ "$has_anthropic_key" == "true" && "$has_zai_key" == "false" ]]; then
-      echo ""
-      log_info "You've configured Anthropic API only"
+    # If only one is configured, inform user
+    if [[ -n "$existing_anthropic" && -z "$existing_zai" ]]; then
+      log_info "Anthropic API already configured"
       echo -e "  ${GREEN}✓${NC} Available: Claude Sonnet 4.5"
       echo -e "  ${YELLOW}✗${NC} Unavailable: GLM 4.6 (needs Z.AI API key)"
       echo ""
-      read -p "Add Z.AI API key now for full model access? [y/N]: " add_zai < /dev/tty
-      if [[ "$add_zai" =~ ^[Yy]$ ]]; then
-        echo ""
-        echo -e "${BLUE}Get your API key from: ${CYAN}https://z.ai${NC}"
-        read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
-        has_zai_key=true
-      fi
-    elif [[ "$has_anthropic_key" == "false" && "$has_zai_key" == "true" ]]; then
-      echo ""
-      log_info "You've configured Z.AI API only"
+    elif [[ -z "$existing_anthropic" && -n "$existing_zai" ]]; then
+      log_info "Z.AI API already configured"
       echo -e "  ${GREEN}✓${NC} Available: GLM 4.6"
       echo -e "  ${YELLOW}✗${NC} Unavailable: Claude Sonnet 4.5 (needs Anthropic API key)"
       echo ""
-      read -p "Add Anthropic API key now for full model access? [y/N]: " add_anthropic < /dev/tty
-      if [[ "$add_anthropic" =~ ^[Yy]$ ]]; then
-        echo ""
-        echo -e "${BLUE}Get your API key from: ${CYAN}https://console.anthropic.com/${NC}"
-        read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
-        has_anthropic_key=true
-      fi
     fi
+  fi
 
-    # Set defaults if not provided
-    [[ -z "$ANTHROPIC_KEY" ]] && ANTHROPIC_KEY="sk-ant-your-key-here"
-    [[ -z "$ZAI_KEY" ]] && ZAI_KEY="your-zai-key-here"
+  # Use existing keys as defaults
+  local ANTHROPIC_KEY="$existing_anthropic"
+  local ZAI_KEY="$existing_zai"
 
-    # Create .env file
-    cat > "$INSTALL_DIR/.env" << EOF
+  # If one key exists, offer to add the missing one
+  if [[ -n "$existing_anthropic" && -z "$existing_zai" ]]; then
+    read -p "Add Z.AI API key for full model access? [y/N]: " add_zai < /dev/tty
+    if [[ "$add_zai" =~ ^[Yy]$ ]]; then
+      echo ""
+      echo -e "${BLUE}📝 Z.AI API Setup${NC}"
+      echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
+      echo ""
+      read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
+    fi
+  elif [[ -z "$existing_anthropic" && -n "$existing_zai" ]]; then
+    read -p "Add Anthropic API key for full model access? [y/N]: " add_anthropic < /dev/tty
+    if [[ "$add_anthropic" =~ ^[Yy]$ ]]; then
+      echo ""
+      echo -e "${BLUE}📝 Anthropic API Setup${NC}"
+      echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
+      echo ""
+      read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
+    fi
+  else
+    # No existing keys, show full menu
+    echo "Which API provider(s) do you want to use?"
+    echo ""
+    echo -e "  ${YELLOW}1)${NC} Anthropic API only (Claude models)"
+    echo -e "  ${YELLOW}2)${NC} Z.AI API only (GLM models)"
+    echo -e "  ${YELLOW}3)${NC} Both APIs (full model access)"
+    echo -e "  ${YELLOW}4)${NC} Skip (configure later)"
+    echo ""
+
+    local api_choice
+    read -p "Enter choice [1-4]: " api_choice < /dev/tty
+
+    case $api_choice in
+      1)
+        echo ""
+        echo -e "${BLUE}📝 Anthropic API Setup${NC}"
+        echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
+        echo ""
+        read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
+        ;;
+      2)
+        echo ""
+        echo -e "${BLUE}📝 Z.AI API Setup${NC}"
+        echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
+        echo ""
+        read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
+        ;;
+      3)
+        echo ""
+        echo -e "${BLUE}📝 Anthropic API Setup${NC}"
+        echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
+        echo ""
+        read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
+        echo ""
+        echo -e "${BLUE}📝 Z.AI API Setup${NC}"
+        echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
+        echo ""
+        read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
+        ;;
+      4)
+        echo ""
+        log_warning "Skipping API configuration"
+        echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agent Girl"
+        return
+        ;;
+      *)
+        echo ""
+        log_warning "Invalid choice. Skipping API configuration."
+        return
+        ;;
+    esac
+  fi
+
+  # Set defaults if not provided (preserve existing keys if set)
+  [[ -z "$ANTHROPIC_KEY" ]] && ANTHROPIC_KEY="sk-ant-your-key-here"
+  [[ -z "$ZAI_KEY" ]] && ZAI_KEY="your-zai-key-here"
+
+  # Create .env file
+  cat > "$INSTALL_DIR/.env" << EOF
 # =============================================================================
 # Anthropic Configuration (Claude Models)
 # =============================================================================
@@ -601,9 +604,8 @@ ANTHROPIC_API_KEY=$ANTHROPIC_KEY
 ZAI_API_KEY=$ZAI_KEY
 EOF
 
-    echo ""
-    log_success "API keys configured"
-  fi
+  echo ""
+  log_success "API keys configured"
 }
 
 # =============================================================================

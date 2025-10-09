@@ -431,114 +431,122 @@ function Install-Application {
 # =============================================================================
 
 function Set-ApiConfiguration {
-    # Skip if .env already exists with REAL keys (not placeholders)
-    if (Test-Path "$INSTALL_DIR\.env") {
-        $envContent = Get-Content "$INSTALL_DIR\.env" -Raw
-        $hasRealAnthropic = $envContent -match "ANTHROPIC_API_KEY=(?!sk-ant-your-key-here)"
-        $hasRealZai = $envContent -match "ZAI_API_KEY=(?!your-zai-key-here)"
-
-        if ($hasRealAnthropic -or $hasRealZai) {
-            Write-Section "API Configuration"
-            Write-Success "Existing API keys preserved"
-            return
-        }
-    }
-
     Write-Section "API Key Setup"
 
-    Write-Host "Which API provider(s) do you want to use?"
-    Write-Host ""
-    Write-ColorMessage "  1) " "Yellow" -NoNewline; Write-Host "Anthropic API only (Claude models)"
-    Write-ColorMessage "  2) " "Yellow" -NoNewline; Write-Host "Z.AI API only (GLM models)"
-    Write-ColorMessage "  3) " "Yellow" -NoNewline; Write-Host "Both APIs (full model access)"
-    Write-ColorMessage "  4) " "Yellow" -NoNewline; Write-Host "Skip (configure later)"
-    Write-Host ""
+    # Check for existing real keys (not placeholders)
+    $existingAnthropic = ""
+    $existingZai = ""
 
-    $apiChoice = Read-Host "Enter choice [1-4]"
+    if (Test-Path "$INSTALL_DIR\.env") {
+        $envLines = Get-Content "$INSTALL_DIR\.env"
+        $anthroLine = $envLines | Where-Object { $_ -match "^ANTHROPIC_API_KEY=" -and $_ -notmatch "sk-ant-your-key-here" }
+        $zaiLine = $envLines | Where-Object { $_ -match "^ZAI_API_KEY=" -and $_ -notmatch "your-zai-key-here" }
 
-    $anthropicKey = ""
-    $zaiKey = ""
+        if ($anthroLine) { $existingAnthropic = ($anthroLine -split '=', 2)[1] }
+        if ($zaiLine) { $existingZai = ($zaiLine -split '=', 2)[1] }
 
-    switch ($apiChoice) {
-        "1" {
-            Write-Host ""
-            Write-ColorMessage "📝 Anthropic API Setup" "Cyan"
-            Write-Host "Get your API key from: https://console.anthropic.com/"
-            Write-Host ""
-            $anthropicKey = Read-Host "Enter your Anthropic API key"
+        # If both keys are configured, skip
+        if ($existingAnthropic -and $existingZai) {
+            Write-Success "Both API keys already configured"
+            return
         }
-        "2" {
-            Write-Host ""
-            Write-ColorMessage "📝 Z.AI API Setup" "Cyan"
-            Write-Host "Get your API key from: https://z.ai"
-            Write-Host ""
-            $zaiKey = Read-Host "Enter your Z.AI API key"
-        }
-        "3" {
-            Write-Host ""
-            Write-ColorMessage "📝 Anthropic API Setup" "Cyan"
-            Write-Host "Get your API key from: https://console.anthropic.com/"
-            Write-Host ""
-            $anthropicKey = Read-Host "Enter your Anthropic API key"
-            Write-Host ""
-            Write-ColorMessage "📝 Z.AI API Setup" "Cyan"
-            Write-Host "Get your API key from: https://z.ai"
-            Write-Host ""
-            $zaiKey = Read-Host "Enter your Z.AI API key"
-        }
-        "4" {
-            Write-Host ""
-            Write-Warning "Skipping API configuration"
-            Write-Host "You'll need to edit $INSTALL_DIR\.env before running Agent Girl"
-        }
-        default {
-            Write-Host ""
-            Write-Warning "Invalid choice. Skipping API configuration."
-        }
-    }
 
-    # Create .env file if keys were provided
-    if ($anthropicKey -or $zaiKey) {
-        # Check if only one key was provided
-        $hasAnthropicKey = $anthropicKey -and $anthropicKey -ne "sk-ant-your-key-here"
-        $hasZaiKey = $zaiKey -and $zaiKey -ne "your-zai-key-here"
-
-        # Notify if only one key is configured
-        if ($hasAnthropicKey -and -not $hasZaiKey) {
-            Write-Host ""
-            Write-Info "You've configured Anthropic API only"
+        # If only one is configured, inform user
+        if ($existingAnthropic -and -not $existingZai) {
+            Write-Info "Anthropic API already configured"
             Write-ColorMessage "  ✓ " "Green" -NoNewline; Write-Host "Available: Claude Sonnet 4.5"
             Write-ColorMessage "  ✗ " "Yellow" -NoNewline; Write-Host "Unavailable: GLM 4.6 (needs Z.AI API key)"
             Write-Host ""
-            $addZai = Read-Host "Add Z.AI API key now for full model access? [y/N]"
-            if ($addZai -match '^[Yy]$') {
-                Write-Host ""
-                Write-ColorMessage "Get your API key from: " "Cyan" -NoNewline
-                Write-ColorMessage "https://z.ai" "Blue"
-                $zaiKey = Read-Host "Enter your Z.AI API key"
-                $hasZaiKey = $true
-            }
-        } elseif (-not $hasAnthropicKey -and $hasZaiKey) {
-            Write-Host ""
-            Write-Info "You've configured Z.AI API only"
+        } elseif (-not $existingAnthropic -and $existingZai) {
+            Write-Info "Z.AI API already configured"
             Write-ColorMessage "  ✓ " "Green" -NoNewline; Write-Host "Available: GLM 4.6"
             Write-ColorMessage "  ✗ " "Yellow" -NoNewline; Write-Host "Unavailable: Claude Sonnet 4.5 (needs Anthropic API key)"
             Write-Host ""
-            $addAnthropic = Read-Host "Add Anthropic API key now for full model access? [y/N]"
-            if ($addAnthropic -match '^[Yy]$') {
+        }
+    }
+
+    # Use existing keys as defaults
+    $anthropicKey = $existingAnthropic
+    $zaiKey = $existingZai
+
+    # If one key exists, offer to add the missing one
+    if ($existingAnthropic -and -not $existingZai) {
+        $addZai = Read-Host "Add Z.AI API key for full model access? [y/N]"
+        if ($addZai -match '^[Yy]$') {
+            Write-Host ""
+            Write-ColorMessage "📝 Z.AI API Setup" "Cyan"
+            Write-Host "Get your API key from: https://z.ai"
+            Write-Host ""
+            $zaiKey = Read-Host "Enter your Z.AI API key"
+        }
+    } elseif (-not $existingAnthropic -and $existingZai) {
+        $addAnthropic = Read-Host "Add Anthropic API key for full model access? [y/N]"
+        if ($addAnthropic -match '^[Yy]$') {
+            Write-Host ""
+            Write-ColorMessage "📝 Anthropic API Setup" "Cyan"
+            Write-Host "Get your API key from: https://console.anthropic.com/"
+            Write-Host ""
+            $anthropicKey = Read-Host "Enter your Anthropic API key"
+        }
+    } else {
+        # No existing keys, show full menu
+        Write-Host "Which API provider(s) do you want to use?"
+        Write-Host ""
+        Write-ColorMessage "  1) " "Yellow" -NoNewline; Write-Host "Anthropic API only (Claude models)"
+        Write-ColorMessage "  2) " "Yellow" -NoNewline; Write-Host "Z.AI API only (GLM models)"
+        Write-ColorMessage "  3) " "Yellow" -NoNewline; Write-Host "Both APIs (full model access)"
+        Write-ColorMessage "  4) " "Yellow" -NoNewline; Write-Host "Skip (configure later)"
+        Write-Host ""
+
+        $apiChoice = Read-Host "Enter choice [1-4]"
+
+        switch ($apiChoice) {
+            "1" {
                 Write-Host ""
-                Write-ColorMessage "Get your API key from: " "Cyan" -NoNewline
-                Write-ColorMessage "https://console.anthropic.com/" "Blue"
+                Write-ColorMessage "📝 Anthropic API Setup" "Cyan"
+                Write-Host "Get your API key from: https://console.anthropic.com/"
+                Write-Host ""
                 $anthropicKey = Read-Host "Enter your Anthropic API key"
-                $hasAnthropicKey = $true
+            }
+            "2" {
+                Write-Host ""
+                Write-ColorMessage "📝 Z.AI API Setup" "Cyan"
+                Write-Host "Get your API key from: https://z.ai"
+                Write-Host ""
+                $zaiKey = Read-Host "Enter your Z.AI API key"
+            }
+            "3" {
+                Write-Host ""
+                Write-ColorMessage "📝 Anthropic API Setup" "Cyan"
+                Write-Host "Get your API key from: https://console.anthropic.com/"
+                Write-Host ""
+                $anthropicKey = Read-Host "Enter your Anthropic API key"
+                Write-Host ""
+                Write-ColorMessage "📝 Z.AI API Setup" "Cyan"
+                Write-Host "Get your API key from: https://z.ai"
+                Write-Host ""
+                $zaiKey = Read-Host "Enter your Z.AI API key"
+            }
+            "4" {
+                Write-Host ""
+                Write-Warning "Skipping API configuration"
+                Write-Host "You'll need to edit $INSTALL_DIR\.env before running Agent Girl"
+                return
+            }
+            default {
+                Write-Host ""
+                Write-Warning "Invalid choice. Skipping API configuration."
+                return
             }
         }
+    }
 
-        # Set defaults if not provided
-        if (-not $anthropicKey) { $anthropicKey = "sk-ant-your-key-here" }
-        if (-not $zaiKey) { $zaiKey = "your-zai-key-here" }
+    # Set defaults if not provided (preserve existing keys if set)
+    if (-not $anthropicKey) { $anthropicKey = "sk-ant-your-key-here" }
+    if (-not $zaiKey) { $zaiKey = "your-zai-key-here" }
 
-        $envContent = @"
+    # Create .env file
+    $envContent = @"
 # =============================================================================
 # Anthropic Configuration (Claude Models)
 # =============================================================================
@@ -553,11 +561,10 @@ ANTHROPIC_API_KEY=$anthropicKey
 ZAI_API_KEY=$zaiKey
 "@
 
-        $envContent | Out-File -FilePath "$INSTALL_DIR\.env" -Encoding UTF8 -Force
+    $envContent | Out-File -FilePath "$INSTALL_DIR\.env" -Encoding UTF8 -Force
 
-        Write-Host ""
-        Write-Success "API keys configured"
-    }
+    Write-Host ""
+    Write-Success "API keys configured"
 }
 
 # =============================================================================
