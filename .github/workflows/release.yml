@@ -353,9 +353,152 @@ jobs:
           path: release/agent-girl-windows-x64.zip
           retention-days: 7
 
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build client bundle
+        run: bun run build
+
+      - name: Setup release directory (source-based)
+        run: |
+          mkdir -p release/agent-girl-linux-x64
+          cp -r server release/agent-girl-linux-x64/
+          cp -r client release/agent-girl-linux-x64/
+          cp -r dist release/agent-girl-linux-x64/
+          cp package.json release/agent-girl-linux-x64/
+          cp build-css.ts release/agent-girl-linux-x64/
+          cp bun.lockb release/agent-girl-linux-x64/ 2>/dev/null || true
+          cp LICENSE release/agent-girl-linux-x64/
+          cp credits.mp3 release/agent-girl-linux-x64/ 2>/dev/null || true
+          cp tailwind.config.js release/agent-girl-linux-x64/ 2>/dev/null || true
+          cp postcss.config.mjs release/agent-girl-linux-x64/ 2>/dev/null || true
+          cp tsconfig.json release/agent-girl-linux-x64/ 2>/dev/null || true
+
+      - name: Install production dependencies
+        run: |
+          cd release/agent-girl-linux-x64
+          bun install --production
+
+      - name: Create launcher script
+        run: |
+          cat > release/agent-girl-linux-x64/agent-girl << 'EOF'
+          #!/bin/bash
+          set -e
+
+          # Get the directory where this script is located
+          SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+          cd "$SCRIPT_DIR"
+
+          # Check if bun is installed
+          if ! command -v bun &> /dev/null; then
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "  🔧 Installing Bun..."
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              curl -fsSL https://bun.sh/install | bash
+
+              # Add bun to PATH for this session
+              export PATH="$HOME/.bun/bin:$PATH"
+
+              echo
+              echo "✅ Bun installed successfully!"
+              echo
+          fi
+
+          # Start the server in production mode
+          echo "🚀 Starting Agent Girl..."
+          echo
+          export STANDALONE_BUILD=true
+          exec bun run server/server.ts
+          EOF
+          chmod +x release/agent-girl-linux-x64/agent-girl
+
+      - name: Create .env template
+        run: |
+          cat > release/agent-girl-linux-x64/.env << 'EOF'
+          # =============================================================================
+          # Anthropic Configuration (Claude Models)
+          # =============================================================================
+          # Get your API key from: https://console.anthropic.com/
+          ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+          # =============================================================================
+          # Z.AI Configuration (GLM Models)
+          # =============================================================================
+          # Get your API key from: https://z.ai
+          # The server automatically configures the endpoint when you select a GLM model
+          ZAI_API_KEY=your-zai-key-here
+          EOF
+
+      - name: Create README
+        run: |
+          cat > release/agent-girl-linux-x64/README.txt << 'EOF'
+          Agent Girl Application - Linux
+          ===============================
+
+          Setup (First Time):
+          1. Open the .env file in a text editor
+          2. Add your Anthropic API key (get from https://console.anthropic.com/)
+             Replace: ANTHROPIC_API_KEY=sk-ant-your-key-here
+             With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
+
+          To Run:
+          - Right-click 'agent-girl' → Properties → Permissions → Check "Allow executing file as program"
+          - Then double-click the 'agent-girl' file
+          - Or run from terminal: ./agent-girl
+          - The app will start at http://localhost:3001
+          - Your browser should open automatically
+
+          First Run:
+          - On first launch, Bun runtime will be auto-installed (takes ~5 seconds)
+          - Subsequent launches are instant
+
+          Data Storage:
+          - Sessions stored in ~/Documents/agent-girl/
+          - All your conversations are saved locally
+
+          Requirements:
+          - Linux (Ubuntu 20.04+, Debian 10+, Fedora, Arch, etc.)
+          - x64 architecture
+          - Anthropic API key (for Claude models)
+          - Internet connection (for first-time Bun install)
+
+          Troubleshooting:
+          - If port 3001 is busy, kill the process: lsof -ti:3001 | xargs kill -9
+          - If permission denied, run: chmod +x agent-girl
+          - Make sure .env file has your real API key
+          - On some distributions, you may need to install curl: sudo apt install curl
+
+          Enjoy!
+          EOF
+
+      - name: Create ZIP archive
+        run: |
+          cd release
+          zip -r agent-girl-linux-x64.zip agent-girl-linux-x64/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-girl-linux-x64
+          path: release/agent-girl-linux-x64.zip
+          retention-days: 7
+
   create-release:
     name: Create GitHub Release
-    needs: [build-macos, build-windows]
+    needs: [build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -390,5 +533,6 @@ jobs:
             artifacts/agent-girl-macos-arm64/agent-girl-macos-arm64.zip
             artifacts/agent-girl-macos-intel/agent-girl-macos-intel.zip
             artifacts/agent-girl-windows-x64/agent-girl-windows-x64.zip
+            artifacts/agent-girl-linux-x64/agent-girl-linux-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
