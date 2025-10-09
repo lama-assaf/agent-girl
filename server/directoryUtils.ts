@@ -18,9 +18,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import os from 'os';
-import path from 'path';
-import fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as fs from 'fs';
 
 /**
  * Get the default working directory for agent operations

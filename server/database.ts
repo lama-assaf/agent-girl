@@ -20,8 +20,8 @@
 
 import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
-import path from "path";
-import fs from "fs";
+import * as path from "path";
+import * as fs from "fs";
 import { getDefaultWorkingDirectory, expandPath, validateDirectory, getAppDataDirectory } from "./directoryUtils";
 import { deleteSessionPictures, deleteSessionFiles } from "./imageUtils";
 
