@@ -116,6 +116,48 @@ export const ErrorMessages = {
     description: 'Could not get AI response',
     code: 'E016',
   },
+
+  // API-Specific Errors
+  API_TIMEOUT: {
+    title: 'Request timed out',
+    description: 'The AI didn\'t respond in time. Try again or simplify your request.',
+    code: 'E017',
+  },
+  API_RATE_LIMIT: {
+    title: 'Rate limit exceeded',
+    description: 'You\'ve sent too many requests. Please wait a moment.',
+    code: 'E018',
+  },
+  API_OVERLOADED: {
+    title: 'Service overloaded',
+    description: 'Claude\'s servers are busy. Retrying automatically...',
+    code: 'E019',
+  },
+  API_AUTHENTICATION: {
+    title: 'Invalid API key',
+    description: 'Please check your API key configuration.',
+    code: 'E020',
+  },
+  API_PERMISSION: {
+    title: 'Permission denied',
+    description: 'Your API key cannot access this model.',
+    code: 'E021',
+  },
+  API_INVALID_REQUEST: {
+    title: 'Invalid request',
+    description: 'There\'s an issue with the request format.',
+    code: 'E022',
+  },
+  API_REQUEST_TOO_LARGE: {
+    title: 'Request too large',
+    description: 'Your message or attachments exceed 32 MB.',
+    code: 'E023',
+  },
+  API_NETWORK: {
+    title: 'Network error',
+    description: 'Connection failed. Check your internet.',
+    code: 'E024',
+  },
 };
 
 /**

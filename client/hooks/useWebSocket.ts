@@ -80,6 +80,35 @@ interface BackgroundProcessExitedEvent extends BaseWebSocketMessage {
   exitCode: number;
 }
 
+interface TimeoutWarningEvent extends BaseWebSocketMessage {
+  type: 'timeout_warning';
+  message: string;
+  elapsedSeconds: number;
+}
+
+interface RetryAttemptEvent extends BaseWebSocketMessage {
+  type: 'retry_attempt';
+  attempt: number;
+  maxAttempts: number;
+  delayMs: number;
+  errorType: string;
+  message: string;
+}
+
+interface TokenUpdateEvent extends BaseWebSocketMessage {
+  type: 'token_update';
+  outputTokens: number;
+}
+
+interface ThinkingStartEvent extends BaseWebSocketMessage {
+  type: 'thinking_start';
+}
+
+interface ThinkingDeltaEvent extends BaseWebSocketMessage {
+  type: 'thinking_delta';
+  content: string;
+}
+
 export type WebSocketMessage =
   | AssistantMessageEvent
   | ToolUseEvent
@@ -91,6 +120,11 @@ export type WebSocketMessage =
   | BackgroundProcessStartedEvent
   | BackgroundProcessKilledEvent
   | BackgroundProcessExitedEvent
+  | TimeoutWarningEvent
+  | RetryAttemptEvent
+  | TokenUpdateEvent
+  | ThinkingStartEvent
+  | ThinkingDeltaEvent
   | BaseWebSocketMessage; // Fallback for unknown types
 
 interface UseWebSocketOptions {

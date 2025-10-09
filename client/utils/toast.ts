@@ -53,4 +53,14 @@ export const toast = {
       ...options,
     });
   },
+
+  /**
+   * Warning toast with amber shimmer gradient
+   */
+  warning: (message: string, options?: { description?: string; duration?: number }) => {
+    return sonnerToast.warning(message, {
+      ...options,
+      className: 'toast-warning',
+    });
+  },
 };

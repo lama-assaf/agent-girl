@@ -124,6 +124,31 @@
     opacity: 0.9 !important;
   }
 
+  /* Warning toast - amber shimmer gradient */
+  .toast-warning {
+    background: linear-gradient(
+      90deg,
+      #F59E0B 0%,
+      #FCD34D 25%,
+      #FEF3C7 50%,
+      #FCD34D 75%,
+      #F59E0B 100%
+    ) !important;
+    background-size: 200% auto !important;
+    animation: shimmer 3s linear infinite !important;
+    border: none !important;
+  }
+
+  .toast-warning [data-title],
+  .toast-warning [data-description],
+  .toast-warning [data-content] {
+    color: #000000 !important;
+  }
+
+  .toast-warning [data-description] {
+    opacity: 0.8 !important;
+  }
+
   /* Scrollbar Styling */
   ::-webkit-scrollbar {
     width: 0px;

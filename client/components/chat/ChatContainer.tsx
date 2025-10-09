@@ -371,6 +371,59 @@ export function ChatContainer() {
             },
           ];
         });
+      } else if (message.type === 'thinking_start') {
+        console.log('💭 Thinking block started');
+        // Create a new thinking block when thinking starts
+        setMessages((prev) => {
+          const lastMessage = prev[prev.length - 1];
+
+          if (lastMessage && lastMessage.type === 'assistant') {
+            const content = Array.isArray(lastMessage.content) ? lastMessage.content : [];
+            const updatedMessage = {
+              ...lastMessage,
+              content: [...content, { type: 'thinking' as const, thinking: '' }]
+            };
+            return [...prev.slice(0, -1), updatedMessage];
+          }
+
+          // Create new assistant message with thinking block
+          return [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              type: 'assistant' as const,
+              content: [{ type: 'thinking' as const, thinking: '' }],
+              timestamp: new Date().toISOString(),
+            },
+          ];
+        });
+      } else if (message.type === 'thinking_delta' && 'content' in message) {
+        const thinkingContent = message.content as string;
+        console.log('💭 Thinking delta:', thinkingContent.slice(0, 50) + (thinkingContent.length > 50 ? '...' : ''));
+
+        setMessages((prev) => {
+          const lastMessage = prev[prev.length - 1];
+
+          if (lastMessage && lastMessage.type === 'assistant') {
+            const content = Array.isArray(lastMessage.content) ? lastMessage.content : [];
+            const lastBlock = content[content.length - 1];
+
+            // If last block is thinking, append to it
+            if (lastBlock && lastBlock.type === 'thinking') {
+              const updatedContent = [
+                ...content.slice(0, -1),
+                { type: 'thinking' as const, thinking: lastBlock.thinking + thinkingContent }
+              ];
+              const updatedMessage = {
+                ...lastMessage,
+                content: updatedContent
+              };
+              return [...prev.slice(0, -1), updatedMessage];
+            }
+          }
+
+          return prev; // No update if not in a thinking block
+        });
       } else if (message.type === 'tool_use' && 'toolId' in message && 'toolName' in message && 'toolInput' in message) {
         // Handle tool use messages
         const toolUseMsg = message as { type: 'tool_use'; toolId: string; toolName: string; toolInput: Record<string, unknown> };
@@ -468,20 +521,59 @@ export function ChatContainer() {
           // Clear live token count when response completes
           setLiveTokenCount(0);
         }
+      } else if (message.type === 'timeout_warning') {
+        // Handle timeout warning (60s elapsed)
+        const warningMsg = message as { type: 'timeout_warning'; message: string; elapsedSeconds: number };
+        toast.warning('Still thinking...', {
+          description: warningMsg.message || 'The AI is taking longer than usual',
+          duration: 5000,
+        });
+      } else if (message.type === 'retry_attempt') {
+        // Handle retry attempt notification
+        const retryMsg = message as { type: 'retry_attempt'; attempt: number; maxAttempts: number; message: string; errorType: string };
+        toast.info(`Retrying (${retryMsg.attempt}/${retryMsg.maxAttempts})`, {
+          description: retryMsg.message || `Attempting to recover from ${retryMsg.errorType}...`,
+          duration: 3000,
+        });
       } else if (message.type === 'error') {
         // Handle error messages from server
         if (currentSessionId) setSessionLoading(currentSessionId, false);
         // Clear live token count on error
         setLiveTokenCount(0);
+
+        // Get error type and message
+        const errorType = 'errorType' in message ? (message.errorType as string) : undefined;
         const errorMsg = 'message' in message ? message.message : ('error' in message ? message.error : undefined);
         const errorMessage = errorMsg || 'An error occurred';
 
-        // Show toast notification
-        toast.error('Error', {
-          description: errorMessage
-        });
+        // Map error type to user-friendly error code
+        const errorCodeMap: Record<string, string> = {
+          'timeout_error': 'API_TIMEOUT',
+          'rate_limit_error': 'API_RATE_LIMIT',
+          'overloaded_error': 'API_OVERLOADED',
+          'authentication_error': 'API_AUTHENTICATION',
+          'permission_error': 'API_PERMISSION',
+          'invalid_request_error': 'API_INVALID_REQUEST',
+          'request_too_large': 'API_REQUEST_TOO_LARGE',
+          'network_error': 'API_NETWORK',
+        };
+
+        // Show appropriate toast notification
+        if (errorType && errorCodeMap[errorType]) {
+          const errorCode = errorCodeMap[errorType] as keyof typeof import('../../utils/errorMessages').ErrorMessages;
+          showError(errorCode, errorMessage);
+        } else {
+          toast.error('Error', {
+            description: errorMessage
+          });
+        }
 
         // Display error as assistant message
+        const errorIcon = errorType === 'timeout_error' ? '⏱️' :
+                         errorType === 'rate_limit_error' ? '🚦' :
+                         errorType === 'authentication_error' ? '🔑' :
+                         errorType === 'network_error' ? '🌐' : '❌';
+
         setMessages((prev) => [
           ...prev,
           {
@@ -489,7 +581,7 @@ export function ChatContainer() {
             type: 'assistant' as const,
             content: [{
               type: 'text' as const,
-              text: `❌ Error: ${errorMessage}`
+              text: `${errorIcon} Error: ${errorMessage}`
             }],
             timestamp: new Date().toISOString(),
           },

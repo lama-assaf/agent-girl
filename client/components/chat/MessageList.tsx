@@ -18,10 +18,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { MessageRenderer } from '../message/MessageRenderer';
-import { Zap } from 'lucide-react';
+import { Zap, Clock } from 'lucide-react';
 import type { Message } from '../message/types';
 
 interface MessageListProps {
@@ -33,6 +33,32 @@ interface MessageListProps {
 export function MessageList({ messages, isLoading, liveTokenCount = 0 }: MessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Elapsed time tracking
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const startTimeRef = useRef<number | null>(null);
+
+  // Track elapsed time when loading
+  useEffect(() => {
+    if (isLoading) {
+      // Start timer
+      startTimeRef.current = Date.now();
+      setElapsedSeconds(0);
+
+      const interval = setInterval(() => {
+        if (startTimeRef.current) {
+          const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+          setElapsedSeconds(elapsed);
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      // Reset timer when loading stops
+      startTimeRef.current = null;
+      setElapsedSeconds(0);
+    }
+  }, [isLoading]);
 
   // Virtual scrolling setup
   const virtualizer = useVirtualizer({
@@ -102,6 +128,52 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0 }: Message
                     <div className="loading-dot" />
                     <div className="loading-dot" />
                   </div>
+
+                  {/* Elapsed time indicator - changes to amber after 60s */}
+                  {elapsedSeconds > 0 && (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        padding: '0.375rem 0.625rem',
+                        background: elapsedSeconds >= 60
+                          ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)'
+                          : 'linear-gradient(135deg, rgba(218, 238, 255, 0.1) 0%, rgba(218, 238, 255, 0.05) 100%)',
+                        border: elapsedSeconds >= 60
+                          ? '1px solid rgba(245, 158, 11, 0.25)'
+                          : '1px solid rgba(218, 238, 255, 0.15)',
+                        borderRadius: '12px',
+                        backdropFilter: 'blur(8px)',
+                        boxShadow: elapsedSeconds >= 60
+                          ? '0 0 0 1px rgba(245, 158, 11, 0.15), 0 2px 8px rgba(245, 158, 11, 0.12)'
+                          : '0 0 0 1px rgba(218, 238, 255, 0.1), 0 2px 8px rgba(218, 238, 255, 0.08)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    >
+                      <Clock
+                        size={12}
+                        strokeWidth={2.5}
+                        style={{
+                          color: elapsedSeconds >= 60 ? 'rgb(245, 158, 11)' : 'rgb(218, 238, 255)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          color: elapsedSeconds >= 60 ? 'rgb(245, 158, 11)' : 'rgb(218, 238, 255)',
+                          fontVariantNumeric: 'tabular-nums',
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        {elapsedSeconds}s
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Token count indicator */}
                   {liveTokenCount > 0 && (
                     <div
                       style={{

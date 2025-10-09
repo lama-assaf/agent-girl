@@ -16,6 +16,8 @@ import { validateDirectory } from "../directoryUtils";
 import { saveImageToSessionPictures, saveFileToSessionFiles } from "../imageUtils";
 import { backgroundProcessManager } from "../backgroundProcessManager";
 import { loadUserConfig } from "../userConfig";
+import { parseApiError, getUserFriendlyMessage } from "../utils/apiErrors";
+import { TimeoutController } from "../utils/timeout";
 
 interface ChatWebSocketData {
   type: 'hot-reload' | 'chat';
@@ -222,8 +224,6 @@ async function handleChatMessage(
   console.log(`🔹 Allowed MCP Tools: ${allowedMcpTools.length > 0 ? allowedMcpTools.join(', ') : 'None'}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-  let assistantResponse = '';
-
   // Log working directory info
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('📂 Working Directory & Mode Info');
@@ -278,7 +278,17 @@ Run bash commands with the understanding that this is your current working direc
       includePartialMessages: true,
       agents: agentsWithWorkingDir, // Register custom agents with working dir context
       cwd: workingDir, // Set working directory for all tool executions
+      executable: 'bun', // Explicitly specify bun as the runtime for SDK subprocess
+      // TODO: Re-enable once SDK/API issue is resolved
+      // maxThinkingTokens: 10000, // Enable extended thinking with 10k token budget
+
+      // Capture stderr from SDK's bundled CLI for debugging
+      stderr: (data: string) => {
+        console.error('🔴 SDK CLI stderr:', data.trim());
+      },
     };
+
+    // console.log('🧠 Extended thinking enabled with maxThinkingTokens:', queryOptions.maxThinkingTokens);
 
     // SDK automatically uses its bundled CLI at @anthropic-ai/claude-agent-sdk/cli.js
     // No need to specify pathToClaudeCodeExecutable - the SDK handles this internally
@@ -367,30 +377,81 @@ Run bash commands with the understanding that this is your current working direc
       }],
     };
 
-    // Query using the SDK (env vars already configured)
-    const result = query({
-      prompt,
-      options: queryOptions
+    // Create timeout controller
+    const timeoutController = new TimeoutController({
+      timeoutMs: 120000, // 2 minutes
+      warningMs: 60000,  // 1 minute
+      onWarning: () => {
+        // Send warning notification to client
+        ws.send(JSON.stringify({
+          type: 'timeout_warning',
+          message: 'AI is taking longer than usual...',
+          elapsedSeconds: 60,
+          sessionId: sessionId,
+        }));
+      },
+      onTimeout: () => {
+        console.log('⏱️ Request timeout reached (120s)');
+      },
     });
 
-    // Store query instance for mid-stream control
-    activeQueries.set(sessionId as string, result);
+    // Retry configuration
+    const MAX_RETRIES = 3;
+    const INITIAL_DELAY_MS = 2000;
+    const BACKOFF_MULTIPLIER = 2;
 
-    console.log(`✅ Query initialized successfully`);
+    let attemptNumber = 0;
+    let _lastError: unknown = null;
 
-    // Track full message content structure for saving to database
-    const fullMessageContent: unknown[] = [];
-    let waitingForPlanApproval = false;
-    let totalCharCount = 0; // Count ALL characters (text + tool inputs)
+    // Retry loop
+    while (attemptNumber < MAX_RETRIES) {
+      attemptNumber++;
 
-    // Stream the response - query() is an AsyncGenerator
-    for await (const message of result) {
-      if (message.type === 'stream_event') {
+      try {
+        console.log(`🔄 Query attempt ${attemptNumber}/${MAX_RETRIES}`);
+
+        // Query using the SDK (env vars already configured)
+        const result = query({
+          prompt,
+          options: queryOptions
+        });
+
+        // Store query instance for mid-stream control
+        activeQueries.set(sessionId as string, result);
+
+        console.log(`✅ Query initialized successfully`);
+
+        // Track full message content structure for saving to database
+        const fullMessageContent: unknown[] = [];
+        let waitingForPlanApproval = false;
+        let totalCharCount = 0; // Count ALL characters (text + tool inputs)
+        let assistantResponse = ''; // Track text response
+
+        // Stream the response - query() is an AsyncGenerator
+        for await (const message of result) {
+          // Check timeout on each message
+          timeoutController.checkTimeout();
+
+          if (message.type === 'stream_event') {
         // Handle streaming events for real-time updates
         const event = message.event;
 
-        if (event.type === 'content_block_delta') {
-          // Count all delta types: text_delta and input_json_delta
+        if (event.type === 'content_block_start') {
+          // Log when new content blocks start (text, tool_use, thinking, etc.)
+          console.log('🆕 Content block started:', {
+            index: event.index,
+            type: event.content_block?.type,
+          });
+
+          // Send thinking block start notification to client
+          if (event.content_block?.type === 'thinking') {
+            ws.send(JSON.stringify({
+              type: 'thinking_start',
+              sessionId: sessionId,
+            }));
+          }
+        } else if (event.type === 'content_block_delta') {
+          // Count all delta types: text_delta, input_json_delta, thinking_delta
           let deltaChars = 0;
 
           if (event.delta?.type === 'text_delta') {
@@ -407,6 +468,21 @@ Run bash commands with the understanding that this is your current working direc
             // Tool input being generated (like Write tool file content)
             const jsonDelta = event.delta.partial_json || '';
             deltaChars = jsonDelta.length;
+          } else if (event.delta?.type === 'thinking_delta') {
+            // Claude's internal reasoning/thinking
+            const thinkingText = event.delta.thinking || '';
+            deltaChars = thinkingText.length;
+
+            console.log('💭 Thinking delta:', thinkingText.slice(0, 50) + (thinkingText.length > 50 ? '...' : ''));
+
+            ws.send(JSON.stringify({
+              type: 'thinking_delta',
+              content: thinkingText,
+              sessionId: sessionId,
+            }));
+          } else {
+            // Log unknown delta types for debugging
+            console.log('⚠️ Unknown delta type:', event.delta?.type);
           }
 
           // Update total character count and estimate tokens (~4 chars/token)
@@ -433,6 +509,20 @@ Run bash commands with the understanding that this is your current working direc
         // Capture full message content structure for database storage
         const content = message.message.content;
         if (Array.isArray(content)) {
+          // Log all content block types received
+          const blockTypes = content.map((b: Record<string, unknown>) => b.type).join(', ');
+          console.log('📦 Content blocks in message:', blockTypes);
+
+          // Log thinking blocks if present
+          const thinkingBlocks = content.filter((b: Record<string, unknown>) => b.type === 'thinking');
+          if (thinkingBlocks.length > 0) {
+            console.log('💭 Thinking blocks found:', thinkingBlocks.length);
+            thinkingBlocks.forEach((tb: Record<string, unknown>, idx: number) => {
+              const thinkingText = (tb.thinking as string) || '';
+              console.log(`💭 Thinking block ${idx + 1}:`, thinkingText.slice(0, 100) + (thinkingText.length > 100 ? '...' : ''));
+            });
+          }
+
           // Append blocks instead of replacing (SDK may send multiple assistant messages)
           fullMessageContent.push(...content);
 
@@ -509,14 +599,101 @@ Run bash commands with the understanding that this is your current working direc
       console.log(`⏸️ Query kept alive - ${reasons.join(', ')}`);
     }
 
-    // Send completion signal
-    ws.send(JSON.stringify({ type: 'result', success: true }));
+        // Send completion signal
+        ws.send(JSON.stringify({ type: 'result', success: true, sessionId: sessionId }));
+
+        // Clean up timeout controller
+        timeoutController.cancel();
+
+        // Success! Break out of retry loop
+        break;
+
+      } catch (error) {
+        _lastError = error;
+        console.error(`❌ Query attempt ${attemptNumber}/${MAX_RETRIES} failed:`, error);
+
+        // Parse error
+        const parsedError = parseApiError(error);
+        console.log('📊 Parsed error:', {
+          type: parsedError.type,
+          message: parsedError.message,
+          isRetryable: parsedError.isRetryable,
+          requestId: parsedError.requestId,
+        });
+
+        // Check if error is retryable
+        if (!parsedError.isRetryable) {
+          console.error('❌ Non-retryable error, aborting:', parsedError.type);
+
+          // Send error to client with specific error type
+          ws.send(JSON.stringify({
+            type: 'error',
+            errorType: parsedError.type,
+            message: getUserFriendlyMessage(parsedError),
+            requestId: parsedError.requestId,
+            sessionId: sessionId,
+          }));
+
+          // Clean up
+          timeoutController.cancel();
+          break; // Don't retry
+        }
+
+        // Check if we've exhausted retries
+        if (attemptNumber >= MAX_RETRIES) {
+          console.error('❌ Max retries reached, giving up');
+
+          // Send final error to client
+          ws.send(JSON.stringify({
+            type: 'error',
+            errorType: parsedError.type,
+            message: getUserFriendlyMessage(parsedError),
+            requestId: parsedError.requestId,
+            sessionId: sessionId,
+          }));
+
+          // Clean up
+          timeoutController.cancel();
+          break;
+        }
+
+        // Calculate retry delay
+        let delayMs = INITIAL_DELAY_MS * Math.pow(BACKOFF_MULTIPLIER, attemptNumber - 1);
+
+        // Respect rate limit retry-after
+        if (parsedError.type === 'rate_limit_error' && parsedError.retryAfterSeconds) {
+          delayMs = parsedError.retryAfterSeconds * 1000;
+        }
+
+        // Cap at 16 seconds
+        delayMs = Math.min(delayMs, 16000);
+
+        // Notify client of retry
+        ws.send(JSON.stringify({
+          type: 'retry_attempt',
+          attempt: attemptNumber,
+          maxAttempts: MAX_RETRIES,
+          delayMs: delayMs,
+          errorType: parsedError.type,
+          message: `Retrying... (attempt ${attemptNumber}/${MAX_RETRIES})`,
+          sessionId: sessionId,
+        }));
+
+        // Wait before retrying
+        console.log(`⏳ Waiting ${delayMs}ms before retry ${attemptNumber + 1}...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
 
   } catch (error) {
-    console.error('Claude SDK error:', error);
+    // This catch is for errors outside the retry loop (e.g., session validation)
+    console.error('WebSocket handler error:', error);
+    const parsedError = parseApiError(error);
     ws.send(JSON.stringify({
       type: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      errorType: parsedError.type,
+      message: getUserFriendlyMessage(parsedError),
+      sessionId: sessionId,
     }));
   }
 }

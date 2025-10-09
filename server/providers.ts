@@ -26,22 +26,26 @@ export interface ProviderConfig {
   name: string;
 }
 
+// Store original API keys on first load to prevent pollution from configureProvider()
+const ORIGINAL_ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
+const ORIGINAL_ZAI_KEY = process.env.ZAI_API_KEY || '';
+
 /**
  * Provider configurations
  * Maps provider types to their API configurations
- * This is a getter function to ensure API keys are read from process.env at runtime,
- * not at module initialization time (which happens before .env is loaded in standalone mode)
+ * IMPORTANT: Uses ORIGINAL keys stored at module load time, not process.env,
+ * because configureProvider() modifies process.env.ANTHROPIC_API_KEY
  */
 export function getProviders(): Record<ProviderType, ProviderConfig> {
   return {
     'anthropic': {
       // No baseUrl = uses default Anthropic endpoint (https://api.anthropic.com)
-      apiKey: process.env.ANTHROPIC_API_KEY || '',
+      apiKey: ORIGINAL_ANTHROPIC_KEY,
       name: 'Anthropic',
     },
     'z-ai': {
       baseUrl: 'https://api.z.ai/api/anthropic',
-      apiKey: process.env.ZAI_API_KEY || '',
+      apiKey: ORIGINAL_ZAI_KEY,
       name: 'Z.AI',
     },
   };
