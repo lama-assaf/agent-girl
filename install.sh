@@ -539,6 +539,42 @@ configure_api_keys() {
 
   # Update .env with actual keys
   if [[ -n "$ANTHROPIC_KEY" ]] || [[ -n "$ZAI_KEY" ]]; then
+    # Check if only one key was provided
+    local has_anthropic_key=false
+    local has_zai_key=false
+
+    [[ -n "$ANTHROPIC_KEY" && "$ANTHROPIC_KEY" != "sk-ant-your-key-here" ]] && has_anthropic_key=true
+    [[ -n "$ZAI_KEY" && "$ZAI_KEY" != "your-zai-key-here" ]] && has_zai_key=true
+
+    # Notify if only one key is configured
+    if [[ "$has_anthropic_key" == "true" && "$has_zai_key" == "false" ]]; then
+      echo ""
+      log_info "You've configured Anthropic API only"
+      echo -e "  ${GREEN}✓${NC} Available: Claude Sonnet 4.5"
+      echo -e "  ${YELLOW}✗${NC} Unavailable: GLM 4.6 (needs Z.AI API key)"
+      echo ""
+      read -p "Add Z.AI API key now for full model access? [y/N]: " add_zai < /dev/tty
+      if [[ "$add_zai" =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${BLUE}Get your API key from: ${CYAN}https://z.ai${NC}"
+        read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
+        has_zai_key=true
+      fi
+    elif [[ "$has_anthropic_key" == "false" && "$has_zai_key" == "true" ]]; then
+      echo ""
+      log_info "You've configured Z.AI API only"
+      echo -e "  ${GREEN}✓${NC} Available: GLM 4.6"
+      echo -e "  ${YELLOW}✗${NC} Unavailable: Claude Sonnet 4.5 (needs Anthropic API key)"
+      echo ""
+      read -p "Add Anthropic API key now for full model access? [y/N]: " add_anthropic < /dev/tty
+      if [[ "$add_anthropic" =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${BLUE}Get your API key from: ${CYAN}https://console.anthropic.com/${NC}"
+        read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
+        has_anthropic_key=true
+      fi
+    fi
+
     # Set defaults if not provided
     [[ -z "$ANTHROPIC_KEY" ]] && ANTHROPIC_KEY="sk-ant-your-key-here"
     [[ -z "$ZAI_KEY" ]] && ZAI_KEY="your-zai-key-here"

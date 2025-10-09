@@ -493,6 +493,42 @@ function Set-ApiConfiguration {
 
     # Create .env file if keys were provided
     if ($anthropicKey -or $zaiKey) {
+        # Check if only one key was provided
+        $hasAnthropicKey = $anthropicKey -and $anthropicKey -ne "sk-ant-your-key-here"
+        $hasZaiKey = $zaiKey -and $zaiKey -ne "your-zai-key-here"
+
+        # Notify if only one key is configured
+        if ($hasAnthropicKey -and -not $hasZaiKey) {
+            Write-Host ""
+            Write-Info "You've configured Anthropic API only"
+            Write-ColorMessage "  ✓ " "Green" -NoNewline; Write-Host "Available: Claude Sonnet 4.5"
+            Write-ColorMessage "  ✗ " "Yellow" -NoNewline; Write-Host "Unavailable: GLM 4.6 (needs Z.AI API key)"
+            Write-Host ""
+            $addZai = Read-Host "Add Z.AI API key now for full model access? [y/N]"
+            if ($addZai -match '^[Yy]$') {
+                Write-Host ""
+                Write-ColorMessage "Get your API key from: " "Cyan" -NoNewline
+                Write-ColorMessage "https://z.ai" "Blue"
+                $zaiKey = Read-Host "Enter your Z.AI API key"
+                $hasZaiKey = $true
+            }
+        } elseif (-not $hasAnthropicKey -and $hasZaiKey) {
+            Write-Host ""
+            Write-Info "You've configured Z.AI API only"
+            Write-ColorMessage "  ✓ " "Green" -NoNewline; Write-Host "Available: GLM 4.6"
+            Write-ColorMessage "  ✗ " "Yellow" -NoNewline; Write-Host "Unavailable: Claude Sonnet 4.5 (needs Anthropic API key)"
+            Write-Host ""
+            $addAnthropic = Read-Host "Add Anthropic API key now for full model access? [y/N]"
+            if ($addAnthropic -match '^[Yy]$') {
+                Write-Host ""
+                Write-ColorMessage "Get your API key from: " "Cyan" -NoNewline
+                Write-ColorMessage "https://console.anthropic.com/" "Blue"
+                $anthropicKey = Read-Host "Enter your Anthropic API key"
+                $hasAnthropicKey = $true
+            }
+        }
+
+        # Set defaults if not provided
         if (-not $anthropicKey) { $anthropicKey = "sk-ant-your-key-here" }
         if (-not $zaiKey) { $zaiKey = "your-zai-key-here" }
 
