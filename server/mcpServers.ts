@@ -37,14 +37,23 @@ type McpServerConfig = McpHttpServerConfig | McpStdioServerConfig;
 
 /**
  * MCP servers configuration for different providers
- * GLM models have access to Z.AI-specific MCP servers
- * Claude models don't use any MCP servers (use built-in tools instead)
+ * - Shared MCP servers (grep.app): Available to all providers
+ * - Provider-specific MCP servers: Z.AI has additional web-search and media analysis tools
  */
 export const MCP_SERVERS_BY_PROVIDER: Record<ProviderType, Record<string, McpServerConfig>> = {
   'anthropic': {
-    // Claude models don't use MCP servers - they use built-in tools
+    // Grep.app MCP - code search across public GitHub repositories
+    'grep': {
+      type: 'http',
+      url: 'https://mcp.grep.app',
+    },
   },
   'z-ai': {
+    // Grep.app MCP - code search across public GitHub repositories
+    'grep': {
+      type: 'http',
+      url: 'https://mcp.grep.app',
+    },
     // GLM models use Z.AI MCP servers
     'web-search-prime': {
       type: 'http',
@@ -76,12 +85,25 @@ export function getMcpServers(provider: ProviderType): Record<string, McpServerC
  * Get allowed tools for a provider's MCP servers
  */
 export function getAllowedMcpTools(provider: ProviderType): string[] {
+  // Grep.app MCP tools - available to all providers
+  const grepTools = [
+    'mcp__grep__searchGitHub',
+  ];
+
+  if (provider === 'anthropic') {
+    return [
+      ...grepTools,
+    ];
+  }
+
   if (provider === 'z-ai') {
     return [
+      ...grepTools,
       'mcp__web-search-prime__search',
       'mcp__zai-mcp-server__image_analysis',
       'mcp__zai-mcp-server__video_analysis',
     ];
   }
+
   return [];
 }

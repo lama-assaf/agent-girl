@@ -56,63 +56,58 @@ export function CodeBlockWithCopy({ code, language, customStyle, wrapperClassNam
   const codeStyle: { [key: string]: React.CSSProperties } = vscDarkPlus as unknown as { [key: string]: React.CSSProperties };
 
   return (
-    <div className={`relative my-2 flex flex-col rounded-lg ${wrapperClassName || ''}`} dir="ltr">
-      {/* Language label */}
-      <div className="absolute py-1.5 pl-4 text-xs font-medium text-white" style={{ zIndex: 20 }}>
-        {language}
-      </div>
-
-      {/* Toolbar buttons - positioned on top of title bar */}
-      <div className="sticky flex items-center justify-end text-xs text-white" style={{ top: '2rem', zIndex: 11, height: '2rem', paddingTop: '0.25rem', paddingBottom: '0.25rem', paddingRight: '0.75rem' }}>
-        <div className="flex items-center gap-0.5">
-          {/* Copy button */}
-          <button
-            onClick={handleCopy}
-            className="px-1.5 py-0.5 rounded-md border-none transition copy-code-button"
-            style={buttonStyle('copy')}
-            onMouseEnter={() => setHoveredButton('copy')}
-            onMouseLeave={() => setHoveredButton(null)}
-            aria-label={copied ? "Copied!" : "Copy code"}
-            title={copied ? "Copied!" : "Copy code"}
+    <div className={`flex flex-col bg-[#0C0E10] border border-white/10 rounded-xl overflow-hidden my-3 ${wrapperClassName || ''}`} dir="ltr">
+      {/* Title bar - matching tool display style */}
+      <div className="flex justify-between items-center px-4 py-2 w-full text-xs border-b border-white/10">
+        {/* Left side: icon + language label */}
+        <div className="flex gap-2 items-center">
+          {/* Code icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="size-4 text-white/80"
           >
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+          </svg>
+          <div className="text-sm font-medium leading-6 text-white">{language}</div>
         </div>
-      </div>
 
-      {/* Code block */}
-      <div style={{ marginTop: '-2rem', borderRadius: '0.5rem', overflow: 'hidden' }}>
-        {/* Title bar background */}
-        <div style={{
-          height: '2rem',
-          paddingLeft: '0.5rem',
-          paddingRight: '0.5rem',
-          backgroundColor: '#0C0E10', // Always use dark mode
-          borderTopLeftRadius: '0.5rem',
-          borderTopRightRadius: '0.5rem',
-          marginBottom: 0,
-        }}></div>
-
-        {/* Code content */}
-        <SyntaxHighlighter
-          style={codeStyle}
-          language={language || 'text'}
-          PreTag="div"
-          customStyle={{
-            ...customStyle,
-            margin: 0,
-            marginTop: 0,
-            paddingTop: '1rem',
-            borderRadius: '0 0 0.5rem 0.5rem',
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
-            borderBottomLeftRadius: '0.5rem',
-            borderBottomRightRadius: '0.5rem',
-          }}
+        {/* Right side: copy button */}
+        <button
+          onClick={handleCopy}
+          className="px-1.5 py-0.5 rounded-md border-none transition copy-code-button text-xs"
+          style={buttonStyle('copy')}
+          onMouseEnter={() => setHoveredButton('copy')}
+          onMouseLeave={() => setHoveredButton(null)}
+          aria-label={copied ? "Copied!" : "Copy code"}
+          title={copied ? "Copied!" : "Copy code"}
         >
-          {code}
-        </SyntaxHighlighter>
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
       </div>
+
+      {/* Code content */}
+      <SyntaxHighlighter
+        style={codeStyle}
+        language={language || 'text'}
+        PreTag="div"
+        customStyle={{
+          ...customStyle,
+          margin: 0,
+          marginTop: 0,
+          paddingTop: '1rem',
+          borderRadius: 0,
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+          borderBottomLeftRadius: '0.5rem',
+          borderBottomRightRadius: '0.5rem',
+        }}
+      >
+        {code}
+      </SyntaxHighlighter>
     </div>
   );
 }
