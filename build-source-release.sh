@@ -37,6 +37,7 @@ cp -r dist release/agent-girl-$PLATFORM/
 cp package.json release/agent-girl-$PLATFORM/
 cp bun.lockb release/agent-girl-$PLATFORM/ 2>/dev/null || true
 cp LICENSE release/agent-girl-$PLATFORM/
+cp credits.mp3 release/agent-girl-$PLATFORM/ 2>/dev/null || true
 cp tailwind.config.js release/agent-girl-$PLATFORM/ 2>/dev/null || true
 cp postcss.config.mjs release/agent-girl-$PLATFORM/ 2>/dev/null || true
 cp tsconfig.json release/agent-girl-$PLATFORM/ 2>/dev/null || true

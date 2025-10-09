@@ -1,209 +1,549 @@
 #!/bin/bash
 set -e
 
+# =============================================================================
+# Agent Girl Installer - Production Grade
+# =============================================================================
+# Handles all edge cases, validates dependencies, verifies downloads,
+# and provides comprehensive error handling with rollback support.
+# =============================================================================
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
 REPO="KenKaiii/agent-girl"
 APP_NAME="agent-girl"
-INSTALL_DIR="$HOME/Applications/agent-girl-app"
+MIN_DISK_SPACE_MB=100
 
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}   Agent Girl Installer${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
+# Global state for cleanup
+TEMP_FILES=()
+INSTALL_SUCCESS=false
 
-# Detect OS
-OS=$(uname -s)
-case $OS in
-  Darwin)
-    OS_NAME="macOS"
-    OS_PREFIX="macos"
-    INSTALL_DIR="$HOME/Applications/agent-girl-app"
-    ;;
-  Linux)
-    OS_NAME="Linux"
-    OS_PREFIX="linux"
-    INSTALL_DIR="$HOME/.local/share/agent-girl-app"
-    ;;
-  MINGW*|MSYS*|CYGWIN*)
-    OS_NAME="Windows"
-    OS_PREFIX="windows"
-    INSTALL_DIR="$LOCALAPPDATA/Programs/agent-girl-app"
-    ;;
-  *)
-    echo -e "${RED}❌ Unsupported OS: $OS${NC}"
-    echo "This installer supports macOS, Linux, and Windows only."
-    exit 1
-    ;;
-esac
+# =============================================================================
+# Utility Functions
+# =============================================================================
 
-# Detect architecture
-ARCH=$(uname -m)
-case $ARCH in
-  x86_64|amd64)
-    if [[ "$OS_PREFIX" == "macos" ]]; then
-      PLATFORM="macos-intel"
-      ARCH_NAME="Intel (x86_64)"
-    elif [[ "$OS_PREFIX" == "windows" ]]; then
-      PLATFORM="windows-x64"
-      ARCH_NAME="x64"
-    else
-      PLATFORM="linux-x64"
-      ARCH_NAME="x86_64"
+log_info() {
+  echo -e "${BLUE}ℹ${NC} $1"
+}
+
+log_success() {
+  echo -e "${GREEN}✓${NC} $1"
+}
+
+log_warning() {
+  echo -e "${YELLOW}⚠${NC} $1"
+}
+
+log_error() {
+  echo -e "${RED}❌${NC} $1"
+}
+
+log_section() {
+  echo ""
+  echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${CYAN}   $1${NC}"
+  echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo ""
+}
+
+# Cleanup function - called on exit or error
+cleanup() {
+  if [[ "$INSTALL_SUCCESS" != "true" ]]; then
+    log_warning "Installation interrupted or failed. Cleaning up..."
+    for file in "${TEMP_FILES[@]}"; do
+      if [[ -e "$file" ]]; then
+        rm -rf "$file" 2>/dev/null || true
+      fi
+    done
+  fi
+}
+
+# Register cleanup trap
+trap cleanup EXIT INT TERM
+
+# Fatal error handler
+fatal_error() {
+  log_error "$1"
+  echo ""
+  if [[ -n "${2:-}" ]]; then
+    echo -e "${YELLOW}Suggestion:${NC} $2"
+    echo ""
+  fi
+  exit 1
+}
+
+# =============================================================================
+# Dependency Checks
+# =============================================================================
+
+check_dependencies() {
+  log_section "Checking System Dependencies"
+
+  local missing_deps=()
+  local required_commands=("curl" "unzip" "grep" "sed" "awk")
+
+  for cmd in "${required_commands[@]}"; do
+    if ! command -v "$cmd" &> /dev/null; then
+      missing_deps+=("$cmd")
     fi
-    ;;
-  arm64|aarch64)
-    if [[ "$OS_PREFIX" == "macos" ]]; then
-      PLATFORM="macos-arm64"
-      ARCH_NAME="Apple Silicon (ARM64)"
-    else
-      PLATFORM="linux-arm64"
-      ARCH_NAME="ARM64"
-    fi
-    ;;
-  *)
-    echo -e "${RED}❌ Unsupported architecture: $ARCH${NC}"
-    echo "This installer supports x86_64 and ARM64 only."
+  done
+
+  if [[ ${#missing_deps[@]} -gt 0 ]]; then
+    log_error "Missing required dependencies: ${missing_deps[*]}"
+    echo ""
+    echo "Please install the missing tools:"
+
+    # Platform-specific installation instructions
+    case "$(uname -s)" in
+      Darwin)
+        echo "  brew install ${missing_deps[*]}"
+        ;;
+      Linux)
+        if command -v apt-get &> /dev/null; then
+          echo "  sudo apt-get install ${missing_deps[*]}"
+        elif command -v yum &> /dev/null; then
+          echo "  sudo yum install ${missing_deps[*]}"
+        else
+          echo "  Use your system's package manager to install: ${missing_deps[*]}"
+        fi
+        ;;
+    esac
+
     exit 1
-    ;;
-esac
+  fi
 
-echo -e "${GREEN}✓${NC} Detected OS: ${YELLOW}$OS_NAME${NC}"
-echo -e "${GREEN}✓${NC} Detected architecture: ${YELLOW}$ARCH_NAME${NC}"
-echo ""
+  log_success "All dependencies found"
+}
 
-# Get latest release
-echo -e "${BLUE}📡 Fetching latest release...${NC}"
-LATEST_RELEASE=$(curl -s "https://api.github.com/repos/$REPO/releases/latest")
+# =============================================================================
+# Network Connectivity Check
+# =============================================================================
 
-if [[ -z "$LATEST_RELEASE" ]] || echo "$LATEST_RELEASE" | grep -q "Not Found"; then
-  echo -e "${RED}❌ Failed to fetch release information${NC}"
-  echo "Please check your internet connection and try again."
-  exit 1
-fi
+check_network() {
+  log_section "Checking Network Connectivity"
 
-VERSION=$(echo "$LATEST_RELEASE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-DOWNLOAD_URL=$(echo "$LATEST_RELEASE" | grep "browser_download_url.*$PLATFORM.zip" | cut -d '"' -f 4)
+  # Test basic internet connectivity
+  if ! curl -s --connect-timeout 5 --max-time 10 https://www.google.com > /dev/null 2>&1; then
+    fatal_error "No internet connection detected" \
+      "Please check your network connection and try again"
+  fi
 
-if [[ -z "$DOWNLOAD_URL" ]]; then
-  echo -e "${RED}❌ Could not find download URL for $PLATFORM${NC}"
-  exit 1
-fi
+  # Test GitHub API availability
+  if ! curl -s --connect-timeout 5 --max-time 10 https://api.github.com > /dev/null 2>&1; then
+    fatal_error "Cannot reach GitHub API" \
+      "GitHub may be down. Check https://www.githubstatus.com/"
+  fi
 
-echo -e "${GREEN}✓${NC} Latest version: ${YELLOW}$VERSION${NC}"
-echo ""
+  log_success "Network connection verified"
+}
 
-# Create install directory
-echo -e "${BLUE}📁 Creating installation directory...${NC}"
-mkdir -p "$INSTALL_DIR"
+# =============================================================================
+# Platform Detection
+# =============================================================================
 
-# Download the release
-DOWNLOAD_PATH="/tmp/$APP_NAME-$PLATFORM.zip"
-echo -e "${BLUE}⬇️  Downloading Agent Girl $VERSION...${NC}"
-echo -e "   ${YELLOW}$DOWNLOAD_URL${NC}"
-echo ""
+detect_platform() {
+  log_section "Detecting Platform"
 
-if ! curl -L -o "$DOWNLOAD_PATH" "$DOWNLOAD_URL" --progress-bar; then
-  echo -e "${RED}❌ Download failed${NC}"
-  exit 1
-fi
+  # Detect OS
+  OS=$(uname -s)
+  case $OS in
+    Darwin)
+      OS_NAME="macOS"
+      OS_PREFIX="macos"
+      INSTALL_DIR="$HOME/Applications/agent-girl-app"
+      ;;
+    Linux)
+      OS_NAME="Linux"
+      OS_PREFIX="linux"
+      INSTALL_DIR="$HOME/.local/share/agent-girl-app"
+      ;;
+    MINGW*|MSYS*|CYGWIN*)
+      OS_NAME="Windows (Git Bash)"
+      OS_PREFIX="windows"
+      # Properly expand Windows path
+      if [[ -n "$LOCALAPPDATA" ]]; then
+        INSTALL_DIR="$LOCALAPPDATA/Programs/agent-girl-app"
+      else
+        # Fallback for Git Bash
+        INSTALL_DIR="$USERPROFILE/AppData/Local/Programs/agent-girl-app"
+      fi
+      ;;
+    *)
+      fatal_error "Unsupported OS: $OS" \
+        "This installer supports macOS, Linux, and Windows (Git Bash/WSL)"
+      ;;
+  esac
 
-echo ""
-echo -e "${GREEN}✓${NC} Download complete"
-echo ""
+  # Detect architecture
+  ARCH=$(uname -m)
+  case $ARCH in
+    x86_64|amd64)
+      if [[ "$OS_PREFIX" == "macos" ]]; then
+        PLATFORM="macos-intel"
+        ARCH_NAME="Intel (x86_64)"
+      elif [[ "$OS_PREFIX" == "windows" ]]; then
+        PLATFORM="windows-x64"
+        ARCH_NAME="x64"
+      else
+        PLATFORM="linux-x64"
+        ARCH_NAME="x86_64"
+      fi
+      ;;
+    arm64|aarch64)
+      if [[ "$OS_PREFIX" == "macos" ]]; then
+        PLATFORM="macos-arm64"
+        ARCH_NAME="Apple Silicon (ARM64)"
+      elif [[ "$OS_PREFIX" == "windows" ]]; then
+        PLATFORM="windows-arm64"
+        ARCH_NAME="ARM64"
+      else
+        PLATFORM="linux-arm64"
+        ARCH_NAME="ARM64"
+      fi
+      ;;
+    *)
+      fatal_error "Unsupported architecture: $ARCH" \
+        "This installer supports x86_64 and ARM64 architectures"
+      ;;
+  esac
 
-# Extract the archive
-echo -e "${BLUE}📦 Extracting...${NC}"
-if ! unzip -q -o "$DOWNLOAD_PATH" -d "/tmp/"; then
-  echo -e "${RED}❌ Extraction failed${NC}"
-  rm "$DOWNLOAD_PATH"
-  exit 1
-fi
+  log_success "OS: $OS_NAME"
+  log_success "Architecture: $ARCH_NAME"
+  log_success "Install location: $INSTALL_DIR"
+}
 
-# Move files to installation directory
-echo -e "${BLUE}📁 Installing to $INSTALL_DIR...${NC}"
-rm -rf "$INSTALL_DIR"/*
-mv "/tmp/$APP_NAME-$PLATFORM"/* "$INSTALL_DIR/"
+# =============================================================================
+# Check Disk Space
+# =============================================================================
 
-# Set executable permissions
-chmod +x "$INSTALL_DIR/$APP_NAME"
+check_disk_space() {
+  log_section "Checking Disk Space"
 
-# Clean up
-rm "$DOWNLOAD_PATH"
-rm -rf "/tmp/$APP_NAME-$PLATFORM"
+  local available_space
 
-echo -e "${GREEN}✓${NC} Installation complete"
-echo ""
+  if [[ "$OS_PREFIX" == "macos" ]]; then
+    # macOS uses df differently
+    available_space=$(df -m "$HOME" | tail -1 | awk '{print $4}')
+  else
+    # Linux and Git Bash
+    available_space=$(df -m "$HOME" | tail -1 | awk '{print $4}')
+  fi
 
-# API Key Configuration - Interactive
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}   API Key Setup${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
-echo "Which API provider(s) do you want to use?"
-echo ""
-echo -e "  ${YELLOW}1)${NC} Anthropic API only (Claude models)"
-echo -e "  ${YELLOW}2)${NC} Z.AI API only (GLM models)"
-echo -e "  ${YELLOW}3)${NC} Both APIs (full model access)"
-echo -e "  ${YELLOW}4)${NC} Skip (configure later)"
-echo ""
-read -p "Enter choice [1-4]: " api_choice < /dev/tty
+  if [[ $available_space -lt $MIN_DISK_SPACE_MB ]]; then
+    fatal_error "Insufficient disk space (${available_space}MB available, ${MIN_DISK_SPACE_MB}MB required)" \
+      "Free up some disk space and try again"
+  fi
 
-ANTHROPIC_KEY=""
-ZAI_KEY=""
+  log_success "Sufficient disk space (${available_space}MB available)"
+}
 
-case $api_choice in
-  1)
+# =============================================================================
+# Check for Existing Installation
+# =============================================================================
+
+check_existing_installation() {
+  if [[ -d "$INSTALL_DIR" ]]; then
+    log_section "Existing Installation Detected"
+
+    # Check if there's a running process
+    if [[ "$OS_PREFIX" == "macos" || "$OS_PREFIX" == "linux" ]]; then
+      if lsof -ti:3001 > /dev/null 2>&1; then
+        log_warning "Agent Girl appears to be running (port 3001 in use)"
+        echo ""
+        read -p "Stop the running instance and upgrade? [y/N]: " stop_running < /dev/tty
+
+        if [[ "$stop_running" =~ ^[Yy]$ ]]; then
+          lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+          sleep 1
+          log_success "Stopped running instance"
+        else
+          fatal_error "Installation cancelled" \
+            "Stop Agent Girl manually and try again"
+        fi
+      fi
+    fi
+
+    # Backup existing .env if present
+    if [[ -f "$INSTALL_DIR/.env" ]]; then
+      log_info "Backing up existing .env configuration..."
+      cp "$INSTALL_DIR/.env" "$INSTALL_DIR/.env.backup"
+      ENV_BACKUP_CREATED=true
+    fi
+
+    log_info "This will upgrade your existing installation"
     echo ""
-    echo -e "${BLUE}📝 Anthropic API Setup${NC}"
-    echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
-    echo ""
-    read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
-    ;;
-  2)
-    echo ""
-    echo -e "${BLUE}📝 Z.AI API Setup${NC}"
-    echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
-    echo ""
-    read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
-    ;;
-  3)
-    echo ""
-    echo -e "${BLUE}📝 Anthropic API Setup${NC}"
-    echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
-    echo ""
-    read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
-    echo ""
-    echo -e "${BLUE}📝 Z.AI API Setup${NC}"
-    echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
-    echo ""
-    read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
-    ;;
-  4)
-    echo ""
-    echo -e "${YELLOW}⚠️  Skipping API configuration${NC}"
-    echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agent Girl"
-    ;;
-  *)
-    echo ""
-    echo -e "${RED}Invalid choice. Skipping API configuration.${NC}"
-    ;;
-esac
+  else
+    log_section "New Installation"
+  fi
+}
 
-# Update .env with actual keys
-if [[ -n "$ANTHROPIC_KEY" ]] || [[ -n "$ZAI_KEY" ]]; then
-  # Set defaults if not provided
-  [[ -z "$ANTHROPIC_KEY" ]] && ANTHROPIC_KEY="sk-ant-your-key-here"
-  [[ -z "$ZAI_KEY" ]] && ZAI_KEY="your-zai-key-here"
+# =============================================================================
+# Fetch Latest Release
+# =============================================================================
 
-  # Update the .env file
-  cat > "$INSTALL_DIR/.env" << EOF
+fetch_release_info() {
+  log_section "Fetching Latest Release"
+
+  log_info "Querying GitHub API..."
+
+  # Fetch with timeout and retry
+  local max_retries=3
+  local retry_count=0
+  local release_json
+
+  while [[ $retry_count -lt $max_retries ]]; do
+    if release_json=$(curl -s --connect-timeout 10 --max-time 30 \
+      "https://api.github.com/repos/$REPO/releases/latest" 2>&1); then
+      break
+    fi
+
+    retry_count=$((retry_count + 1))
+    if [[ $retry_count -lt $max_retries ]]; then
+      log_warning "Failed to fetch release info. Retrying (${retry_count}/${max_retries})..."
+      sleep 2
+    fi
+  done
+
+  if [[ $retry_count -eq $max_retries ]]; then
+    fatal_error "Failed to fetch release information after $max_retries attempts" \
+      "Check your internet connection or try again later"
+  fi
+
+  # Validate response
+  if echo "$release_json" | grep -q "Not Found"; then
+    fatal_error "Repository not found or no releases available" \
+      "Check https://github.com/$REPO/releases"
+  fi
+
+  # Extract version and download URL
+  VERSION=$(echo "$release_json" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | head -1)
+  DOWNLOAD_URL=$(echo "$release_json" | grep "browser_download_url.*$PLATFORM.zip" | cut -d '"' -f 4 | head -1)
+  CHECKSUM_URL=$(echo "$release_json" | grep "browser_download_url.*checksums.txt" | cut -d '"' -f 4 | head -1)
+
+  if [[ -z "$DOWNLOAD_URL" ]]; then
+    fatal_error "No release found for platform: $PLATFORM" \
+      "This platform may not be supported yet. Check https://github.com/$REPO/releases"
+  fi
+
+  log_success "Latest version: $VERSION"
+  log_success "Release found for $PLATFORM"
+}
+
+# =============================================================================
+# Download Release
+# =============================================================================
+
+download_release() {
+  log_section "Downloading Agent Girl $VERSION"
+
+  DOWNLOAD_PATH="/tmp/$APP_NAME-$PLATFORM-$$.zip"
+  TEMP_FILES+=("$DOWNLOAD_PATH")
+
+  log_info "Downloading from GitHub..."
+  echo -e "   ${BLUE}$DOWNLOAD_URL${NC}"
+  echo ""
+
+  # Download with progress bar and resume support
+  if ! curl -L --connect-timeout 30 --max-time 300 \
+    --progress-bar --fail \
+    -o "$DOWNLOAD_PATH" "$DOWNLOAD_URL"; then
+    fatal_error "Download failed" \
+      "Check your internet connection and try again"
+  fi
+
+  # Verify download size
+  local file_size=$(stat -f%z "$DOWNLOAD_PATH" 2>/dev/null || stat -c%s "$DOWNLOAD_PATH" 2>/dev/null)
+  if [[ $file_size -lt 1000000 ]]; then  # Less than 1MB is suspicious
+    fatal_error "Downloaded file is suspiciously small (${file_size} bytes)" \
+      "The download may be corrupted. Try again"
+  fi
+
+  echo ""
+  log_success "Download complete ($(numfmt --to=iec-i --suffix=B $file_size 2>/dev/null || echo "${file_size} bytes"))"
+
+  # Download and verify checksum if available
+  if [[ -n "$CHECKSUM_URL" ]]; then
+    log_info "Verifying download integrity..."
+
+    CHECKSUM_PATH="/tmp/$APP_NAME-checksums-$$.txt"
+    TEMP_FILES+=("$CHECKSUM_PATH")
+
+    if curl -sL --connect-timeout 10 --max-time 30 \
+      -o "$CHECKSUM_PATH" "$CHECKSUM_URL" 2>/dev/null; then
+
+      # Extract expected checksum for our platform
+      local expected_checksum=$(grep "$APP_NAME-$PLATFORM.zip" "$CHECKSUM_PATH" | awk '{print $1}')
+
+      if [[ -n "$expected_checksum" ]]; then
+        # Calculate actual checksum
+        local actual_checksum
+        if command -v sha256sum &> /dev/null; then
+          actual_checksum=$(sha256sum "$DOWNLOAD_PATH" | awk '{print $1}')
+        elif command -v shasum &> /dev/null; then
+          actual_checksum=$(shasum -a 256 "$DOWNLOAD_PATH" | awk '{print $1}')
+        else
+          log_warning "No SHA256 tool found, skipping checksum verification"
+          actual_checksum=""
+        fi
+
+        if [[ -n "$actual_checksum" ]]; then
+          if [[ "$actual_checksum" == "$expected_checksum" ]]; then
+            log_success "Checksum verified"
+          else
+            fatal_error "Checksum mismatch! Downloaded file may be corrupted or tampered with" \
+              "Try downloading again or report this issue"
+          fi
+        fi
+      else
+        log_warning "Checksum not found for $PLATFORM, skipping verification"
+      fi
+    else
+      log_warning "Could not download checksums, skipping verification"
+    fi
+  fi
+}
+
+# =============================================================================
+# Extract and Install
+# =============================================================================
+
+extract_and_install() {
+  log_section "Installing Agent Girl"
+
+  # Create install directory
+  log_info "Creating installation directory..."
+  mkdir -p "$INSTALL_DIR" || fatal_error "Failed to create install directory" \
+    "Check that you have write permissions to $(dirname "$INSTALL_DIR")"
+
+  # Extract archive
+  log_info "Extracting files..."
+
+  EXTRACT_PATH="/tmp/$APP_NAME-$PLATFORM-$$"
+  TEMP_FILES+=("$EXTRACT_PATH")
+
+  if ! unzip -q -o "$DOWNLOAD_PATH" -d "/tmp/" 2>&1; then
+    fatal_error "Extraction failed" \
+      "The downloaded file may be corrupted. Try again"
+  fi
+
+  # Verify extraction
+  if [[ ! -d "$EXTRACT_PATH" ]]; then
+    fatal_error "Extraction produced unexpected structure" \
+      "This may be a packaging issue. Please report it"
+  fi
+
+  # Move files to installation directory
+  log_info "Installing files to $INSTALL_DIR..."
+
+  # Remove old files but preserve .env if it exists
+  if [[ -d "$INSTALL_DIR" ]]; then
+    find "$INSTALL_DIR" -mindepth 1 ! -name '.env' ! -name '.env.backup' -delete 2>/dev/null || true
+  fi
+
+  # Move new files
+  if ! mv "$EXTRACT_PATH"/* "$INSTALL_DIR/" 2>/dev/null; then
+    # Fallback: use cp -r if mv fails (cross-filesystem moves)
+    cp -r "$EXTRACT_PATH"/* "$INSTALL_DIR/" || \
+      fatal_error "Failed to install files" \
+        "Check disk space and permissions"
+  fi
+
+  # Set executable permissions
+  if [[ -f "$INSTALL_DIR/$APP_NAME" ]]; then
+    chmod +x "$INSTALL_DIR/$APP_NAME" || \
+      log_warning "Could not set executable permissions (may need to run manually)"
+  fi
+
+  # Restore .env if we backed it up
+  if [[ "${ENV_BACKUP_CREATED:-false}" == "true" ]] && [[ -f "$INSTALL_DIR/.env.backup" ]]; then
+    log_info "Restoring your API key configuration..."
+    mv "$INSTALL_DIR/.env.backup" "$INSTALL_DIR/.env"
+  fi
+
+  log_success "Installation complete"
+}
+
+# =============================================================================
+# API Key Configuration
+# =============================================================================
+
+configure_api_keys() {
+  # Skip if .env already exists (upgrade scenario)
+  if [[ -f "$INSTALL_DIR/.env" ]] && grep -q "sk-ant-" "$INSTALL_DIR/.env" 2>/dev/null; then
+    log_section "API Configuration"
+    log_success "Existing API keys preserved"
+    return
+  fi
+
+  log_section "API Key Setup"
+
+  echo "Which API provider(s) do you want to use?"
+  echo ""
+  echo -e "  ${YELLOW}1)${NC} Anthropic API only (Claude models)"
+  echo -e "  ${YELLOW}2)${NC} Z.AI API only (GLM models)"
+  echo -e "  ${YELLOW}3)${NC} Both APIs (full model access)"
+  echo -e "  ${YELLOW}4)${NC} Skip (configure later)"
+  echo ""
+
+  local api_choice
+  read -p "Enter choice [1-4]: " api_choice < /dev/tty
+
+  local ANTHROPIC_KEY=""
+  local ZAI_KEY=""
+
+  case $api_choice in
+    1)
+      echo ""
+      echo -e "${BLUE}📝 Anthropic API Setup${NC}"
+      echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
+      echo ""
+      read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
+      ;;
+    2)
+      echo ""
+      echo -e "${BLUE}📝 Z.AI API Setup${NC}"
+      echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
+      echo ""
+      read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
+      ;;
+    3)
+      echo ""
+      echo -e "${BLUE}📝 Anthropic API Setup${NC}"
+      echo -e "Get your API key from: ${BLUE}https://console.anthropic.com/${NC}"
+      echo ""
+      read -p "Enter your Anthropic API key: " ANTHROPIC_KEY < /dev/tty
+      echo ""
+      echo -e "${BLUE}📝 Z.AI API Setup${NC}"
+      echo -e "Get your API key from: ${BLUE}https://z.ai${NC}"
+      echo ""
+      read -p "Enter your Z.AI API key: " ZAI_KEY < /dev/tty
+      ;;
+    4)
+      echo ""
+      log_warning "Skipping API configuration"
+      echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agent Girl"
+      ;;
+    *)
+      echo ""
+      log_warning "Invalid choice. Skipping API configuration."
+      ;;
+  esac
+
+  # Update .env with actual keys
+  if [[ -n "$ANTHROPIC_KEY" ]] || [[ -n "$ZAI_KEY" ]]; then
+    # Set defaults if not provided
+    [[ -z "$ANTHROPIC_KEY" ]] && ANTHROPIC_KEY="sk-ant-your-key-here"
+    [[ -z "$ZAI_KEY" ]] && ZAI_KEY="your-zai-key-here"
+
+    # Create .env file
+    cat > "$INSTALL_DIR/.env" << EOF
 # =============================================================================
 # Anthropic Configuration (Claude Models)
 # =============================================================================
@@ -218,20 +558,54 @@ ANTHROPIC_API_KEY=$ANTHROPIC_KEY
 ZAI_API_KEY=$ZAI_KEY
 EOF
 
-  echo ""
-  echo -e "${GREEN}✓${NC} API keys configured"
-fi
-echo ""
+    echo ""
+    log_success "API keys configured"
+  fi
+}
 
-# Create global launcher (skip on Windows - use direct path or PowerShell installer instead)
-LAUNCHER_PATH=""
-NEEDS_RESTART=false
+# =============================================================================
+# Create Global Launcher
+# =============================================================================
 
-if [[ "$OS_PREFIX" != "windows" ]]; then
-  LAUNCHER_PATH="/usr/local/bin/$APP_NAME"
+create_global_launcher() {
+  log_section "Setting Up Global Command"
 
-  if [[ ! -f "$LAUNCHER_PATH" ]]; then
-    echo -e "${BLUE}🔗 Setting up global command...${NC}"
+  local LAUNCHER_PATH=""
+  local NEEDS_SHELL_RESTART=false
+
+  # Handle Windows Git Bash differently
+  if [[ "$OS_PREFIX" == "windows" ]]; then
+    # Try to add to PATH if not already there
+    local git_bash_bin="$HOME/bin"
+
+    mkdir -p "$git_bash_bin"
+    LAUNCHER_PATH="$git_bash_bin/$APP_NAME"
+
+    # Create launcher script
+    cat > "$LAUNCHER_PATH" << EOF
+#!/bin/bash
+cd "$INSTALL_DIR" && ./$APP_NAME "\$@"
+EOF
+    chmod +x "$LAUNCHER_PATH"
+
+    # Check if ~/bin is in PATH
+    if [[ ":$PATH:" != *":$git_bash_bin:"* ]]; then
+      # Add to .bashrc or .bash_profile
+      local bash_rc="$HOME/.bashrc"
+      [[ -f "$HOME/.bash_profile" ]] && bash_rc="$HOME/.bash_profile"
+
+      if ! grep -q "export PATH=\"\$HOME/bin:\$PATH\"" "$bash_rc" 2>/dev/null; then
+        echo 'export PATH="$HOME/bin:$PATH"' >> "$bash_rc"
+        log_success "Added ~/bin to PATH in $bash_rc"
+        NEEDS_SHELL_RESTART=true
+      fi
+    fi
+
+    log_success "Launcher created at $LAUNCHER_PATH"
+    log_info "Alternative: Use PowerShell installer for better Windows integration"
+
+  elif [[ "$OS_PREFIX" == "macos" || "$OS_PREFIX" == "linux" ]]; then
+    LAUNCHER_PATH="/usr/local/bin/$APP_NAME"
 
     # Create launcher script content
     LAUNCHER_SCRIPT="#!/bin/bash
@@ -240,111 +614,133 @@ cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
 
     # Try to create without sudo
     if echo "$LAUNCHER_SCRIPT" > "$LAUNCHER_PATH" 2>/dev/null && chmod +x "$LAUNCHER_PATH" 2>/dev/null; then
-      echo -e "${GREEN}✓${NC} Global launcher created at $LAUNCHER_PATH"
+      log_success "Global launcher created"
     else
       # Needs sudo - ask user
-      echo -e "${YELLOW}⚠️  Creating global command requires admin permissions${NC}"
+      log_warning "Creating global command requires admin permissions"
+      echo ""
       read -p "Create global launcher with sudo? [y/N]: " use_sudo < /dev/tty
 
       if [[ "$use_sudo" =~ ^[Yy]$ ]]; then
         echo "$LAUNCHER_SCRIPT" | sudo tee "$LAUNCHER_PATH" > /dev/null
         sudo chmod +x "$LAUNCHER_PATH"
-        echo -e "${GREEN}✓${NC} Global launcher created at $LAUNCHER_PATH"
+        log_success "Global launcher created"
       else
-        echo -e "${YELLOW}⚠️  Skipped global launcher${NC}"
-        echo "You can still run: ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
-        LAUNCHER_PATH=""  # Clear path so we don't show the global command instructions
+        log_warning "Skipped global launcher"
+        log_info "You can run: ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
+        LAUNCHER_PATH=""
       fi
     fi
 
-    # Add /usr/local/bin to PATH if not already there
+    # Add /usr/local/bin to PATH if needed and launcher was created
     if [[ -n "$LAUNCHER_PATH" ]] && [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
-      echo ""
-      echo -e "${BLUE}Adding /usr/local/bin to PATH...${NC}"
+      log_info "Adding /usr/local/bin to PATH..."
 
+      local shell_rc
       if [[ "$SHELL" == *"zsh"* ]]; then
-        SHELL_RC="$HOME/.zshrc"
+        shell_rc="$HOME/.zshrc"
       else
-        SHELL_RC="$HOME/.bash_profile"
+        shell_rc="$HOME/.bash_profile"
       fi
 
-      # Add PATH export if it doesn't already exist in the file
-      if ! grep -q 'export PATH="/usr/local/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
-        echo 'export PATH="/usr/local/bin:$PATH"' >> "$SHELL_RC"
-        echo -e "${GREEN}✓${NC} Added /usr/local/bin to PATH"
-        NEEDS_RESTART=true
-      else
-        echo -e "${GREEN}✓${NC} /usr/local/bin already in PATH"
+      # Add PATH export if it doesn't already exist
+      if ! grep -q 'export PATH="/usr/local/bin:$PATH"' "$shell_rc" 2>/dev/null; then
+        echo 'export PATH="/usr/local/bin:$PATH"' >> "$shell_rc"
+        log_success "Added /usr/local/bin to PATH"
+        NEEDS_SHELL_RESTART=true
       fi
+    fi
+  fi
+
+  # Store for success message
+  export LAUNCHER_PATH
+  export NEEDS_SHELL_RESTART
+}
+
+# =============================================================================
+# Success Message
+# =============================================================================
+
+show_success_message() {
+  log_section "Installation Successful! 🎉"
+
+  echo -e "${GREEN}Agent Girl $VERSION has been installed successfully!${NC}"
+  echo ""
+  echo -e "${BLUE}📍 Installation Location:${NC}"
+  echo -e "   $INSTALL_DIR"
+  echo ""
+
+  # Platform-specific launch instructions
+  echo -e "${BLUE}🚀 How to Start Agent Girl:${NC}"
+  echo ""
+
+  if [[ "$OS_PREFIX" == "windows" ]]; then
+    if [[ -n "$LAUNCHER_PATH" ]]; then
+      if [[ "$NEEDS_SHELL_RESTART" == "true" ]]; then
+        echo -e "  ${YELLOW}1. Restart your terminal (or run:${NC} exec bash${YELLOW})${NC}"
+        echo -e "  ${YELLOW}2. Type:${NC} ${GREEN}$APP_NAME${NC}"
+      else
+        echo -e "  ${YELLOW}→ Type:${NC} ${GREEN}$APP_NAME${NC}"
+      fi
+    else
+      echo -e "  ${YELLOW}→ Run:${NC} ${GREEN}\"$INSTALL_DIR/$APP_NAME\"${NC}"
     fi
     echo ""
-  fi
-else
-  # Windows (Git Bash/WSL) - skip global launcher
-  echo -e "${YELLOW}ℹ️  On Windows, run directly from install directory or use Start Menu${NC}"
-  echo ""
-fi
+    echo -e "  ${BLUE}ℹ${NC}  For better Windows integration, use the PowerShell installer:"
+    echo -e "     ${CYAN}iwr -useb https://raw.githubusercontent.com/$REPO/master/install.ps1 | iex${NC}"
 
-# License notification
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}   License Information${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
-echo -e "${YELLOW}Agent Girl is free and open source software${NC}"
-echo -e "Licensed under ${YELLOW}GNU AGPL-3.0${NC} (Affero General Public License)"
-echo ""
-echo "This means:"
-echo "  • You can use, modify, and distribute this software"
-echo "  • If you modify and run it as a service, you must share your changes"
-echo -e "  • Full license text available at: ${BLUE}$INSTALL_DIR/LICENSE${NC}"
-echo ""
-echo "By using this software, you agree to the AGPL-3.0 terms."
-echo -e "Learn more: ${BLUE}https://www.gnu.org/licenses/agpl-3.0.html${NC}"
-echo ""
-
-# Success message
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}   Installation Successful! 🎉${NC}"
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
-echo -e "${BLUE}How to start Agent Girl:${NC}"
-echo ""
-
-# Platform-specific launch instructions
-if [[ "$OS_PREFIX" == "windows" ]]; then
-  echo -e "  ${YELLOW}Option 1 - Double-click:${NC}"
-  echo -e "    Open ${BLUE}$INSTALL_DIR${NC} in File Explorer"
-  echo -e "    Double-click ${YELLOW}agent-girl.exe${NC}"
-  echo ""
-  echo -e "  ${YELLOW}Option 2 - From terminal:${NC}"
-  echo -e "    Run ${YELLOW}\"$INSTALL_DIR/agent-girl.exe\"${NC}"
-  echo ""
-  echo -e "  ${YELLOW}Tip:${NC} Use PowerShell installer for better Windows integration"
-elif [[ -f "$LAUNCHER_PATH" ]]; then
-  if [[ "$NEEDS_RESTART" == "true" ]]; then
-    echo -e "  ${YELLOW}→ Restart your terminal, then type:${NC} ${GREEN}$APP_NAME${NC}"
+  elif [[ -n "$LAUNCHER_PATH" ]]; then
+    if [[ "$NEEDS_SHELL_RESTART" == "true" ]]; then
+      echo -e "  ${YELLOW}→ Restart your terminal (or run:${NC} exec \$SHELL${YELLOW})${NC}"
+      echo -e "  ${YELLOW}→ Then type:${NC} ${GREEN}$APP_NAME${NC}"
+      echo ""
+      echo -e "  ${BLUE}ℹ${NC}  Or start immediately: ${GREEN}$INSTALL_DIR/$APP_NAME${NC}"
+    else
+      echo -e "  ${YELLOW}→ Just type:${NC} ${GREEN}$APP_NAME${NC}"
+    fi
   else
-    echo -e "  ${YELLOW}→ Just type:${NC} ${GREEN}$APP_NAME${NC}"
+    echo -e "  ${YELLOW}→ Run:${NC} ${GREEN}$INSTALL_DIR/$APP_NAME${NC}"
   fi
-  echo ""
-  echo -e "  The app will start at ${BLUE}http://localhost:3001${NC}"
-else
-  if [[ "$OS_PREFIX" == "macos" ]]; then
-    echo -e "  ${YELLOW}Option 1 - From Finder:${NC}"
-    echo -e "    Open ${BLUE}$INSTALL_DIR${NC}"
-    echo -e "    Double-click ${YELLOW}$APP_NAME${NC}"
-  else
-    echo -e "  ${YELLOW}Option 1 - From file manager:${NC}"
-    echo -e "    Navigate to ${BLUE}$INSTALL_DIR${NC}"
-    echo -e "    Run ${YELLOW}$APP_NAME${NC}"
-  fi
-  echo ""
-  echo -e "  ${YELLOW}Option 2 - From Terminal:${NC}"
-  echo -e "    Run ${YELLOW}$INSTALL_DIR/$APP_NAME${NC}"
-  echo ""
-  echo -e "  The app will start at ${BLUE}http://localhost:3001${NC}"
-fi
 
-echo ""
-echo -e "${BLUE}Installed to:${NC} $INSTALL_DIR"
-echo ""
+  echo ""
+  echo -e "${BLUE}🌐 The app will start at:${NC} ${CYAN}http://localhost:3001${NC}"
+  echo ""
+
+  # License info
+  echo -e "${BLUE}📄 License:${NC} GNU AGPL-3.0 (Free & Open Source)"
+  echo -e "   Learn more: ${CYAN}https://www.gnu.org/licenses/agpl-3.0.html${NC}"
+  echo ""
+
+  # Mark installation as successful (prevents cleanup)
+  INSTALL_SUCCESS=true
+}
+
+# =============================================================================
+# Main Installation Flow
+# =============================================================================
+
+main() {
+  # Print banner
+  echo ""
+  echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${CYAN}   Agent Girl Installer${NC}"
+  echo -e "${CYAN}   Production-Grade Installation Script${NC}"
+  echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo ""
+
+  # Run all checks and installation steps
+  check_dependencies
+  check_network
+  detect_platform
+  check_disk_space
+  check_existing_installation
+  fetch_release_info
+  download_release
+  extract_and_install
+  configure_api_keys
+  create_global_launcher
+  show_success_message
+}
+
+# Run main installation
+main

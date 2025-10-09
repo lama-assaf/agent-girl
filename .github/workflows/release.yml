@@ -51,6 +51,7 @@ jobs:
           cp build-css.ts release/agent-girl-${{ matrix.platform }}/
           cp bun.lockb release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
           cp LICENSE release/agent-girl-${{ matrix.platform }}/
+          cp credits.mp3 release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
           cp tailwind.config.js release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
           cp postcss.config.mjs release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
           cp tsconfig.json release/agent-girl-${{ matrix.platform }}/ 2>/dev/null || true
@@ -243,6 +244,7 @@ jobs:
           Copy-Item -Force build-css.ts release\agent-girl-windows-x64\
           if (Test-Path bun.lockb) { Copy-Item -Force bun.lockb release\agent-girl-windows-x64\ }
           Copy-Item -Force LICENSE release\agent-girl-windows-x64\
+          if (Test-Path credits.mp3) { Copy-Item -Force credits.mp3 release\agent-girl-windows-x64\ }
           if (Test-Path tailwind.config.js) { Copy-Item -Force tailwind.config.js release\agent-girl-windows-x64\ }
           if (Test-Path postcss.config.mjs) { Copy-Item -Force postcss.config.mjs release\agent-girl-windows-x64\ }
           if (Test-Path tsconfig.json) { Copy-Item -Force tsconfig.json release\agent-girl-windows-x64\ }
