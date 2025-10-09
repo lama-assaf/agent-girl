@@ -516,10 +516,22 @@ ZAI_API_KEY=$zaiKey
         Write-Host ""
         Write-Success "API keys configured"
     }
+}
 
-    # Personalization Setup
-    Write-Host ""
-    Write-ColorMessage "🎨 Personalization (Optional)" "Cyan"
+# =============================================================================
+# Personalization Setup
+# =============================================================================
+
+function Set-Personalization {
+    # Skip if user-config.json already exists
+    if (Test-Path "$INSTALL_DIR\data\user-config.json") {
+        Write-Section "Personalization"
+        Write-Success "Existing personalization preserved"
+        return
+    }
+
+    Write-Section "Personalization (Optional)"
+
     Write-Host "Agent Girl can personalize your experience with your name."
     Write-Host ""
     $userName = Read-Host "Enter your name (or press Enter to skip)"
@@ -650,6 +662,7 @@ function Start-Installation {
         Get-ReleasePackage
         Install-Application
         Set-ApiConfiguration
+        Set-Personalization
         Add-ToPath
         Show-SuccessMessage
     } catch {

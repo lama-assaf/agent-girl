@@ -562,10 +562,22 @@ EOF
     echo ""
     log_success "API keys configured"
   fi
+}
 
-  # Personalization Setup
-  echo ""
-  echo -e "${BLUE}🎨 Personalization (Optional)${NC}"
+# =============================================================================
+# Personalization Setup
+# =============================================================================
+
+configure_personalization() {
+  # Skip if user-config.json already exists
+  if [[ -f "$INSTALL_DIR/data/user-config.json" ]]; then
+    log_section "Personalization"
+    log_success "Existing personalization preserved"
+    return
+  fi
+
+  log_section "Personalization (Optional)"
+
   echo "Agent Girl can personalize your experience with your name."
   echo ""
   read -p "Enter your name (or press Enter to skip): " user_name < /dev/tty
@@ -777,6 +789,7 @@ main() {
   download_release
   extract_and_install
   configure_api_keys
+  configure_personalization
   create_global_launcher
   show_success_message
 }
