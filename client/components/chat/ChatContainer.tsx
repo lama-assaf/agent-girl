@@ -190,20 +190,12 @@ export function ChatContainer() {
 
   // Handle new chat creation
   const handleNewChat = async () => {
-    const newSession = await sessionAPI.createSession();
-
-    if (newSession) {
-      setCurrentSessionId(newSession.id);
-      setCurrentSessionMode(newSession.mode);
-      setMessages([]);
-      setInputValue('');
-
-      // Apply current permission mode to new session
-      const mode = isPlanMode ? 'plan' : 'bypassPermissions';
-      await sessionAPI.updatePermissionMode(newSession.id, mode);
-
-      await loadSessions(); // Reload sessions to include the new one
-    }
+    // Don't create session yet - let handleSubmit create it with the user-selected mode
+    setCurrentSessionId(null);
+    setCurrentSessionMode('general'); // Reset to default for UI
+    setMessages([]);
+    setInputValue('');
+    // Session will be created in handleSubmit when user sends first message
   };
 
   // Handle chat deletion

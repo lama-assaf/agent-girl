@@ -71,11 +71,12 @@ export function ModeSelector({ selectedMode, onSelectMode }: ModeSelectorProps) 
                 background: mode.gradient,
                 backgroundSize: '200% auto',
                 animation: 'shimmer 3s linear infinite',
-                color: '#000000',
+                opacity: 1,
               } : {}),
             }}
           >
-            <div className="flex gap-3 justify-between items-center w-full h-7">
+            <div className="flex gap-3 justify-between items-center w-full h-7"
+                 style={isSelected ? { color: '#000000' } : {}}>
               <div className="flex flex-row flex-1 gap-3 items-center min-w-0 transition">
                 <div className="flex justify-center items-center">
                   {mode.icon}
