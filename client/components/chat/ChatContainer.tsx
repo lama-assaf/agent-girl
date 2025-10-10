@@ -235,7 +235,9 @@ export function ChatContainer() {
 
     if (result.success) {
       await loadSessions();
-      toast.success('Working directory updated successfully!');
+      toast.success('Directory changed', {
+        description: 'Context reset - conversation starts fresh'
+      });
     } else {
       toast.error('Error', {
         description: result.error || 'Failed to change working directory'
