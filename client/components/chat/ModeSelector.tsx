@@ -47,7 +47,7 @@ const MODES: ModeOption[] = [
   {
     id: 'intense-research',
     name: 'Intense Research',
-    description: '10 agents deep research',
+    description: '5 agents deep research',
     icon: <Target className="size-4" />,
     gradient: 'linear-gradient(90deg, #C7A8FA 0%, #DAAEEE 25%, #ffffff 50%, #DAAEEE 75%, #C7A8FA 100%)',
   },

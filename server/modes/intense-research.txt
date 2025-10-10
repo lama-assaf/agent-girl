@@ -26,33 +26,32 @@ Example:
 - User: "tell me everything about Next.js 15"
 - Topic: "Next.js 15"
 
-### Step 2: Spawn 10 Researcher Agents IN PARALLEL (All at Once!)
+### Step 2: Spawn 5 Researcher Agents IN PARALLEL (All at Once!)
 
-Use the Task tool to spawn ALL 10 agents simultaneously. Each agent must:
+Use the Task tool to spawn ALL 5 agents simultaneously. Each agent must:
 - Research from their specific angle
 - Create findings_{angle}.md in working directory
 - Use latest sources (prioritize last 7 days)
+- Complete within 3 minutes or report partial findings
 
-**10 Research Angles:**
+**5 Research Angles:**
 
-1. **Technical Architecture** - Core features, APIs, implementation details
-2. **Latest News** - Recent announcements, releases, updates (last 7 days)
-3. **Industry Adoption** - Companies using it, market share, trends
-4. **Academic Research** - Papers, studies, theoretical foundations
-5. **Practical Use Cases** - Real-world applications, examples, tutorials
-6. **Ecosystem & Tools** - Integrations, plugins, complementary tools
-7. **Case Studies** - Success stories, production deployments
-8. **Criticisms & Challenges** - Known issues, limitations, controversies
-9. **Future Direction** - Roadmap, upcoming features, predictions
-10. **Competitive Analysis** - Alternatives, comparisons, trade-offs
+1. **Technical Deep-Dive** - Architecture, features, APIs, implementation, ecosystem
+2. **Market Intelligence** - Latest news, industry adoption, trends, companies using it
+3. **Practical Applications** - Use cases, tutorials, real-world examples, case studies
+4. **Critical Analysis** - Challenges, limitations, criticisms, known issues, comparisons
+5. **Future & Roadmap** - Direction, predictions, upcoming features, competitive landscape
 
-**IMPORTANT**: Spawn ALL 10 agents in a SINGLE message using multiple Task tool calls.
+**IMPORTANT**: Spawn ALL 5 agents in a SINGLE message using multiple Task tool calls.
 
-### Step 3: Wait for All Agents to Complete
-Monitor Task tool results. When all 10 agents report completion, proceed to Step 4.
+### Step 3: Wait for Agents (Max 5 Minutes Total)
+Monitor Task tool results for 5 minutes maximum.
+- If ALL 5 complete: Proceed to Step 4
+- If SOME complete: Proceed with available findings, note missing angles in report
+- If NONE complete after 5min: Create report noting research timeout, try again with simpler prompts
 
-### Step 4: Read All Findings Files
-Use Glob to find all findings_*.md files, then Read each one.
+### Step 4: Read All Available Findings Files
+Use Glob to find all findings_*.md files, then Read each one that exists.
 
 ### Step 5: Synthesize Final Report
 Create FINAL_{TOPIC}_RESEARCH.md with:
@@ -64,35 +63,20 @@ Create FINAL_{TOPIC}_RESEARCH.md with:
 ## Executive Summary
 [2-3 paragraphs: Key findings, main insights, recommendations]
 
-## 1. Technical Overview
-[From Technical Architecture findings]
+## 1. Technical Deep-Dive
+[From Technical Deep-Dive findings: Architecture, features, APIs, ecosystem]
 
-## 2. Latest Developments
-[From Latest News findings - emphasize recency]
+## 2. Market Intelligence
+[From Market Intelligence findings: News, adoption, trends]
 
-## 3. Industry Landscape
-[From Industry Adoption findings]
+## 3. Practical Applications
+[From Practical Applications findings: Use cases, examples, case studies]
 
-## 4. Academic Foundations
-[From Academic Research findings]
+## 4. Critical Analysis
+[From Critical Analysis findings: Challenges, limitations, comparisons]
 
-## 5. Practical Applications
-[From Use Cases findings]
-
-## 6. Ecosystem & Tooling
-[From Ecosystem findings]
-
-## 7. Real-World Case Studies
-[From Case Studies findings]
-
-## 8. Critical Analysis
-[From Criticisms findings]
-
-## 9. Future Outlook
-[From Future Direction findings]
-
-## 10. Competitive Landscape
-[From Competitive Analysis findings]
+## 5. Future & Roadmap
+[From Future & Roadmap findings: Direction, predictions, competitive landscape]
 
 ## Recommendations
 [Your synthesis: Should users adopt? When? For what use cases?]
