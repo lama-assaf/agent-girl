@@ -1093,12 +1093,12 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                a: (props: any) => (
-                  <URLBadge href={props.href || '#'}>
-                    {props.children}
+                a: ({ href, children }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+                  <URLBadge href={href || '#'}>
+                    {children}
                   </URLBadge>
                 ),
-                code: ({ className, children }: any) => {
+                code: ({ className, children }: React.HTMLAttributes<HTMLElement> & { className?: string; children?: React.ReactNode }) => {
                   const match = /language-(\w+)/.exec(className || '');
                   const language = match ? match[1] : '';
                   const inline = !className;
@@ -1130,28 +1130,28 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                     </code>
                   );
                 },
-                h1: (props: any) => (
+                h1: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
                   <h1 className="text-2xl font-bold mt-6 mb-4 plan-text-gradient" {...props} />
                 ),
-                h2: (props: any) => (
+                h2: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
                   <h2 className="text-xl font-bold mt-5 mb-3 plan-text-gradient" {...props} />
                 ),
-                h3: (props: any) => (
+                h3: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
                   <h3 className="text-lg font-semibold mt-4 mb-2 plan-text-gradient" {...props} />
                 ),
-                ul: (props: any) => (
+                ul: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
                   <ul className="list-disc pl-6 space-y-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                ol: (props: any) => (
+                ol: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
                   <ol className="list-decimal pl-6 space-y-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                li: (props: any) => (
+                li: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
                   <li className="leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                p: (props: any) => (
+                p: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
                   <p className="mb-4 leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
                 ),
-                strong: (props: any) => (
+                strong: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
                   <strong className="font-bold plan-text-gradient" {...props} />
                 ),
               }}
@@ -1473,16 +1473,15 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 
 function TextComponent({ text }: { text: TextBlock }) {
   // Memoize components to prevent recreating on every render
-  // @ts-ignore - ReactMarkdown component types
   const components = useMemo(() => ({
             // Customize link rendering with URL badges
-            a: (props: any) => (
-              <URLBadge href={props.href || '#'}>
-                {props.children}
+            a: ({ href, children }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+              <URLBadge href={href || '#'}>
+                {children}
               </URLBadge>
             ),
             // Customize code rendering
-            code: ({ className, children }: any) => {
+            code: ({ className, children }: React.HTMLAttributes<HTMLElement> & { className?: string; children?: React.ReactNode }) => {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : '';
               const inline = !className;
@@ -1514,76 +1513,76 @@ function TextComponent({ text }: { text: TextBlock }) {
               );
             },
             // Customize heading rendering
-            h1: (props: any) => (
+            h1: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <h1 className="text-2xl font-bold mt-6 mb-4" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h2: (props: any) => (
+            h2: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <h2 className="text-xl font-bold mt-5 mb-3" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h3: (props: any) => (
+            h3: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <h3 className="text-lg font-semibold mt-4 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h4: (props: any) => (
+            h4: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <h4 className="text-base font-semibold mt-3 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h5: (props: any) => (
+            h5: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <h5 className="text-sm font-semibold mt-3 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            h6: (props: any) => (
+            h6: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <h6 className="text-sm font-semibold mt-3 mb-2" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize list rendering
-            ul: (props: any) => (
+            ul: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <ul className="list-disc pl-6 space-y-3 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            ol: (props: any) => (
+            ol: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <ol className="list-decimal pl-6 space-y-3 marker:text-gray-400" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            li: (props: any) => (
+            li: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <li className="mb-2 leading-relaxed" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize paragraph spacing
-            p: (props: any) => (
+            p: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <p className="mb-4 leading-relaxed first:mt-0 last:mb-0" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize blockquote
-            blockquote: (props: any) => (
+            blockquote: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <blockquote className="border-l-4 border-gray-500 pl-4 py-2 my-4 italic bg-white/5" style={{ color: 'rgb(var(--text-secondary))' }} {...props} />
             ),
             // Customize horizontal rule
-            hr: (props: any) => (
+            hr: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <hr className="my-6 border-t border-gray-600" {...props} />
             ),
             // Customize strong/bold
-            strong: (props: any) => (
+            strong: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <strong className="font-bold" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize emphasis/italic
-            em: (props: any) => (
+            em: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <em className="italic" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
             // Customize table
-            table: (props: any) => (
+            table: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <div className="my-4 overflow-x-auto">
                 <table className="min-w-full border-collapse border border-gray-600" {...props} />
               </div>
             ),
-            thead: (props: any) => (
+            thead: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <thead className="bg-white/10" {...props} />
             ),
-            tbody: (props: any) => (
+            tbody: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <tbody className="divide-y divide-gray-600" {...props} />
             ),
-            tr: (props: any) => (
+            tr: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <tr className="even:bg-white/5" {...props} />
             ),
-            th: (props: any) => (
+            th: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <th className="px-4 py-2 text-left font-semibold border border-gray-600" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-            td: (props: any) => (
+            td: ({ ...props }: React.HTMLAttributes<HTMLElement>) => (
               <td className="px-4 py-2 border border-gray-600" style={{ color: 'rgb(var(--text-primary))' }} {...props} />
             ),
-          }) as any, []); // Empty deps - components never change
+          }) , []); // Empty deps - components never change
 
   return (
     <div className="text-base" style={{ color: 'rgb(var(--text-primary))' }}>
