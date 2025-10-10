@@ -33,28 +33,28 @@ const MODES: ModeOption[] = [
   {
     id: 'general',
     name: 'General',
-    description: 'Everyday conversation & research',
+    description: 'Chat & quick research',
     icon: <MessageCircle className="size-4" />,
     gradient: 'linear-gradient(90deg, #A8FAC7 0%, #DAFFEE 25%, #ffffff 50%, #DAFFEE 75%, #A8FAC7 100%)',
   },
   {
     id: 'coder',
     name: 'Coder',
-    description: 'Software development & debugging',
+    description: 'Build & debug apps',
     icon: <Code className="size-4" />,
     gradient: 'linear-gradient(90deg, #FAC7A8 0%, #FFDAAE 25%, #ffffff 50%, #FFDAAE 75%, #FAC7A8 100%)',
   },
   {
     id: 'intense-research',
     name: 'Intense Research',
-    description: '10 agents, multi-angle deep research',
+    description: '10 agents deep research',
     icon: <Target className="size-4" />,
     gradient: 'linear-gradient(90deg, #C7A8FA 0%, #DAAEEE 25%, #ffffff 50%, #DAAEEE 75%, #C7A8FA 100%)',
   },
   {
     id: 'spark',
     name: 'Spark',
-    description: 'Interactive brainstorming with research',
+    description: 'Brainstorm ideas interactively',
     icon: <Zap className="size-4" />,
     gradient: 'linear-gradient(90deg, #FAE9A8 0%, #FFF4DA 25%, #ffffff 50%, #FFF4DA 75%, #FAE9A8 100%)',
   },
@@ -74,6 +74,7 @@ export function ModeSelector({ selectedMode, onSelectMode }: ModeSelectorProps) 
           <button
             key={mode.id}
             onClick={() => onSelectMode(mode.id)}
+            title={mode.description}
             className={`promptCard waterfall flex flex-col shrink-0 px-4 py-2 rounded-lg group items-center justify-center text-center ${
               isSelected
                 ? 'border-none'
