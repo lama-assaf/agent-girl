@@ -377,13 +377,10 @@ Run bash commands with the understanding that this is your current working direc
       }],
     };
 
-    // Create timeout controller (longer for research modes)
-    const timeoutMs = session.mode === 'intense-research' ? 600000 : 120000; // 10min for research, 2min for others
-    const warningMs = session.mode === 'intense-research' ? 300000 : 60000;  // 5min for research, 1min for others
-
+    // Create timeout controller (10 minutes for all modes)
     const timeoutController = new TimeoutController({
-      timeoutMs,
-      warningMs,
+      timeoutMs: 600000, // 10 minutes
+      warningMs: 300000,  // 5 minutes
       onWarning: () => {
         // Send warning notification to client (use safeSend for WebSocket lifecycle safety)
         sessionStreamManager.safeSend(
@@ -397,7 +394,7 @@ Run bash commands with the understanding that this is your current working direc
         );
       },
       onTimeout: () => {
-        console.log('⏱️ Request timeout reached (120s)');
+        console.log('⏱️ Request timeout reached (10min)');
       },
     });
 
