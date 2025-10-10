@@ -26,6 +26,7 @@ import { AssistantMessage as AssistantMessageType, ToolUseBlock, TextBlock, Todo
 import { ThinkingBlock } from './ThinkingBlock';
 import { CodeBlockWithCopy } from './CodeBlockWithCopy';
 import { URLBadge } from './URLBadge';
+import { MermaidDiagram } from './MermaidDiagram';
 import { Shield } from 'lucide-react';
 import { showError } from '../../utils/errorMessages';
 
@@ -1102,6 +1103,11 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                   const language = match ? match[1] : '';
                   const inline = !className;
 
+                  // Render mermaid diagrams
+                  if (!inline && language === 'mermaid') {
+                    return <MermaidDiagram chart={String(children).replace(/\n$/, '')} />;
+                  }
+
                   return !inline ? (
                     <CodeBlockWithCopy
                       code={String(children).replace(/\n$/, '')}
@@ -1115,7 +1121,11 @@ function ExitPlanModeComponent({ toolUse }: { toolUse: ToolUseBlock }) {
                       wrapperClassName="plan-code-border"
                     />
                   ) : (
-                    <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(168, 199, 250, 0.15)', color: '#DAEEFF' }}>
+                    <code className="px-1.5 py-0.5 text-sm font-mono rounded-md" style={{
+                      backgroundColor: 'rgba(168, 199, 250, 0.15)',
+                      color: '#DAEEFF',
+                      border: '1px solid rgba(168, 199, 250, 0.2)'
+                    }}>
                       {children}
                     </code>
                   );
@@ -1480,6 +1490,11 @@ function TextComponent({ text }: { text: TextBlock }) {
               const language = match ? match[1] : '';
               const inline = !className;
 
+              // Render mermaid diagrams
+              if (!inline && language === 'mermaid') {
+                return <MermaidDiagram chart={String(children).replace(/\n$/, '')} />;
+              }
+
               return !inline ? (
                 <CodeBlockWithCopy
                   code={String(children).replace(/\n$/, '')}
@@ -1492,7 +1507,11 @@ function TextComponent({ text }: { text: TextBlock }) {
                   }}
                 />
               ) : (
-                <code className="px-1.5 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'rgb(var(--text-primary))' }}>
+                <code className="px-1.5 py-0.5 text-sm font-mono rounded-md" style={{
+                  backgroundColor: 'rgba(168, 199, 250, 0.15)',
+                  color: '#DAEEFF',
+                  border: '1px solid rgba(168, 199, 250, 0.2)'
+                }}>
                   {children}
                 </code>
               );
