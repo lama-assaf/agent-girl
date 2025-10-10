@@ -125,6 +125,12 @@ export async function handleSessionRoutes(
     const success = sessionDb.updateWorkingDirectory(sessionId, body.workingDirectory);
 
     if (success) {
+      // Cleanup SDK stream to force respawn with new cwd on next message
+      sessionStreamManager.cleanupSession(sessionId, 'directory_changed');
+      activeQueries.delete(sessionId);
+
+      console.log(`🔄 SDK subprocess will restart with new cwd on next message`);
+
       const session = sessionDb.getSession(sessionId);
       return new Response(JSON.stringify({ success: true, session }), {
         headers: { 'Content-Type': 'application/json' },
