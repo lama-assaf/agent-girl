@@ -6,7 +6,7 @@
 import type { ServerWebSocket } from "bun";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk/sdkTypes";
-import { sessionDb, type SessionMessage } from "../database";
+import { sessionDb } from "../database";
 import { getSystemPrompt, injectWorkingDirIntoAgents } from "../systemPrompt";
 import { AVAILABLE_MODELS } from "../../client/config/models";
 import { configureProvider, getProviders, getMaskedApiKey } from "../providers";
