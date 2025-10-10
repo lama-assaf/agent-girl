@@ -67,17 +67,27 @@ interface ModeSelectorProps {
 
 export function ModeSelector({ selectedMode, onSelectMode }: ModeSelectorProps) {
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseEnter = (modeId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top - 8, // 8px above button
+    });
+    setHoveredMode(modeId);
+  };
 
   return (
-    <div className="w-full overflow-auto scrollbar-none flex flex-row items-center justify-center gap-2 flex-wrap text-base relative">
-      {MODES.map((mode, index) => {
-        const isSelected = selectedMode === mode.id;
-        const isHovered = hoveredMode === mode.id;
-        return (
-          <div key={mode.id} className="relative">
+    <>
+      <div className="w-full overflow-auto scrollbar-none flex flex-row items-center justify-center gap-2 flex-wrap text-base">
+        {MODES.map((mode, index) => {
+          const isSelected = selectedMode === mode.id;
+          return (
             <button
+              key={mode.id}
               onClick={() => onSelectMode(mode.id)}
-              onMouseEnter={() => setHoveredMode(mode.id)}
+              onMouseEnter={(e) => handleMouseEnter(mode.id, e)}
               onMouseLeave={() => setHoveredMode(null)}
               className={`promptCard waterfall flex flex-col shrink-0 px-4 py-2 rounded-lg group items-center justify-center text-center ${
                 isSelected
@@ -106,22 +116,25 @@ export function ModeSelector({ selectedMode, onSelectMode }: ModeSelectorProps) 
               </div>
             </div>
           </button>
-
-          {/* Custom tooltip */}
-          {isHovered && (
-            <div
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-white text-black text-xs font-medium rounded-md border border-gray-200 shadow-lg whitespace-nowrap z-50 pointer-events-none"
-              style={{
-                animation: 'fadeIn 100ms ease-out'
-              }}
-            >
-              {mode.description}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-white border-r border-b border-gray-200 rotate-45" />
-            </div>
-          )}
-          </div>
         );
       })}
     </div>
+
+    {/* Tooltip portal (positioned fixed to viewport, not clipped by parent) */}
+    {hoveredMode && (
+      <div
+        className="fixed px-3 py-1.5 bg-white text-black text-xs font-medium rounded-md border border-gray-200 shadow-lg whitespace-nowrap z-[9999] pointer-events-none"
+        style={{
+          left: `${tooltipPosition.x}px`,
+          top: `${tooltipPosition.y}px`,
+          transform: 'translate(-50%, -100%)',
+          animation: 'fadeIn 100ms ease-out',
+        }}
+      >
+        {MODES.find(m => m.id === hoveredMode)?.description}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-white border-r border-b border-gray-200 rotate-45" />
+      </div>
+    )}
+    </>
   );
 }
