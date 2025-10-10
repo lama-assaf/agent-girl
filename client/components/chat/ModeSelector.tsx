@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { MessageCircle, Code, Target, Zap } from 'lucide-react';
 
 interface ModeOption {
@@ -66,21 +66,25 @@ interface ModeSelectorProps {
 }
 
 export function ModeSelector({ selectedMode, onSelectMode }: ModeSelectorProps) {
+  const [hoveredMode, setHoveredMode] = useState<string | null>(null);
+
   return (
-    <div className="w-full overflow-auto scrollbar-none flex flex-row items-center justify-center gap-2 flex-wrap text-base">
+    <div className="w-full overflow-auto scrollbar-none flex flex-row items-center justify-center gap-2 flex-wrap text-base relative">
       {MODES.map((mode, index) => {
         const isSelected = selectedMode === mode.id;
+        const isHovered = hoveredMode === mode.id;
         return (
-          <button
-            key={mode.id}
-            onClick={() => onSelectMode(mode.id)}
-            title={mode.description}
-            className={`promptCard waterfall flex flex-col shrink-0 px-4 py-2 rounded-lg group items-center justify-center text-center ${
-              isSelected
-                ? 'border-none'
-                : 'border-b-2 border-white/10 hover:border-white/20 text-white/90 hover:text-white transition'
-            }`}
-            style={{
+          <div key={mode.id} className="relative">
+            <button
+              onClick={() => onSelectMode(mode.id)}
+              onMouseEnter={() => setHoveredMode(mode.id)}
+              onMouseLeave={() => setHoveredMode(null)}
+              className={`promptCard waterfall flex flex-col shrink-0 px-4 py-2 rounded-lg group items-center justify-center text-center ${
+                isSelected
+                  ? 'border-none'
+                  : 'border-b-2 border-white/10 hover:border-white/20 text-white/90 hover:text-white transition'
+              }`}
+              style={{
               animationDelay: `${index * 60}ms`,
               ...(isSelected ? {
                 background: mode.gradient,
@@ -102,6 +106,20 @@ export function ModeSelector({ selectedMode, onSelectMode }: ModeSelectorProps) 
               </div>
             </div>
           </button>
+
+          {/* Custom tooltip */}
+          {isHovered && (
+            <div
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-white text-black text-xs font-medium rounded-md border border-gray-200 shadow-lg whitespace-nowrap z-50 pointer-events-none"
+              style={{
+                animation: 'fadeIn 100ms ease-out'
+              }}
+            >
+              {mode.description}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-white border-r border-b border-gray-200 rotate-45" />
+            </div>
+          )}
+          </div>
         );
       })}
     </div>
