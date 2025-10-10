@@ -251,6 +251,18 @@ export function ChatContainer() {
 
     if (result.success) {
       await loadSessions();
+
+      // Reload slash commands for new directory
+      try {
+        const commandsRes = await fetch(`/api/sessions/${sessionId}/commands`);
+        if (commandsRes.ok) {
+          const commandsData = await commandsRes.json();
+          setAvailableCommands(commandsData.commands || []);
+        }
+      } catch (error) {
+        console.error('Failed to load commands after directory change:', error);
+      }
+
       toast.success('Directory changed', {
         description: 'Context reset - conversation starts fresh'
       });

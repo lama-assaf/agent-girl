@@ -6,6 +6,7 @@
 import { sessionDb } from "../database";
 import { backgroundProcessManager } from "../backgroundProcessManager";
 import { sessionStreamManager } from "../sessionStreamManager";
+import { setupSessionCommands } from "../commandSetup";
 
 /**
  * Handle session-related API routes
@@ -125,13 +126,20 @@ export async function handleSessionRoutes(
     const success = sessionDb.updateWorkingDirectory(sessionId, body.workingDirectory);
 
     if (success) {
+      // Get updated session to retrieve mode
+      const session = sessionDb.getSession(sessionId);
+
+      if (session) {
+        // Setup slash commands in the new directory
+        setupSessionCommands(session.working_directory, session.mode);
+      }
+
       // Cleanup SDK stream to force respawn with new cwd on next message
       sessionStreamManager.cleanupSession(sessionId, 'directory_changed');
       activeQueries.delete(sessionId);
 
       console.log(`🔄 SDK subprocess will restart with new cwd on next message`);
 
-      const session = sessionDb.getSession(sessionId);
       return new Response(JSON.stringify({ success: true, session }), {
         headers: { 'Content-Type': 'application/json' },
       });
