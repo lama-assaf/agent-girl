@@ -247,14 +247,13 @@ export function useWebSocket({
     setIsConnected(false);
   }, []);
 
-  const stopGeneration = useCallback(() => {
-    // Close the connection temporarily to stop generation
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    // Will auto-reconnect via onclose handler
-  }, []);
+  const stopGeneration = useCallback((sessionId: string) => {
+    // Send proper stop_generation message to trigger SDK AbortController
+    sendMessage({
+      type: 'stop_generation',
+      sessionId: sessionId,
+    });
+  }, [sendMessage]);
 
   // Initialize connection
   useEffect(() => {

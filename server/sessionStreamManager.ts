@@ -15,7 +15,7 @@ interface SessionStream {
   sessionId: string;
   createdAt: number;
   lastActivityAt: number;
-  activeWebSocket: ServerWebSocket<any> | null;
+  activeWebSocket: ServerWebSocket<unknown> | null;
 }
 
 export class SessionStreamManager {
@@ -87,7 +87,7 @@ export class SessionStreamManager {
   /**
    * Update active WebSocket for session (on reconnection or first connect)
    */
-  updateWebSocket(sessionId: string, ws: ServerWebSocket<any>): void {
+  updateWebSocket(sessionId: string, ws: ServerWebSocket<unknown>): void {
     const stream = this.streams.get(sessionId);
     if (stream) {
       const wasNull = stream.activeWebSocket === null;
@@ -103,8 +103,42 @@ export class SessionStreamManager {
   /**
    * Get active WebSocket for session
    */
-  getWebSocket(sessionId: string): ServerWebSocket<any> | null {
+  getWebSocket(sessionId: string): ServerWebSocket<unknown> | null {
     return this.streams.get(sessionId)?.activeWebSocket || null;
+  }
+
+  /**
+   * Get AbortController for session (for manual abort/stop generation)
+   */
+  getAbortController(sessionId: string): AbortController | null {
+    const stream = this.streams.get(sessionId);
+    if (!stream) {
+      console.warn(`⚠️ AbortController requested for non-existent session: ${sessionId.substring(0, 8)}`);
+      return null;
+    }
+    return stream.abortController;
+  }
+
+  /**
+   * Abort/stop generation for session (user-triggered stop)
+   */
+  abortSession(sessionId: string): boolean {
+    const stream = this.streams.get(sessionId);
+    if (!stream) {
+      console.warn(`⚠️ Abort requested for non-existent session: ${sessionId.substring(0, 8)}`);
+      return false;
+    }
+
+    console.log(`🛑 User-triggered abort: ${sessionId.substring(0, 8)}`);
+    stream.abortController.abort();
+
+    // Send abort signal to client
+    this.safeSend(sessionId, JSON.stringify({
+      type: 'generation_stopped',
+      sessionId: sessionId,
+    }));
+
+    return true;
   }
 
   /**

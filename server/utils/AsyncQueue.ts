@@ -33,7 +33,7 @@ export class AsyncQueue<T> implements AsyncIterable<T> {
     this.isComplete = true;
     // Resolve all waiting consumers with done=true
     for (const resolver of this.resolvers) {
-      resolver({ value: undefined as any, done: true });
+      resolver({ value: undefined as T, done: true });
     }
     this.resolvers = [];
   }

@@ -9,7 +9,7 @@ import type { HookInput } from "@anthropic-ai/claude-agent-sdk/sdkTypes";
 import { sessionDb } from "../database";
 import { getSystemPrompt, injectWorkingDirIntoAgents } from "../systemPrompt";
 import { AVAILABLE_MODELS } from "../../client/config/models";
-import { configureProvider, getProviders, getMaskedApiKey } from "../providers";
+import { configureProvider } from "../providers";
 import { getMcpServers, getAllowedMcpTools } from "../mcpServers";
 import { AGENT_REGISTRY } from "../agents";
 import { validateDirectory } from "../directoryUtils";
@@ -52,6 +52,8 @@ export async function handleWebSocketMessage(
       await handleSetPermissionMode(ws, data, activeQueries);
     } else if (data.type === 'kill_background_process') {
       await handleKillBackgroundProcess(ws, data);
+    } else if (data.type === 'stop_generation') {
+      await handleStopGeneration(ws, data);
     }
   } catch (error) {
     console.error('WebSocket message error:', error);
@@ -175,10 +177,6 @@ async function handleChatMessage(
     return;
   }
 
-  // Get provider config for logging
-  const providers = getProviders();
-  const providerConfig = providers[providerType];
-
   // Get MCP servers for this provider
   const mcpServers = getMcpServers(providerType);
   const allowedMcpTools = getAllowedMcpTools(providerType);
@@ -241,6 +239,7 @@ Run bash commands with the understanding that this is your current working direc
       agents: agentsWithWorkingDir, // Register custom agents with working dir context
       cwd: workingDir, // Set working directory for all tool executions
       executable: 'bun', // Explicitly specify bun as the runtime for SDK subprocess
+      // abortController will be added after stream creation
 
       // Capture stderr from SDK's bundled CLI for debugging and error context
       stderr: (data: string) => {
@@ -416,8 +415,24 @@ Run bash commands with the understanding that this is your current working direc
           console.log(`🔄 Retry attempt ${attemptNumber}/${MAX_RETRIES}`);
         }
 
-        // Create AsyncIterable stream for this session
+        // Create AsyncIterable stream for this session (this creates the AbortController)
         const messageStream = sessionStreamManager.getOrCreateStream(sessionId as string);
+
+        // Get AbortController from session stream manager (NOW it exists)
+        const abortController = sessionStreamManager.getAbortController(sessionId as string);
+        if (!abortController) {
+          console.error('❌ No AbortController found for session:', sessionId);
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Session initialization error'
+          }));
+          return;
+        }
+
+        console.log(`🎮 AbortController attached to session: ${sessionId.toString().substring(0, 8)}`);
+
+        // Add AbortController to query options
+        queryOptions.abortController = abortController;
 
         // Spawn SDK with AsyncIterable stream
         const result = query({
@@ -443,7 +458,6 @@ Run bash commands with the understanding that this is your current working direc
           // Per-turn state (resets after each completion)
           let currentMessageContent: unknown[] = [];
           let currentTextResponse = '';
-          let waitingForPlanApproval = false;
           let totalCharCount = 0;
           let currentMessageId: string | null = null; // Track DB message ID for incremental saves
 
@@ -480,7 +494,6 @@ Run bash commands with the understanding that this is your current working direc
                 // Reset state for next turn
                 currentMessageContent = [];
                 currentTextResponse = '';
-                waitingForPlanApproval = false;
                 totalCharCount = 0;
                 currentMessageId = null; // Reset message ID for next turn
 
@@ -604,7 +617,6 @@ Run bash commands with the understanding that this is your current working direc
               // Check if this is ExitPlanMode tool
               if (block.name === 'ExitPlanMode') {
                 console.log('🛡️ ExitPlanMode detected, sending plan to client');
-                waitingForPlanApproval = true;
                 sessionStreamManager.safeSend(
                   sessionId as string,
                   JSON.stringify({
@@ -635,7 +647,17 @@ Run bash commands with the understanding that this is your current working direc
           } // End for-await loop
 
           } catch (error) {
-            // Background loop error - log and cleanup
+            // Check if this is a user-triggered abort (expected)
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage.includes('aborted by user') || errorMessage.includes('AbortError')) {
+              console.log(`✅ Generation stopped by user: ${sessionId.toString().substring(0, 8)}`);
+              sessionStreamManager.cleanupSession(sessionId as string, 'user_aborted');
+              activeQueries.delete(sessionId as string);
+              // No error sent to client - abort was intentional
+              return;
+            }
+
+            // Actual error - log and cleanup
             console.error(`❌ Background response loop error for session ${sessionId}:`, error);
             sessionStreamManager.cleanupSession(sessionId as string, 'loop_error');
             activeQueries.delete(sessionId as string);
@@ -645,7 +667,7 @@ Run bash commands with the understanding that this is your current working direc
               sessionId as string,
               JSON.stringify({
                 type: 'error',
-                message: error instanceof Error ? error.message : 'Response processing error',
+                message: errorMessage || 'Response processing error',
                 sessionId: sessionId,
               })
             );
@@ -862,6 +884,44 @@ async function handleKillBackgroundProcess(
     ws.send(JSON.stringify({
       type: 'error',
       error: error instanceof Error ? error.message : 'Failed to kill background process'
+    }));
+  }
+}
+
+async function handleStopGeneration(
+  ws: ServerWebSocket<ChatWebSocketData>,
+  data: Record<string, unknown>
+): Promise<void> {
+  const { sessionId } = data;
+
+  if (!sessionId) {
+    ws.send(JSON.stringify({ type: 'error', error: 'Missing sessionId' }));
+    return;
+  }
+
+  try {
+    console.log(`🛑 Stop generation requested for session: ${sessionId.toString().substring(0, 8)}`);
+
+    const success = sessionStreamManager.abortSession(sessionId as string);
+
+    if (success) {
+      console.log(`✅ Generation stopped successfully: ${sessionId.toString().substring(0, 8)}`);
+      ws.send(JSON.stringify({
+        type: 'generation_stopped',
+        sessionId: sessionId
+      }));
+    } else {
+      console.warn(`⚠️ Failed to stop generation (session not found): ${sessionId.toString().substring(0, 8)}`);
+      ws.send(JSON.stringify({
+        type: 'error',
+        error: 'Session not found or already stopped'
+      }));
+    }
+  } catch (error) {
+    console.error('❌ Error stopping generation:', error);
+    ws.send(JSON.stringify({
+      type: 'error',
+      error: error instanceof Error ? error.message : 'Failed to stop generation'
     }));
   }
 }

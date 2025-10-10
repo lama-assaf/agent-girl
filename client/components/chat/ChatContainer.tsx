@@ -797,8 +797,10 @@ export function ChatContainer() {
   };
 
   const handleStop = () => {
-    stopGeneration();
-    if (currentSessionId) setSessionLoading(currentSessionId, false);
+    if (currentSessionId) {
+      stopGeneration(currentSessionId);
+      setSessionLoading(currentSessionId, false);
+    }
   };
 
   return (
