@@ -26,9 +26,20 @@ Example:
 - User: "tell me everything about Next.js 15"
 - Topic: "Next.js 15"
 
-### Step 2: Spawn 5 Researcher Agents IN PARALLEL (All at Once!)
+### Step 2: Spawn Researcher Agents (ONE OR TWO AT A TIME)
 
-Use the Task tool to spawn ALL 5 agents simultaneously. Each agent must:
+CRITICAL: Do NOT spawn all 5 agents at once - they will hang.
+Instead, spawn 1-2 agents, wait for completion, then spawn the next batch.
+
+Example:
+1. Spawn Technical + Market agents (2 agents)
+2. Wait for both to complete
+3. Spawn Practical + Critical agents (2 agents)
+4. Wait for both to complete
+5. Spawn Future agent (1 agent)
+6. Wait for completion
+
+Each agent must:
 - Research from their specific angle
 - Create findings_{angle}.md in working directory
 - Use latest sources (prioritize last 7 days)
