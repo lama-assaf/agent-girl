@@ -1,79 +1,62 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 
 // Initialize mermaid once
-let mermaidInitialized = false;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#A8C7FA',
+    primaryTextColor: '#DAEEFF',
+    primaryBorderColor: 'rgba(168, 199, 250, 0.3)',
+    lineColor: 'rgba(168, 199, 250, 0.5)',
+    secondaryColor: 'rgba(168, 199, 250, 0.1)',
+    background: 'transparent',
+    mainBkg: 'rgba(168, 199, 250, 0.1)',
+    secondBkg: 'rgba(168, 199, 250, 0.05)',
+    fontFamily: 'Inter, system-ui, sans-serif',
+  },
+  flowchart: {
+    htmlLabels: true,
+    curve: 'basis',
+  },
+  securityLevel: 'loose',
+});
 
 interface MermaidDiagramProps {
   chart: string;
 }
 
 export function MermaidDiagram({ chart }: MermaidDiagramProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [svg, setSvg] = useState<string>('');
-  const [isValid, setIsValid] = useState<boolean>(true);
+  const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Initialize mermaid only once
-    if (!mermaidInitialized) {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'dark',
-        themeVariables: {
-          primaryColor: '#A8C7FA',
-          primaryTextColor: '#DAEEFF',
-          primaryBorderColor: 'rgba(168, 199, 250, 0.3)',
-          lineColor: 'rgba(168, 199, 250, 0.5)',
-          secondaryColor: 'rgba(168, 199, 250, 0.1)',
-          background: 'transparent',
-          mainBkg: 'rgba(168, 199, 250, 0.1)',
-          secondBkg: 'rgba(168, 199, 250, 0.05)',
-          fontFamily: 'Inter, system-ui, sans-serif',
-        },
-        flowchart: {
-          htmlLabels: true,
-          curve: 'basis',
-        },
-        securityLevel: 'loose',
-        suppressErrorRendering: true,
-      });
-      mermaidInitialized = true;
-    }
+  useLayoutEffect(() => {
+    // Debounce rendering to wait for streaming to complete
+    const timeoutId = setTimeout(async () => {
+      if (ref.current) {
+        try {
+          // Generate SVG using mermaid.render() API
+          const id = `mermaid-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+          const { svg } = await mermaid.render(id, chart);
 
-    const renderDiagram = async () => {
-      try {
-        // First validate with parse()
-        await mermaid.parse(chart, { suppressErrors: true });
-
-        // If valid, render it
-        const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const { svg: renderedSvg } = await mermaid.render(id, chart);
-
-        setSvg(renderedSvg);
-        setIsValid(true);
-      } catch {
-        // Invalid syntax - fallback to code display
-        setIsValid(false);
+          // Set innerHTML directly - React won't overwrite this
+          ref.current.innerHTML = svg;
+        } catch {
+          // Invalid syntax - show as code
+          if (ref.current) {
+            ref.current.innerHTML = `<code class="text-sm text-white/80">${chart}</code>`;
+          }
+        }
       }
-    };
+    }, 500); // 500ms delay to wait for text streaming to finish
 
-    renderDiagram();
+    return () => clearTimeout(timeoutId);
   }, [chart]);
-
-  // If invalid, show as code block
-  if (!isValid || !svg) {
-    return (
-      <pre className="my-3 p-4 border border-white/10 rounded-lg bg-black/20 overflow-x-auto text-sm text-white/80 font-mono">
-        <code>{chart}</code>
-      </pre>
-    );
-  }
 
   return (
     <div
-      ref={containerRef}
+      ref={ref}
       className="my-3 p-4 border border-white/10 rounded-lg bg-black/20 overflow-x-auto"
-      dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
 }
