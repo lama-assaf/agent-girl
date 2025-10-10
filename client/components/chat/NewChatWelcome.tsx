@@ -27,7 +27,7 @@ import { ModeIndicator } from './ModeIndicator';
 interface NewChatWelcomeProps {
   inputValue: string;
   onInputChange: (value: string) => void;
-  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'coder') => void;
+  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'coder' | 'intense-research') => void;
   onStop?: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
@@ -50,7 +50,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
   const [_isDraggingOver, setIsDraggingOver] = useState(false);
 
   // Mode selection state
-  const [selectedMode, setSelectedMode] = useState<'general' | 'coder'>('general');
+  const [selectedMode, setSelectedMode] = useState<'general' | 'coder' | 'intense-research'>('general');
   const [modeIndicatorWidth, setModeIndicatorWidth] = useState(80);
 
   // Typewriter effect state

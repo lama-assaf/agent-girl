@@ -38,6 +38,11 @@ const MODE_CONFIGS: Record<string, ModeConfig> = {
     name: 'Coder',
     description: 'Software development & debugging',
   },
+  'intense-research': {
+    id: 'intense-research',
+    name: 'Intense Research',
+    description: '10 agents, multi-angle deep research',
+  },
 };
 
 const modePromptCache = new Map<string, string>();

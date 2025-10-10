@@ -30,7 +30,7 @@ export interface Session {
   message_count: number;
   working_directory: string;
   permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
-  mode: 'general' | 'coder';
+  mode: 'general' | 'coder' | 'intense-research';
 }
 
 export interface SessionMessage {
@@ -114,7 +114,7 @@ export function useSessionAPI() {
   /**
    * Create a new session
    */
-  const createSession = useCallback(async (title?: string, mode?: 'general' | 'coder'): Promise<Session | null> => {
+  const createSession = useCallback(async (title?: string, mode?: 'general' | 'coder' | 'intense-research'): Promise<Session | null> => {
     setIsLoading(true);
     setError(null);
 

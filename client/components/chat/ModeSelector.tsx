@@ -19,10 +19,10 @@
  */
 
 import React from 'react';
-import { MessageCircle, Code } from 'lucide-react';
+import { MessageCircle, Code, Target } from 'lucide-react';
 
 interface ModeOption {
-  id: 'general' | 'coder';
+  id: 'general' | 'coder' | 'intense-research';
   name: string;
   description: string;
   icon: React.ReactNode;
@@ -44,11 +44,18 @@ const MODES: ModeOption[] = [
     icon: <Code className="size-4" />,
     gradient: 'linear-gradient(90deg, #FAC7A8 0%, #FFDAAE 25%, #ffffff 50%, #FFDAAE 75%, #FAC7A8 100%)',
   },
+  {
+    id: 'intense-research',
+    name: 'Intense Research',
+    description: '10 agents, multi-angle deep research',
+    icon: <Target className="size-4" />,
+    gradient: 'linear-gradient(90deg, #C7A8FA 0%, #DAAEEE 25%, #ffffff 50%, #DAAEEE 75%, #C7A8FA 100%)',
+  },
 ];
 
 interface ModeSelectorProps {
-  selectedMode: 'general' | 'coder';
-  onSelectMode: (mode: 'general' | 'coder') => void;
+  selectedMode: 'general' | 'coder' | 'intense-research';
+  onSelectMode: (mode: 'general' | 'coder' | 'intense-research') => void;
 }
 
 export function ModeSelector({ selectedMode, onSelectMode }: ModeSelectorProps) {
