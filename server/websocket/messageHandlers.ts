@@ -19,6 +19,7 @@ import { loadUserConfig } from "../userConfig";
 import { parseApiError, getUserFriendlyMessage } from "../utils/apiErrors";
 import { TimeoutController } from "../utils/timeout";
 import { sessionStreamManager } from "../sessionStreamManager";
+import { expandSlashCommand } from "../slashCommandExpander";
 
 interface ChatWebSocketData {
   type: 'hot-reload' | 'chat';
@@ -144,6 +145,16 @@ async function handleChatMessage(
       .filter(b => b.type === 'text')
       .map(b => b.text as string);
     promptText = textBlocks.join('\n');
+  }
+
+  // Expand slash commands if detected
+  if (promptText.trim().startsWith('/')) {
+    const expandedPrompt = expandSlashCommand(promptText.trim(), workingDir);
+    if (expandedPrompt) {
+      promptText = expandedPrompt;
+    } else {
+      console.warn(`⚠️  Slash command not found: ${promptText}`);
+    }
   }
 
   // Inject attachment paths into prompt if any
@@ -452,23 +463,9 @@ Run bash commands with the understanding that this is your current working direc
 
         console.log(`🚀 SDK subprocess spawned with AsyncIterable stream`);
 
-        // Fetch and send available slash commands (async, non-blocking)
-        (async () => {
-          try {
-            const commands = await result.supportedCommands();
-            console.log(`📋 Fetched ${commands.length} slash commands from SDK`);
-            sessionStreamManager.safeSend(
-              sessionId as string,
-              JSON.stringify({
-                type: 'slash_commands_available',
-                commands,
-                sessionId: sessionId,
-              })
-            );
-          } catch (error) {
-            console.error('❌ Failed to fetch slash commands:', error);
-          }
-        })();
+        // Note: We don't fetch commands from SDK here because supportedCommands()
+        // only returns built-in SDK commands, not custom .md files from .claude/commands/
+        // Custom commands are loaded via REST API when session is switched
 
         // Start background response processing loop (non-blocking)
         // This loop runs continuously, processing responses for ALL messages in the session
@@ -520,8 +517,13 @@ Run bash commands with the understanding that this is your current working direc
               }
 
               if (message.type === 'stream_event') {
-        // Handle streaming events for real-time updates
+        // Diagnostic: Log event types for slash commands
         const event = message.event;
+        if (event.type === 'content_block_start' || event.type === 'content_block_delta') {
+          console.log(`🔷 Stream event: ${event.type}`);
+        }
+
+        // Handle streaming events for real-time updates
 
         if (event.type === 'content_block_start') {
           // Send thinking block start notification to client

@@ -680,9 +680,8 @@ export function ChatContainer() {
           });
         }
       } else if (message.type === 'slash_commands_available' && 'commands' in message) {
-        // Store available slash commands for autocomplete
-        console.log(`📋 Received ${message.commands.length} slash commands`);
-        setAvailableCommands(message.commands);
+        // SDK supportedCommands() returns built-in commands only, not custom .md files
+        // We ignore this and use REST API instead
       }
     },
   });
@@ -731,6 +730,18 @@ export function ChatContainer() {
         // Store mode immediately for UI display
         setCurrentSessionMode(newSession.mode);
         console.log('🎭 Session created with mode:', newSession.mode, '(requested:', mode, ')');
+
+        // Load slash commands for new session
+        try {
+          const commandsRes = await fetch(`/api/sessions/${sessionId}/commands`);
+          if (commandsRes.ok) {
+            const commandsData = await commandsRes.json();
+            setAvailableCommands(commandsData.commands || []);
+            console.log(`📋 Loaded ${commandsData.commands?.length || 0} commands for new session`);
+          }
+        } catch (error) {
+          console.error('Failed to load commands for new session:', error);
+        }
 
         // Apply current permission mode to new session
         const permissionMode = isPlanMode ? 'plan' : 'bypassPermissions';
