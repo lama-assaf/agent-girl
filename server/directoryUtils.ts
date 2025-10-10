@@ -135,7 +135,7 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
       };
     }
 
-    console.log('✅ Directory validated:', expanded);
+    // Silent success - only log errors
     return {
       valid: true,
       expanded

@@ -263,30 +263,10 @@ async function handleChatMessage(
   const mcpServers = getMcpServers(providerType);
   const allowedMcpTools = getAllowedMcpTools(providerType);
 
-  // Comprehensive diagnostic logging
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📨 Incoming Request');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🔹 Model from client: "${model}"`);
-  console.log(`🔹 API Model ID: "${apiModelId}"`);
-  console.log(`🔹 Provider: ${providerConfig.name} (${provider})`);
-  console.log(`🔹 API Endpoint: ${providerConfig.baseUrl || 'https://api.anthropic.com (default)'}`);
-  console.log(`🔹 API Key: ${getMaskedApiKey(providerConfig.apiKey)}`);
-  console.log(`🔹 Available models: ${Object.keys(MODEL_MAP).join(', ')}`);
-  console.log(`🔹 Custom agents: ${Object.keys(AGENT_REGISTRY).join(', ')}`);
-  console.log(`🔹 MCP Servers: ${Object.keys(mcpServers).length > 0 ? Object.keys(mcpServers).join(', ') : 'None'}`);
-  console.log(`🔹 Allowed MCP Tools: ${allowedMcpTools.length > 0 ? allowedMcpTools.join(', ') : 'None'}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  // Minimal request logging - one line summary
+  console.log(`📨 [${apiModelId} @ ${provider}] Session: ${sessionId?.toString().substring(0, 8)} (${session.mode} mode)`);
 
-  // Log working directory info
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📂 Working Directory & Mode Info');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🔹 Session ID:', sessionId);
-  console.log('🔹 Session Working Dir:', workingDir);
-  console.log('🎭 Session Mode:', session.mode);
-
-  // Validate working directory
+  // Validate working directory (only log on failure)
   const validation = validateDirectory(workingDir);
   if (!validation.valid) {
     console.error('❌ Working directory invalid:', validation.error);
@@ -294,12 +274,8 @@ async function handleChatMessage(
       type: 'error',
       message: `Working directory error: ${validation.error}`
     }));
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     return;
   }
-
-  console.log('✅ Working directory validated:', workingDir);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
   try {
 
@@ -340,6 +316,12 @@ Run bash commands with the understanding that this is your current working direc
       // Capture stderr from SDK's bundled CLI for debugging and error context
       stderr: (data: string) => {
         const trimmedData = data.trim();
+
+        // Skip logging the massive system prompt dump from CLI spawn command
+        if (trimmedData.includes('Spawning Claude Code process:') && trimmedData.includes('--system-prompt')) {
+          return; // Skip this line entirely
+        }
+
         console.error('🔴 SDK CLI stderr:', trimmedData);
 
         // Only capture lines that look like actual errors, not debug output or command echoes
@@ -497,7 +479,10 @@ Run bash commands with the understanding that this is your current working direc
       attemptNumber++;
 
       try {
-        console.log(`🔄 Query attempt ${attemptNumber}/${MAX_RETRIES}`);
+        // Only log retries (not first attempt)
+        if (attemptNumber > 1) {
+          console.log(`🔄 Retry attempt ${attemptNumber}/${MAX_RETRIES}`);
+        }
 
         // Query using the SDK (env vars already configured)
         const result = query({
@@ -507,8 +492,6 @@ Run bash commands with the understanding that this is your current working direc
 
         // Store query instance for mid-stream control
         activeQueries.set(sessionId as string, result);
-
-        console.log(`✅ Query initialized successfully`);
 
         // Track full message content structure for saving to database
         const fullMessageContent: unknown[] = [];
@@ -528,12 +511,6 @@ Run bash commands with the understanding that this is your current working direc
         const event = message.event;
 
         if (event.type === 'content_block_start') {
-          // Log when new content blocks start (text, tool_use, thinking, etc.)
-          console.log('🆕 Content block started:', {
-            index: event.index,
-            type: event.content_block?.type,
-          });
-
           // Send thinking block start notification to client
           if (event.content_block?.type === 'thinking') {
             ws.send(JSON.stringify({
@@ -564,8 +541,6 @@ Run bash commands with the understanding that this is your current working direc
             const thinkingText = event.delta.thinking || '';
             deltaChars = thinkingText.length;
 
-            console.log('💭 Thinking delta:', thinkingText.slice(0, 50) + (thinkingText.length > 50 ? '...' : ''));
-
             ws.send(JSON.stringify({
               type: 'thinking_delta',
               content: thinkingText,
@@ -590,30 +565,9 @@ Run bash commands with the understanding that this is your current working direc
           }
         }
       } else if (message.type === 'assistant') {
-        // Log assistant message details
-        console.log('📝 Assistant message received:', {
-          type: message.type,
-          model: message.message?.model || 'unknown',
-          role: message.message?.role || 'unknown',
-        });
-
         // Capture full message content structure for database storage
         const content = message.message.content;
         if (Array.isArray(content)) {
-          // Log all content block types received
-          const blockTypes = content.map((b: Record<string, unknown>) => b.type).join(', ');
-          console.log('📦 Content blocks in message:', blockTypes);
-
-          // Log thinking blocks if present
-          const thinkingBlocks = content.filter((b: Record<string, unknown>) => b.type === 'thinking');
-          if (thinkingBlocks.length > 0) {
-            console.log('💭 Thinking blocks found:', thinkingBlocks.length);
-            thinkingBlocks.forEach((tb: Record<string, unknown>, idx: number) => {
-              const thinkingText = (tb.thinking as string) || '';
-              console.log(`💭 Thinking block ${idx + 1}:`, thinkingText.slice(0, 100) + (thinkingText.length > 100 ? '...' : ''));
-            });
-          }
-
           // Append blocks instead of replacing (SDK may send multiple assistant messages)
           fullMessageContent.push(...content);
 
@@ -656,38 +610,18 @@ Run bash commands with the understanding that this is your current working direc
       sessionDb.addMessage(sessionId as string, 'assistant', JSON.stringify([{ type: 'text', text: assistantResponse }]));
     }
 
-    console.log(`✅ Response completed. Length: ${assistantResponse.length} chars`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
-    // Don't clean up query if session has background processes or waiting for plan approval
-    console.log(`🔍 Checking query cleanup for session ${sessionId}`);
-    console.log(`   Background processes registry size: ${backgroundProcessManager.size}`);
-    console.log(`   All processes:`, backgroundProcessManager.entries().map(([id, p]) => ({
-      bashId: id,
-      sessionId: p.sessionId,
-      command: p.command.substring(0, 50)
-    })));
-
+    // Clean up query unless session has background processes or waiting for plan approval
     const sessionProcesses = backgroundProcessManager.getBySession(sessionId as string);
-    console.log(`   Processes for this session (${sessionId}):`, sessionProcesses.length);
-    if (sessionProcesses.length > 0) {
-      sessionProcesses.forEach(p => {
-        console.log(`     - ${p.bashId}: ${p.command}`);
-      });
-    }
-
     const sessionHasBackgroundProcesses = sessionProcesses.length > 0;
-    console.log(`   sessionHasBackgroundProcesses: ${sessionHasBackgroundProcesses}`);
-    console.log(`   waitingForPlanApproval: ${waitingForPlanApproval}`);
 
     if (!waitingForPlanApproval && !sessionHasBackgroundProcesses) {
-      console.log(`🗑️ Deleting query for session ${sessionId} - no background processes or plan approval needed`);
       activeQueries.delete(sessionId as string);
     } else {
+      // Only log when keeping query alive (unusual case worth noting)
       const reasons = [];
-      if (waitingForPlanApproval) reasons.push('waiting for plan approval');
-      if (sessionHasBackgroundProcesses) reasons.push(`${sessionProcesses.length} background process(es) running`);
-      console.log(`⏸️ Query kept alive - ${reasons.join(', ')}`);
+      if (waitingForPlanApproval) reasons.push('plan approval');
+      if (sessionHasBackgroundProcesses) reasons.push(`${sessionProcesses.length} bg process(es)`);
+      console.log(`⏸️ Query kept alive: ${reasons.join(', ')}`);
     }
 
         // Send completion signal
