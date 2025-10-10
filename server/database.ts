@@ -503,6 +503,14 @@ class SessionDatabase {
     };
   }
 
+  updateMessage(messageId: string, content: string): void {
+    const timestamp = new Date().toISOString();
+    this.db.run(
+      "UPDATE messages SET content = ?, timestamp = ? WHERE id = ?",
+      [content, timestamp, messageId]
+    );
+  }
+
   getSessionMessages(sessionId: string): SessionMessage[] {
     const messages = this.db
       .query<SessionMessage, [string]>(

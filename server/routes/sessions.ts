@@ -5,6 +5,7 @@
 
 import { sessionDb } from "../database";
 import { backgroundProcessManager } from "../backgroundProcessManager";
+import { sessionStreamManager } from "../sessionStreamManager";
 
 /**
  * Handle session-related API routes
@@ -62,6 +63,9 @@ export async function handleSessionRoutes(
 
     // Clean up background processes for this session before deleting
     await backgroundProcessManager.cleanupSession(sessionId);
+
+    // Clean up SDK stream (aborts subprocess, completes message queue)
+    sessionStreamManager.cleanupSession(sessionId, 'session_deleted');
 
     // Also delete the query
     activeQueries.delete(sessionId);

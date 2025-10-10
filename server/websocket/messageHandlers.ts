@@ -18,6 +18,7 @@ import { backgroundProcessManager } from "../backgroundProcessManager";
 import { loadUserConfig } from "../userConfig";
 import { parseApiError, getUserFriendlyMessage } from "../utils/apiErrors";
 import { TimeoutController } from "../utils/timeout";
+import { sessionStreamManager } from "../sessionStreamManager";
 
 interface ChatWebSocketData {
   type: 'hot-reload' | 'chat';
@@ -218,22 +219,26 @@ async function handleChatMessage(
   const contentForDb = typeof content === 'string' ? content : JSON.stringify(content);
   sessionDb.addMessage(sessionId as string, 'user', contentForDb);
 
-  // Get conversation history
-  const allMessages = sessionDb.getSessionMessages(sessionId as string);
-
-  // Build conversation with automatic trimming to prevent ENAMETOOLONG errors
-  const { prompt, messagesIncluded, totalMessages } = buildConversationHistoryWithLimit(
-    allMessages,
-    MAX_CONVERSATION_BYTES,
-    { imagePaths, filePaths }
-  );
-
-  // Log conversation size and trimming info
-  const promptBytes = Buffer.byteLength(prompt, 'utf8');
-  console.log(`📊 Conversation: ${messagesIncluded}/${totalMessages} messages, ${promptBytes} bytes`);
-  if (messagesIncluded < totalMessages) {
-    console.log(`⚠️  Trimmed ${totalMessages - messagesIncluded} oldest messages to fit ${MAX_CONVERSATION_BYTES} byte limit`);
+  // Extract text content for prompt
+  let promptText = typeof content === 'string' ? content : '';
+  if (Array.isArray(content)) {
+    // Extract text blocks from content array
+    const textBlocks = (content as Array<Record<string, unknown>>)
+      .filter(b => b.type === 'text')
+      .map(b => b.text as string);
+    promptText = textBlocks.join('\n');
   }
+
+  // Inject attachment paths into prompt if any
+  if (imagePaths.length > 0 || filePaths.length > 0) {
+    const attachmentLines: string[] = [];
+    imagePaths.forEach(p => attachmentLines.push(`[Image attached: ${p}]`));
+    filePaths.forEach(p => attachmentLines.push(`[File attached: ${p}]`));
+    promptText = attachmentLines.join('\n') + '\n\n' + promptText;
+  }
+
+  // Check if this is a new session or continuing existing
+  const isNewStream = !sessionStreamManager.hasStream(sessionId as string);
 
   // Get model configuration
   const modelConfig = MODEL_MAP[model as string] || MODEL_MAP['sonnet'];
@@ -264,7 +269,7 @@ async function handleChatMessage(
   const allowedMcpTools = getAllowedMcpTools(providerType);
 
   // Minimal request logging - one line summary
-  console.log(`📨 [${apiModelId} @ ${provider}] Session: ${sessionId?.toString().substring(0, 8)} (${session.mode} mode)`);
+  console.log(`📨 [${apiModelId} @ ${provider}] Session: ${sessionId?.toString().substring(0, 8)} (${session.mode} mode) ${isNewStream ? '🆕 NEW' : '♻️ CONTINUE'}`);
 
   // Validate working directory (only log on failure)
   const validation = validateDirectory(workingDir);
@@ -277,6 +282,15 @@ async function handleChatMessage(
     return;
   }
 
+  // For existing streams: Update WebSocket, enqueue message, and return
+  // Background response loop is already running
+  if (!isNewStream) {
+    sessionStreamManager.updateWebSocket(sessionId as string, ws);
+    sessionStreamManager.sendMessage(sessionId as string, promptText);
+    return; // Background loop handles response
+  }
+
+  // For NEW streams: Spawn SDK and start background response processing
   try {
 
     // Load user configuration
@@ -453,13 +467,16 @@ Run bash commands with the understanding that this is your current working direc
       timeoutMs: 120000, // 2 minutes
       warningMs: 60000,  // 1 minute
       onWarning: () => {
-        // Send warning notification to client
-        ws.send(JSON.stringify({
-          type: 'timeout_warning',
-          message: 'AI is taking longer than usual...',
-          elapsedSeconds: 60,
-          sessionId: sessionId,
-        }));
+        // Send warning notification to client (use safeSend for WebSocket lifecycle safety)
+        sessionStreamManager.safeSend(
+          sessionId as string,
+          JSON.stringify({
+            type: 'timeout_warning',
+            message: 'AI is taking longer than usual...',
+            elapsedSeconds: 60,
+            sessionId: sessionId,
+          })
+        );
       },
       onTimeout: () => {
         console.log('⏱️ Request timeout reached (120s)');
@@ -484,39 +501,92 @@ Run bash commands with the understanding that this is your current working direc
           console.log(`🔄 Retry attempt ${attemptNumber}/${MAX_RETRIES}`);
         }
 
-        // Query using the SDK (env vars already configured)
+        // Create AsyncIterable stream for this session
+        const messageStream = sessionStreamManager.getOrCreateStream(sessionId as string);
+
+        // Spawn SDK with AsyncIterable stream
         const result = query({
-          prompt,
+          prompt: messageStream,
           options: queryOptions
         });
 
-        // Store query instance for mid-stream control
+        // Register query and store for mid-stream control
+        sessionStreamManager.registerQuery(sessionId as string, result);
         activeQueries.set(sessionId as string, result);
 
-        // Track full message content structure for saving to database
-        const fullMessageContent: unknown[] = [];
-        let waitingForPlanApproval = false;
-        let totalCharCount = 0; // Count ALL characters (text + tool inputs)
-        let assistantResponse = ''; // Track text response
+        // Set active WebSocket for this session
+        sessionStreamManager.updateWebSocket(sessionId as string, ws);
 
-        // Stream the response - query() is an AsyncGenerator
-        for await (const message of result) {
-          // Reset timeout on each message (inactivity timer)
-          timeoutController.reset();
-          // Check if timeout was already fired before reset
-          timeoutController.checkTimeout();
+        // Enqueue first message to stream
+        sessionStreamManager.sendMessage(sessionId as string, promptText);
 
-          if (message.type === 'stream_event') {
+        console.log(`🚀 SDK subprocess spawned with AsyncIterable stream`);
+
+        // Start background response processing loop (non-blocking)
+        // This loop runs continuously, processing responses for ALL messages in the session
+        (async () => {
+          // Per-turn state (resets after each completion)
+          let currentMessageContent: unknown[] = [];
+          let currentTextResponse = '';
+          let waitingForPlanApproval = false;
+          let totalCharCount = 0;
+          let currentMessageId: string | null = null; // Track DB message ID for incremental saves
+
+          try {
+            // Stream the response - query() is an AsyncGenerator
+            // Loop runs indefinitely, processing message after message
+            for await (const message of result) {
+              // Reset timeout on each event (inactivity timer)
+              timeoutController.reset();
+              timeoutController.checkTimeout();
+
+              // Handle turn completion
+              if (message.type === 'result') {
+                console.log(`✅ Turn completed: ${message.subtype}`);
+
+                // Final save (if no content was saved incrementally)
+                if (!currentMessageId) {
+                  if (currentMessageContent.length > 0) {
+                    sessionDb.addMessage(sessionId as string, 'assistant', JSON.stringify(currentMessageContent));
+                  } else if (currentTextResponse) {
+                    sessionDb.addMessage(sessionId as string, 'assistant', JSON.stringify([{ type: 'text', text: currentTextResponse }]));
+                  }
+                }
+
+                // Send completion signal (safe send checks WebSocket readyState)
+                sessionStreamManager.safeSend(
+                  sessionId as string,
+                  JSON.stringify({ type: 'result', success: true, sessionId: sessionId })
+                );
+
+                // Cancel timeout for this turn (will restart on next message)
+                timeoutController.cancel();
+
+                // Reset state for next turn
+                currentMessageContent = [];
+                currentTextResponse = '';
+                waitingForPlanApproval = false;
+                totalCharCount = 0;
+                currentMessageId = null; // Reset message ID for next turn
+
+                // Continue loop - wait for next message from stream
+                continue;
+              }
+
+              if (message.type === 'stream_event') {
         // Handle streaming events for real-time updates
         const event = message.event;
 
         if (event.type === 'content_block_start') {
           // Send thinking block start notification to client
           if (event.content_block?.type === 'thinking') {
-            ws.send(JSON.stringify({
-              type: 'thinking_start',
-              sessionId: sessionId,
-            }));
+            sessionStreamManager.safeSend(
+              sessionId as string,
+              JSON.stringify({
+                type: 'thinking_start',
+                sessionId: sessionId,
+              })
+            );
           }
         } else if (event.type === 'content_block_delta') {
           // Count all delta types: text_delta, input_json_delta, thinking_delta
@@ -524,14 +594,36 @@ Run bash commands with the understanding that this is your current working direc
 
           if (event.delta?.type === 'text_delta') {
             const text = event.delta.text;
-            assistantResponse += text;
+            currentTextResponse += text;
             deltaChars = text.length;
 
-            ws.send(JSON.stringify({
-              type: 'assistant_message',
-              content: text,
-              sessionId: sessionId,  // Include sessionId for client-side filtering
-            }));
+            sessionStreamManager.safeSend(
+              sessionId as string,
+              JSON.stringify({
+                type: 'assistant_message',
+                content: text,
+                sessionId: sessionId,
+              })
+            );
+
+            // Incremental save for text (every 500 chars or on tool boundaries)
+            if (currentTextResponse.length % 500 < text.length) {
+              if (!currentMessageId) {
+                // Create message on first text
+                const msg = sessionDb.addMessage(
+                  sessionId as string,
+                  'assistant',
+                  JSON.stringify([{ type: 'text', text: currentTextResponse }])
+                );
+                currentMessageId = msg.id;
+              } else {
+                // Update existing message with accumulated text
+                const contentToSave = currentMessageContent.length > 0
+                  ? currentMessageContent.concat([{ type: 'text', text: currentTextResponse }])
+                  : [{ type: 'text', text: currentTextResponse }];
+                sessionDb.updateMessage(currentMessageId, JSON.stringify(contentToSave));
+              }
+            }
           } else if (event.delta?.type === 'input_json_delta') {
             // Tool input being generated (like Write tool file content)
             const jsonDelta = event.delta.partial_json || '';
@@ -541,11 +633,14 @@ Run bash commands with the understanding that this is your current working direc
             const thinkingText = event.delta.thinking || '';
             deltaChars = thinkingText.length;
 
-            ws.send(JSON.stringify({
-              type: 'thinking_delta',
-              content: thinkingText,
-              sessionId: sessionId,
-            }));
+            sessionStreamManager.safeSend(
+              sessionId as string,
+              JSON.stringify({
+                type: 'thinking_delta',
+                content: thinkingText,
+                sessionId: sessionId,
+              })
+            );
           } else {
             // Log unknown delta types for debugging
             console.log('⚠️ Unknown delta type:', event.delta?.type);
@@ -557,19 +652,36 @@ Run bash commands with the understanding that this is your current working direc
 
           // Send estimated token count update
           if (deltaChars > 0) {
-            ws.send(JSON.stringify({
-              type: 'token_update',
-              outputTokens: estimatedTokens,
-              sessionId: sessionId,
-            }));
+            sessionStreamManager.safeSend(
+              sessionId as string,
+              JSON.stringify({
+                type: 'token_update',
+                outputTokens: estimatedTokens,
+                sessionId: sessionId,
+              })
+            );
           }
         }
-      } else if (message.type === 'assistant') {
-        // Capture full message content structure for database storage
-        const content = message.message.content;
-        if (Array.isArray(content)) {
-          // Append blocks instead of replacing (SDK may send multiple assistant messages)
-          fullMessageContent.push(...content);
+              } else if (message.type === 'assistant') {
+                // Capture full message content structure for database storage
+                const content = message.message.content;
+                if (Array.isArray(content)) {
+                  // Append blocks instead of replacing (SDK may send multiple assistant messages)
+                  currentMessageContent.push(...content);
+
+                  // Incremental save: Create or update message in database
+                  if (!currentMessageId) {
+                    // First content - create message
+                    const msg = sessionDb.addMessage(
+                      sessionId as string,
+                      'assistant',
+                      JSON.stringify(currentMessageContent)
+                    );
+                    currentMessageId = msg.id;
+                  } else {
+                    // Subsequent content - update existing message
+                    sessionDb.updateMessage(currentMessageId, JSON.stringify(currentMessageContent));
+                  }
 
           // Handle tool use from complete assistant message
           for (const block of content) {
@@ -578,60 +690,58 @@ Run bash commands with the understanding that this is your current working direc
               if (block.name === 'ExitPlanMode') {
                 console.log('🛡️ ExitPlanMode detected, sending plan to client');
                 waitingForPlanApproval = true;
-                ws.send(JSON.stringify({
-                  type: 'exit_plan_mode',
-                  plan: (block.input as Record<string, unknown>)?.plan || 'No plan provided',
-                  sessionId: sessionId,  // Include sessionId for client-side filtering
-                }));
+                sessionStreamManager.safeSend(
+                  sessionId as string,
+                  JSON.stringify({
+                    type: 'exit_plan_mode',
+                    plan: (block.input as Record<string, unknown>)?.plan || 'No plan provided',
+                    sessionId: sessionId,
+                  })
+                );
               }
 
               // Background processes are now intercepted and spawned via PreToolUse hook
               // No need for detection here since the hook blocks SDK execution
 
-              ws.send(JSON.stringify({
-                type: 'tool_use',
-                toolId: block.id,
-                toolName: block.name,
-                toolInput: block.input,
-                sessionId: sessionId,  // Include sessionId for client-side filtering
-              }));
+              sessionStreamManager.safeSend(
+                sessionId as string,
+                JSON.stringify({
+                  type: 'tool_use',
+                  toolId: block.id,
+                  toolName: block.name,
+                  toolInput: block.input,
+                  sessionId: sessionId,
+                })
+              );
             }
+                }
+              }
+            }
+          } // End for-await loop
+
+          } catch (error) {
+            // Background loop error - log and cleanup
+            console.error(`❌ Background response loop error for session ${sessionId}:`, error);
+            sessionStreamManager.cleanupSession(sessionId as string, 'loop_error');
+            activeQueries.delete(sessionId as string);
+
+            // Send error to client
+            sessionStreamManager.safeSend(
+              sessionId as string,
+              JSON.stringify({
+                type: 'error',
+                message: error instanceof Error ? error.message : 'Response processing error',
+                sessionId: sessionId,
+              })
+            );
+          } finally {
+            console.log(`🏁 Background loop ended for session ${sessionId?.toString().substring(0, 8)}`);
           }
-        }
-      }
-    }
+        })(); // Execute async IIFE immediately (non-blocking)
 
-    // Save assistant response to database with full content structure
-    if (fullMessageContent.length > 0) {
-      // Save the full content blocks as JSON to preserve tool_use, thinking, etc.
-      sessionDb.addMessage(sessionId as string, 'assistant', JSON.stringify(fullMessageContent));
-    } else if (assistantResponse) {
-      // Fallback to text-only if no full content (shouldn't happen normally)
-      sessionDb.addMessage(sessionId as string, 'assistant', JSON.stringify([{ type: 'text', text: assistantResponse }]));
-    }
-
-    // Clean up query unless session has background processes or waiting for plan approval
-    const sessionProcesses = backgroundProcessManager.getBySession(sessionId as string);
-    const sessionHasBackgroundProcesses = sessionProcesses.length > 0;
-
-    if (!waitingForPlanApproval && !sessionHasBackgroundProcesses) {
-      activeQueries.delete(sessionId as string);
-    } else {
-      // Only log when keeping query alive (unusual case worth noting)
-      const reasons = [];
-      if (waitingForPlanApproval) reasons.push('plan approval');
-      if (sessionHasBackgroundProcesses) reasons.push(`${sessionProcesses.length} bg process(es)`);
-      console.log(`⏸️ Query kept alive: ${reasons.join(', ')}`);
-    }
-
-        // Send completion signal
-        ws.send(JSON.stringify({ type: 'result', success: true, sessionId: sessionId }));
-
-        // Clean up timeout controller
-        timeoutController.cancel();
-
-        // Success! Break out of retry loop
-        break;
+        // Success! SDK spawned and background loop started
+        console.log(`✅ Request handling complete - background loop running`);
+        break; // Exit retry loop
 
       } catch (error) {
         _lastError = error;
