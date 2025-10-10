@@ -32,6 +32,7 @@ import { initializeStartup } from "./startup";
 import { handleSessionRoutes } from "./routes/sessions";
 import { handleDirectoryRoutes } from "./routes/directory";
 import { handleUserConfigRoutes } from "./routes/userConfig";
+import { handleCommandRoutes } from "./routes/commands";
 import { handleWebSocketMessage } from "./websocket/messageHandlers";
 import type { ServerWebSocket } from "bun";
 
@@ -134,6 +135,12 @@ const server = Bun.serve({
     const userConfigResponse = await handleUserConfigRoutes(req, url);
     if (userConfigResponse) {
       return userConfigResponse;
+    }
+
+    // Try command routes
+    const commandResponse = await handleCommandRoutes(req, url);
+    if (commandResponse) {
+      return commandResponse;
     }
 
     // Try to handle as static file

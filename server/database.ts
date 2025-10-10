@@ -24,6 +24,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { getDefaultWorkingDirectory, expandPath, validateDirectory, getAppDataDirectory } from "./directoryUtils";
 import { deleteSessionPictures, deleteSessionFiles } from "./imageUtils";
+import { setupSessionCommands } from "./commandSetup";
 
 export interface Session {
   id: string;
@@ -226,6 +227,9 @@ class SessionDatabase {
       "INSERT INTO sessions (id, title, created_at, updated_at, working_directory, permission_mode, mode) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [id, title, now, now, finalWorkingDir, 'bypassPermissions', mode]
     );
+
+    // Setup slash commands for this session
+    setupSessionCommands(finalWorkingDir, mode);
 
     return {
       id,

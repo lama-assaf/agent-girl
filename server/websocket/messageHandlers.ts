@@ -452,6 +452,24 @@ Run bash commands with the understanding that this is your current working direc
 
         console.log(`🚀 SDK subprocess spawned with AsyncIterable stream`);
 
+        // Fetch and send available slash commands (async, non-blocking)
+        (async () => {
+          try {
+            const commands = await result.supportedCommands();
+            console.log(`📋 Fetched ${commands.length} slash commands from SDK`);
+            sessionStreamManager.safeSend(
+              sessionId as string,
+              JSON.stringify({
+                type: 'slash_commands_available',
+                commands,
+                sessionId: sessionId,
+              })
+            );
+          } catch (error) {
+            console.error('❌ Failed to fetch slash commands:', error);
+          }
+        })();
+
         // Start background response processing loop (non-blocking)
         // This loop runs continuously, processing responses for ALL messages in the session
         (async () => {

@@ -109,6 +109,17 @@ interface ThinkingDeltaEvent extends BaseWebSocketMessage {
   content: string;
 }
 
+interface SlashCommand {
+  name: string;
+  description: string;
+  argumentHint: string;
+}
+
+interface SlashCommandsAvailableEvent extends BaseWebSocketMessage {
+  type: 'slash_commands_available';
+  commands: SlashCommand[];
+}
+
 export type WebSocketMessage =
   | AssistantMessageEvent
   | ToolUseEvent
@@ -125,7 +136,10 @@ export type WebSocketMessage =
   | TokenUpdateEvent
   | ThinkingStartEvent
   | ThinkingDeltaEvent
+  | SlashCommandsAvailableEvent
   | BaseWebSocketMessage; // Fallback for unknown types
+
+export type { SlashCommand };
 
 interface UseWebSocketOptions {
   url: string;

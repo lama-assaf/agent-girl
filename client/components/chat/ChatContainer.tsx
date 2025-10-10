@@ -35,6 +35,7 @@ import type { Message } from '../message/types';
 import { toast } from '../../utils/toast';
 import { showError } from '../../utils/errorMessages';
 import type { BackgroundProcess } from '../process/BackgroundProcessMonitor';
+import type { SlashCommand } from '../../hooks/useWebSocket';
 
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -47,6 +48,9 @@ export function ChatContainer() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [_isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [currentSessionMode, setCurrentSessionMode] = useState<'general' | 'coder' | 'intense-research' | 'spark'>('general');
+
+  // Slash commands available for current session
+  const [availableCommands, setAvailableCommands] = useState<SlashCommand[]>([]);
 
   // Live token count during streaming (for loading indicator)
   const [liveTokenCount, setLiveTokenCount] = useState(0);
@@ -138,6 +142,18 @@ export function ChatContainer() {
       setIsPlanMode(session.permission_mode === 'plan');
       setCurrentSessionMode(session.mode);
       console.log('🎭 Session mode loaded:', session.mode, 'for session:', sessionId);
+    }
+
+    // Load slash commands for this session
+    try {
+      const commandsRes = await fetch(`/api/sessions/${sessionId}/commands`);
+      if (commandsRes.ok) {
+        const commandsData = await commandsRes.json();
+        setAvailableCommands(commandsData.commands || []);
+        console.log(`📋 Loaded ${commandsData.commands?.length || 0} slash commands for session`);
+      }
+    } catch (error) {
+      console.error('Failed to load slash commands:', error);
     }
 
     // Check cache first before loading from database
@@ -663,6 +679,10 @@ export function ChatContainer() {
             return newMap;
           });
         }
+      } else if (message.type === 'slash_commands_available' && 'commands' in message) {
+        // Store available slash commands for autocomplete
+        console.log(`📋 Received ${message.commands.length} slash commands`);
+        setAvailableCommands(message.commands);
       }
     },
   });
@@ -911,6 +931,7 @@ export function ChatContainer() {
             isGenerating={isLoading}
             isPlanMode={isPlanMode}
             onTogglePlanMode={handleTogglePlanMode}
+            availableCommands={availableCommands}
           />
         ) : (
           // Chat Interface
@@ -932,6 +953,7 @@ export function ChatContainer() {
               backgroundProcesses={backgroundProcesses.get(currentSessionId || '') || []}
               onKillProcess={handleKillProcess}
               mode={currentSessionId ? currentSessionMode : undefined}
+              availableCommands={availableCommands}
             />
           </>
         )}

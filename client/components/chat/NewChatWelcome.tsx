@@ -23,6 +23,8 @@ import { Send, Plus, X, Square } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 import { ModeSelector } from './ModeSelector';
 import { ModeIndicator } from './ModeIndicator';
+import type { SlashCommand } from '../../hooks/useWebSocket';
+import { CommandTextRenderer } from '../message/CommandTextRenderer';
 
 interface NewChatWelcomeProps {
   inputValue: string;
@@ -33,6 +35,7 @@ interface NewChatWelcomeProps {
   isGenerating?: boolean;
   isPlanMode?: boolean;
   onTogglePlanMode?: () => void;
+  availableCommands?: SlashCommand[];
 }
 
 const CAPABILITIES = [
@@ -43,7 +46,7 @@ const CAPABILITIES = [
   "I can analyze data and files"
 ];
 
-export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating, isPlanMode, onTogglePlanMode }: NewChatWelcomeProps) {
+export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating, isPlanMode, onTogglePlanMode, availableCommands = [] }: NewChatWelcomeProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
@@ -52,6 +55,26 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
   // Mode selection state
   const [selectedMode, setSelectedMode] = useState<'general' | 'coder' | 'intense-research' | 'spark'>('general');
   const [modeIndicatorWidth, setModeIndicatorWidth] = useState(80);
+
+  // Slash command autocomplete state
+  const [showCommandMenu, setShowCommandMenu] = useState(false);
+  const [filteredCommands, setFilteredCommands] = useState<SlashCommand[]>([]);
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
+
+  // Detect "/" at start of input for command autocomplete
+  useEffect(() => {
+    if (inputValue.startsWith('/') && availableCommands.length > 0) {
+      const searchTerm = inputValue.slice(1).toLowerCase();
+      const filtered = availableCommands.filter(cmd =>
+        cmd.name.toLowerCase().includes(searchTerm)
+      );
+      setFilteredCommands(filtered);
+      setShowCommandMenu(filtered.length > 0);
+      setSelectedCommandIndex(0);
+    } else {
+      setShowCommandMenu(false);
+    }
+  }, [inputValue, availableCommands]);
 
   // Typewriter effect state
   const [currentCapabilityIndex, setCurrentCapabilityIndex] = useState(0);
@@ -129,6 +152,38 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
   }, [displayedText, isTyping, currentCapabilityIndex]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Handle command menu navigation
+    if (showCommandMenu) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedCommandIndex(prev =>
+          prev < filteredCommands.length - 1 ? prev + 1 : prev
+        );
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedCommandIndex(prev => (prev > 0 ? prev - 1 : prev));
+        return;
+      }
+      if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
+        e.preventDefault();
+        const selectedCommand = filteredCommands[selectedCommandIndex];
+        if (selectedCommand) {
+          const commandWithSlash = `/${selectedCommand.name} `;
+          onInputChange(commandWithSlash);
+          setShowCommandMenu(false);
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowCommandMenu(false);
+        return;
+      }
+    }
+
+    // Normal submit handling
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSubmit(attachedFiles.length > 0 ? attachedFiles : undefined, selectedMode);
@@ -295,6 +350,35 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
 
         {/* Input Container */}
         <div className="w-full max-w-[960px] mx-auto">
+          {/* Slash Command Autocomplete Menu - Above input */}
+          {showCommandMenu && filteredCommands.length > 0 && (
+            <div className="mb-2 w-full bg-gray-800 border border-gray-700 rounded-lg shadow-lg overflow-hidden">
+              <div className="max-h-[240px] overflow-y-auto scrollbar-hidden py-2">
+                {filteredCommands.map((cmd, index) => (
+                  <button
+                    key={cmd.name}
+                    type="button"
+                    onClick={() => {
+                      onInputChange(`/${cmd.name} `);
+                      setShowCommandMenu(false);
+                      textareaRef.current?.focus();
+                    }}
+                    onMouseEnter={() => setSelectedCommandIndex(index)}
+                    className={`w-full text-left px-4 py-5 transition-colors cursor-pointer ${
+                      index < filteredCommands.length - 1 ? 'border-b border-gray-700' : ''
+                    } ${index === selectedCommandIndex ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                  >
+                    <div className="font-mono text-sm text-blue-400">/{cmd.name}</div>
+                    <div className="text-xs text-gray-400 mt-1">{cmd.description}</div>
+                    {cmd.argumentHint && (
+                      <div className="text-xs text-gray-500 mt-1 font-mono">{cmd.argumentHint}</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="flex gap-1.5 w-full">
             <div className="flex-1 flex flex-col relative w-full rounded-xl border-b-2 border-white/10 transition hover:bg-[#374151]" style={{ backgroundColor: 'rgb(38, 40, 42)' }}>
               {/* File attachments preview */}
@@ -355,6 +439,23 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                 {/* Mode Indicator */}
                 <ModeIndicator mode={selectedMode} onWidthChange={setModeIndicatorWidth} />
 
+                {/* Command Pill Overlay */}
+                {inputValue.match(/(^|\s)(\/([a-z-]+))(?=\s|$)/m) && (
+                  <div
+                    className="absolute px-1 pt-3 w-full text-sm pointer-events-none z-10 text-gray-100"
+                    style={{
+                      minHeight: '72px',
+                      maxHeight: '144px',
+                      overflowY: 'auto',
+                      textIndent: `${modeIndicatorWidth}px`,
+                      whiteSpace: 'pre-wrap',
+                      wordWrap: 'break-word',
+                    }}
+                  >
+                    <CommandTextRenderer content={inputValue} />
+                  </div>
+                )}
+
                 <textarea
                   ref={textareaRef}
                   id="chat-input"
@@ -364,12 +465,14 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                   onKeyDown={handleKeyDown}
                   onPaste={handlePaste}
                   placeholder="How can I help you today?"
-                  className="px-1 pt-3 w-full text-sm bg-transparent resize-none scrollbar-hidden text-gray-100 outline-hidden placeholder:text-white/40"
+                  className="px-1 pt-3 w-full text-sm bg-transparent resize-none scrollbar-hidden outline-hidden placeholder:text-white/40"
                   style={{
                     minHeight: '72px',
                     maxHeight: '144px',
                     overflowY: 'auto',
-                    textIndent: `${modeIndicatorWidth}px`
+                    textIndent: `${modeIndicatorWidth}px`,
+                    color: inputValue.match(/(^|\s)(\/([a-z-]+))(?=\s|$)/m) ? 'transparent' : 'rgb(243, 244, 246)',
+                    caretColor: 'rgb(243, 244, 246)',
                   }}
                   disabled={disabled}
                 />

@@ -21,6 +21,7 @@
 import React, { useState } from 'react';
 import { UserMessage as UserMessageType, UserToolResultMessage } from './types';
 import { showError } from '../../utils/errorMessages';
+import { CommandTextRenderer } from './CommandTextRenderer';
 
 interface UserMessageProps {
   message: UserMessageType | UserToolResultMessage;
@@ -155,7 +156,7 @@ export function UserMessage({ message }: UserMessageProps) {
 
               <div className="message-user-bubble-container">
                 <div className="message-user-bubble">
-                  {filterImagePathReferences(userMessage.content)}
+                  <CommandTextRenderer content={filterImagePathReferences(userMessage.content)} />
                 </div>
               </div>
               <div className="message-user-actions">
