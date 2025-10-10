@@ -33,7 +33,7 @@ export interface Session {
   message_count: number;
   working_directory: string;
   permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
-  mode: 'general' | 'coder' | 'intense-research';
+  mode: 'general' | 'coder' | 'intense-research' | 'spark';
 }
 
 export interface SessionMessage {
@@ -196,7 +196,7 @@ class SessionDatabase {
   }
 
   // Session operations
-  createSession(title: string = "New Chat", workingDirectory?: string, mode: 'general' | 'coder' | 'intense-research' = 'general'): Session {
+  createSession(title: string = "New Chat", workingDirectory?: string, mode: 'general' | 'coder' | 'intense-research' | 'spark' = 'general'): Session {
     const id = randomUUID();
     const now = new Date().toISOString();
 

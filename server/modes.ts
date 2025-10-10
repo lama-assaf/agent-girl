@@ -43,6 +43,11 @@ const MODE_CONFIGS: Record<string, ModeConfig> = {
     name: 'Intense Research',
     description: '10 agents, multi-angle deep research',
   },
+  'spark': {
+    id: 'spark',
+    name: 'Spark',
+    description: 'Interactive brainstorming with research',
+  },
 };
 
 const modePromptCache = new Map<string, string>();

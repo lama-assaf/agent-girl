@@ -27,7 +27,7 @@ import { ModeIndicator } from './ModeIndicator';
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'coder' | 'intense-research') => void;
+  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'coder' | 'intense-research' | 'spark') => void;
   onStop?: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
@@ -36,7 +36,7 @@ interface ChatInputProps {
   onTogglePlanMode?: () => void;
   backgroundProcesses?: BackgroundProcess[];
   onKillProcess?: (bashId: string) => void;
-  mode?: 'general' | 'coder' | 'intense-research';
+  mode?: 'general' | 'coder' | 'intense-research' | 'spark';
 }
 
 export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess, mode }: ChatInputProps) {
