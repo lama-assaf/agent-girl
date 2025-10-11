@@ -26,19 +26,21 @@ if (process.argv.includes('--setup')) {
 }
 
 // Check for OAuth flags before starting the server
-if (process.argv.includes('--login') || process.argv.includes('login')) {
-  await import('../cli');
-  process.exit(0);
-}
+// Run cli.ts as a separate process to avoid importing server modules
+const oauthFlag = process.argv.find(arg =>
+  arg === '--login' || arg === 'login' ||
+  arg === '--logout' || arg === 'logout' ||
+  arg === '--status' || arg === 'status' || arg === '--auth-status'
+);
 
-if (process.argv.includes('--logout') || process.argv.includes('logout')) {
-  await import('../cli');
-  process.exit(0);
-}
-
-if (process.argv.includes('--status') || process.argv.includes('status') || process.argv.includes('--auth-status')) {
-  await import('../cli');
-  process.exit(0);
+if (oauthFlag) {
+  const proc = Bun.spawn(['bun', 'run', 'cli.ts', oauthFlag], {
+    stdin: 'inherit',
+    stdout: 'inherit',
+    stderr: 'inherit',
+  });
+  const exitCode = await proc.exited;
+  process.exit(exitCode);
 }
 
 import { watch } from "fs";
