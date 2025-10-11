@@ -7,6 +7,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { getBinaryDir } from './startup';
 
 export interface UserConfig {
   name?: string;
@@ -14,15 +15,27 @@ export interface UserConfig {
   lastName?: string;
 }
 
-const CONFIG_DIR = join(process.cwd(), 'data');
-const CONFIG_PATH = join(CONFIG_DIR, 'user-config.json');
+/**
+ * Get config directory (lazy evaluation to ensure correct path)
+ */
+function getConfigDir(): string {
+  return join(getBinaryDir(), 'data');
+}
+
+/**
+ * Get config file path (lazy evaluation to ensure correct path)
+ */
+function getConfigPath(): string {
+  return join(getConfigDir(), 'user-config.json');
+}
 
 /**
  * Ensure the data directory exists
  */
 function ensureDataDir() {
-  if (!existsSync(CONFIG_DIR)) {
-    mkdirSync(CONFIG_DIR, { recursive: true });
+  const configDir = getConfigDir();
+  if (!existsSync(configDir)) {
+    mkdirSync(configDir, { recursive: true });
   }
 }
 
@@ -32,12 +45,13 @@ function ensureDataDir() {
 export function loadUserConfig(): UserConfig {
   ensureDataDir();
 
-  if (!existsSync(CONFIG_PATH)) {
+  const configPath = getConfigPath();
+  if (!existsSync(configPath)) {
     return {};
   }
 
   try {
-    const content = readFileSync(CONFIG_PATH, 'utf-8');
+    const content = readFileSync(configPath, 'utf-8');
     return JSON.parse(content);
   } catch (error) {
     console.error('Failed to load user config:', error);
@@ -51,8 +65,9 @@ export function loadUserConfig(): UserConfig {
 export function saveUserConfig(config: UserConfig): void {
   ensureDataDir();
 
+  const configPath = getConfigPath();
   try {
-    writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
   } catch (error) {
     console.error('Failed to save user config:', error);
     throw error;

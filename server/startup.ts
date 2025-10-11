@@ -33,8 +33,10 @@ export const debugLog = (message: string): void => {
  * Get the directory where the binary/script is located
  * In source-based releases, the launcher script already cd's to the right directory,
  * so we just use process.cwd() which is already correct
+ *
+ * EXPORTED for use in other modules that need to resolve paths relative to the app root
  */
-const getBinaryDir = (): string => {
+export const getBinaryDir = (): string => {
   return process.cwd();
 };
 

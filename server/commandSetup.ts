@@ -4,6 +4,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { getBinaryDir } from './startup';
 
 /**
  * Setup slash commands for a session by copying template .md files
@@ -18,8 +19,11 @@ export function setupSessionCommands(workingDir: string, mode: string): void {
     fs.mkdirSync(commandsDir, { recursive: true });
   }
 
+  // Get the app's base directory (works in both dev and release)
+  const baseDir = getBinaryDir();
+
   // Copy shared commands (available in all modes)
-  const sharedCommandsDir = path.join(process.cwd(), 'server', 'commands', 'shared');
+  const sharedCommandsDir = path.join(baseDir, 'server', 'commands', 'shared');
   if (fs.existsSync(sharedCommandsDir)) {
     const sharedFiles = fs.readdirSync(sharedCommandsDir);
     for (const file of sharedFiles) {
@@ -32,7 +36,7 @@ export function setupSessionCommands(workingDir: string, mode: string): void {
   }
 
   // Copy mode-specific commands
-  const modeCommandsDir = path.join(process.cwd(), 'server', 'commands', mode);
+  const modeCommandsDir = path.join(baseDir, 'server', 'commands', mode);
   if (fs.existsSync(modeCommandsDir)) {
     const modeFiles = fs.readdirSync(modeCommandsDir);
     for (const file of modeFiles) {

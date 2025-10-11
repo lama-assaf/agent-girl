@@ -29,30 +29,42 @@ export interface ProviderConfig {
   oauthTokens?: OAuthTokens | null;
 }
 
-// Store original API keys on first load to prevent pollution from configureProvider()
-const ORIGINAL_ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
-const ORIGINAL_ZAI_KEY = process.env.ZAI_API_KEY || '';
+// Cache for API keys to avoid repeated reads from process.env
+// This cache is populated on first call to getProviders() AFTER .env is loaded
+let cachedAnthropicKey: string | null = null;
+let cachedZaiKey: string | null = null;
 
 /**
  * Provider configurations
  * Maps provider types to their API configurations
- * IMPORTANT: Uses ORIGINAL keys stored at module load time, not process.env,
- * because configureProvider() modifies process.env.ANTHROPIC_API_KEY
+ * IMPORTANT: Reads API keys from process.env dynamically on first call,
+ * ensuring .env has been loaded before capturing the keys
  */
 export async function getProviders(): Promise<Record<ProviderType, ProviderConfig>> {
+  // Populate cache on first call (AFTER .env is loaded by initializeStartup)
+  if (cachedAnthropicKey === null) {
+    cachedAnthropicKey = process.env.ANTHROPIC_API_KEY || '';
+    cachedZaiKey = process.env.ZAI_API_KEY || '';
+
+    // Diagnostic logging (only on first initialization)
+    console.log('🔑 API keys cached from environment:');
+    console.log(`  - ANTHROPIC_API_KEY: ${cachedAnthropicKey ? `${cachedAnthropicKey.slice(0, 10)}...` : '(not set)'}`);
+    console.log(`  - ZAI_API_KEY: ${cachedZaiKey ? `${cachedZaiKey.slice(0, 10)}...` : '(not set)'}`);
+  }
+
   // Check for OAuth tokens for Anthropic provider
   const oauthTokens = await getAnthropicTokens();
 
   return {
     'anthropic': {
       // No baseUrl = uses default Anthropic endpoint (https://api.anthropic.com)
-      apiKey: ORIGINAL_ANTHROPIC_KEY,
+      apiKey: cachedAnthropicKey || '',
       name: 'Anthropic',
       oauthTokens,
     },
     'z-ai': {
       baseUrl: 'https://api.z.ai/api/anthropic',
-      apiKey: ORIGINAL_ZAI_KEY,
+      apiKey: cachedZaiKey || '',
       name: 'Z.AI',
       oauthTokens: null, // Z.AI doesn't support OAuth
     },
@@ -108,8 +120,18 @@ export async function configureProvider(provider: ProviderType): Promise<void> {
   }
 
   // Fall back to API key authentication
-  if (!config.apiKey) {
-    throw new Error(`Missing API key for provider: ${provider}`);
+  if (!config.apiKey || config.apiKey.trim() === '') {
+    const providerName = provider === 'anthropic' ? 'Anthropic' : 'Z.AI';
+    const keyName = provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'ZAI_API_KEY';
+    const instructions = provider === 'anthropic'
+      ? 'Get your API key from https://console.anthropic.com/ or run "bun run login" to use OAuth'
+      : 'Get your API key from https://z.ai';
+
+    throw new Error(
+      `Missing ${providerName} API key. ` +
+      `Please set ${keyName} in your .env file. ` +
+      `${instructions}`
+    );
   }
 
   console.log(`🔑 Using API key authentication for ${config.name}`);

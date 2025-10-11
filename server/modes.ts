@@ -20,6 +20,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { getBinaryDir } from './startup';
 
 export interface ModeConfig {
   id: string;
@@ -53,7 +54,8 @@ const MODE_CONFIGS: Record<string, ModeConfig> = {
 const modePromptCache = new Map<string, string>();
 
 export function getAvailableModes(): ModeConfig[] {
-  const modesDir = path.join(process.cwd(), 'server', 'modes');
+  const baseDir = getBinaryDir();
+  const modesDir = path.join(baseDir, 'server', 'modes');
 
   if (!fs.existsSync(modesDir)) {
     console.warn('⚠️  Modes directory not found:', modesDir);
@@ -84,7 +86,8 @@ export function loadModePrompt(modeId: string): string {
     return modePromptCache.get(modeId)!;
   }
 
-  const modePath = path.join(process.cwd(), 'server', 'modes', `${modeId}.txt`);
+  const baseDir = getBinaryDir();
+  const modePath = path.join(baseDir, 'server', 'modes', `${modeId}.txt`);
 
   if (!fs.existsSync(modePath)) {
     console.error(`❌ Mode file not found: ${modePath}`);
