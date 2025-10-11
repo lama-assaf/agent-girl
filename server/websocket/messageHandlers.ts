@@ -245,7 +245,7 @@ Run bash commands with the understanding that this is your current working direc
     const queryOptions: Record<string, unknown> = {
       model: apiModelId,
       systemPrompt: systemPromptWithContext,
-      permissionMode: session.permission_mode || 'bypassPermissions', // Use session's permission mode
+      permissionMode: 'bypassPermissions', // Always spawn with bypass - then switch if needed
       includePartialMessages: true,
       agents: agentsWithWorkingDir, // Register custom agents with working dir context
       cwd: workingDir, // Set working directory for all tool executions
@@ -463,6 +463,13 @@ Run bash commands with the understanding that this is your current working direc
 
         console.log(`🚀 SDK subprocess spawned with AsyncIterable stream`);
 
+        // If session is in plan mode, immediately switch after spawn
+        // (SDK always spawns with bypassPermissions to allow bidirectional mode switching)
+        if (session.permission_mode === 'plan') {
+          console.log('🔄 Session in plan mode, switching SDK to plan mode');
+          await result.setPermissionMode('plan');
+        }
+
         // Note: We don't fetch commands from SDK here because supportedCommands()
         // only returns built-in SDK commands, not custom .md files from .claude/commands/
         // Custom commands are loaded via REST API when session is switched
@@ -475,6 +482,7 @@ Run bash commands with the understanding that this is your current working direc
           let currentTextResponse = '';
           let totalCharCount = 0;
           let currentMessageId: string | null = null; // Track DB message ID for incremental saves
+          let exitPlanModeSentThisTurn = false; // Prevent duplicate plan modals
 
           try {
             // Stream the response - query() is an AsyncGenerator
@@ -511,19 +519,14 @@ Run bash commands with the understanding that this is your current working direc
                 currentTextResponse = '';
                 totalCharCount = 0;
                 currentMessageId = null; // Reset message ID for next turn
+                exitPlanModeSentThisTurn = false; // Reset plan mode flag for next turn
 
                 // Continue loop - wait for next message from stream
                 continue;
               }
 
               if (message.type === 'stream_event') {
-        // Diagnostic: Log event types for slash commands
         const event = message.event;
-        if (event.type === 'content_block_start' || event.type === 'content_block_delta') {
-          console.log(`🔷 Stream event: ${event.type}`);
-        }
-
-        // Handle streaming events for real-time updates
 
         if (event.type === 'content_block_start') {
           // Send thinking block start notification to client
@@ -589,9 +592,12 @@ Run bash commands with the understanding that this is your current working direc
                 sessionId: sessionId,
               })
             );
-          } else {
-            // Log unknown delta types for debugging
-            console.log('⚠️ Unknown delta type:', event.delta?.type);
+          } else if (event.delta?.type === 'signature_delta') {
+            // Signature deltas (internal SDK/API metadata) - silently ignore
+            deltaChars = 0;
+          } else if (event.delta?.type) {
+            // Only log truly unexpected delta types (not signature_delta)
+            console.log('⚠️ Unknown delta type:', event.delta.type);
           }
 
           // Update total character count and estimate tokens (~4 chars/token)
@@ -634,9 +640,10 @@ Run bash commands with the understanding that this is your current working direc
           // Handle tool use from complete assistant message
           for (const block of content) {
             if (block.type === 'tool_use') {
-              // Check if this is ExitPlanMode tool
-              if (block.name === 'ExitPlanMode') {
+              // Check if this is ExitPlanMode tool (deduplicate - only send first one per turn)
+              if (block.name === 'ExitPlanMode' && !exitPlanModeSentThisTurn) {
                 console.log('🛡️ ExitPlanMode detected, sending plan to client');
+                exitPlanModeSentThisTurn = true; // Mark as sent
                 sessionStreamManager.safeSend(
                   sessionId as string,
                   JSON.stringify({
@@ -645,6 +652,8 @@ Run bash commands with the understanding that this is your current working direc
                     sessionId: sessionId,
                   })
                 );
+              } else if (block.name === 'ExitPlanMode') {
+                console.log('⚠️ Duplicate ExitPlanMode detected, skipping (already sent this turn)');
               }
 
               // Background processes are now intercepted and spawned via PreToolUse hook
@@ -804,8 +813,16 @@ async function handleApprovePlan(
     return;
   }
 
+  const activeQuery = activeQueries.get(sessionId as string);
+
   try {
     console.log('✅ Plan approved, switching to bypassPermissions mode');
+
+    // Switch SDK back to bypassPermissions (was in plan mode)
+    if (activeQuery) {
+      console.log(`🔄 Switching SDK permission mode: plan → bypassPermissions`);
+      await (activeQuery as { setPermissionMode: (mode: string) => Promise<void> }).setPermissionMode('bypassPermissions');
+    }
 
     // Update database to bypassPermissions mode
     sessionDb.updatePermissionMode(sessionId as string, 'bypassPermissions');
@@ -816,16 +833,13 @@ async function handleApprovePlan(
       mode: 'bypassPermissions'
     }));
 
-    // Clean up any stale query reference
-    activeQueries.delete(sessionId as string);
-
     // Send a continuation message to the user to trigger execution
     ws.send(JSON.stringify({
       type: 'plan_approved_continue',
       message: 'Plan approved. Proceeding with implementation...'
     }));
 
-    console.log('✅ Plan approved, ready to continue with next user message');
+    console.log('✅ Plan approved, SDK switched to bypassPermissions');
   } catch (error) {
     console.error('Failed to handle plan approval:', error);
     ws.send(JSON.stringify({

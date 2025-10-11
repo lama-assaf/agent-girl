@@ -990,6 +990,7 @@ export function ChatContainer() {
           plan={pendingPlan}
           onApprove={handleApprovePlan}
           onReject={handleRejectPlan}
+          isResponseInProgress={isLoading}
         />
       )}
     </div>
