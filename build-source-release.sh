@@ -90,14 +90,9 @@ if ! command -v bun &> /dev/null; then
 fi
 
 # Start the server (pass all arguments through)
-if [[ "$1" == "--setup" ]]; then
-    # Don't show "Starting Agent Girl" banner for setup
-    exec bun run server/server.ts "$@"
-else
-    echo "🚀 Starting Agent Girl..."
-    echo
-    exec bun run server/server.ts "$@"
-fi
+echo "🚀 Starting Agent Girl..."
+echo
+exec bun run server/server.ts "$@"
 EOF
 
 chmod +x release/agent-girl-$PLATFORM/agent-girl
