@@ -19,11 +19,14 @@
  */
 
 import type { ProviderType } from '../client/config/models';
+import { getAnthropicTokens, saveTokens } from './tokenStorage';
+import { refreshAccessToken, isTokenExpired, type OAuthTokens } from './oauth';
 
 export interface ProviderConfig {
   baseUrl?: string;
   apiKey: string;
   name: string;
+  oauthTokens?: OAuthTokens | null;
 }
 
 // Store original API keys on first load to prevent pollution from configureProvider()
@@ -36,17 +39,22 @@ const ORIGINAL_ZAI_KEY = process.env.ZAI_API_KEY || '';
  * IMPORTANT: Uses ORIGINAL keys stored at module load time, not process.env,
  * because configureProvider() modifies process.env.ANTHROPIC_API_KEY
  */
-export function getProviders(): Record<ProviderType, ProviderConfig> {
+export async function getProviders(): Promise<Record<ProviderType, ProviderConfig>> {
+  // Check for OAuth tokens for Anthropic provider
+  const oauthTokens = await getAnthropicTokens();
+
   return {
     'anthropic': {
       // No baseUrl = uses default Anthropic endpoint (https://api.anthropic.com)
       apiKey: ORIGINAL_ANTHROPIC_KEY,
       name: 'Anthropic',
+      oauthTokens,
     },
     'z-ai': {
       baseUrl: 'https://api.z.ai/api/anthropic',
       apiKey: ORIGINAL_ZAI_KEY,
       name: 'Z.AI',
+      oauthTokens: null, // Z.AI doesn't support OAuth
     },
   };
 }
@@ -54,14 +62,57 @@ export function getProviders(): Record<ProviderType, ProviderConfig> {
 /**
  * Configure environment for a specific provider
  * Sets ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars
+ *
+ * IMPORTANT: For Anthropic provider, prioritizes OAuth over API key
+ * If OAuth tokens exist, they will be used instead of the API key
  */
-export function configureProvider(provider: ProviderType): void {
-  const providers = getProviders();
+export async function configureProvider(provider: ProviderType): Promise<void> {
+  const providers = await getProviders();
   const config = providers[provider];
 
+  // IMPORTANT: Clear ALL auth environment variables first
+  // This ensures clean state when switching providers
+  delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
+  delete process.env.ANTHROPIC_AUTH_TOKEN;
+  delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_BASE_URL;
+
+  // Check if using OAuth for this provider
+  if (provider === 'anthropic' && config.oauthTokens) {
+    console.log('🔐 Using OAuth authentication (API key will be ignored)');
+
+    // Check if token needs refresh
+    if (isTokenExpired(config.oauthTokens.expiresAt)) {
+      console.log('⏳ OAuth token expired, refreshing...');
+      try {
+        const newTokens = await refreshAccessToken(config.oauthTokens.refreshToken);
+        await saveTokens(newTokens);
+        config.oauthTokens = newTokens;
+        console.log('✅ OAuth token refreshed successfully');
+      } catch (error) {
+        console.error('❌ Failed to refresh OAuth token:', error);
+        console.log('⚠️  Falling back to API key authentication');
+        // Fall through to API key authentication
+      }
+    }
+
+    // For OAuth, use CLAUDE_CODE_OAUTH_TOKEN which the Claude Code CLI uses
+    // This is the correct env var for OAuth authentication with the CLI subprocess
+    if (config.oauthTokens && !isTokenExpired(config.oauthTokens.expiresAt)) {
+      // Use CLAUDE_CODE_OAUTH_TOKEN for OAuth authentication
+      // The Claude Code CLI subprocess will use this for Bearer token auth
+      process.env.CLAUDE_CODE_OAUTH_TOKEN = config.oauthTokens.accessToken;
+
+      return;
+    }
+  }
+
+  // Fall back to API key authentication
   if (!config.apiKey) {
     throw new Error(`Missing API key for provider: ${provider}`);
   }
+
+  console.log(`🔑 Using API key authentication for ${config.name}`);
 
   // Set or clear base URL
   if (config.baseUrl) {
@@ -70,8 +121,14 @@ export function configureProvider(provider: ProviderType): void {
     delete process.env.ANTHROPIC_BASE_URL;
   }
 
-  // Set API key
-  process.env.ANTHROPIC_API_KEY = config.apiKey;
+  // Z.AI uses Bearer token (ANTHROPIC_AUTH_TOKEN), not x-api-key
+  if (provider === 'z-ai') {
+    process.env.ANTHROPIC_AUTH_TOKEN = config.apiKey;
+    process.env.ANTHROPIC_API_KEY = '';
+  } else {
+    // Standard Anthropic API uses x-api-key header
+    process.env.ANTHROPIC_API_KEY = config.apiKey;
+  }
 }
 
 /**

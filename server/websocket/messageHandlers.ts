@@ -175,9 +175,9 @@ async function handleChatMessage(
   // Configure provider (sets ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars)
   const providerType = provider as 'anthropic' | 'z-ai';
 
-  // Validate API key before proceeding
+  // Validate API key before proceeding (OAuth takes precedence over API key)
   try {
-    configureProvider(providerType);
+    await configureProvider(providerType);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('❌ Provider configuration error:', errorMessage);

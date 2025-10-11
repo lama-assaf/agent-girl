@@ -25,9 +25,11 @@ import { AVAILABLE_MODELS } from '../../config/models';
 interface ModelSelectorProps {
   selectedModel: string;
   onModelChange: (modelId: string) => void;
+  disabled?: boolean;
+  hasMessages?: boolean;
 }
 
-export function ModelSelector({ selectedModel, onModelChange }: ModelSelectorProps) {
+export function ModelSelector({ selectedModel, onModelChange, disabled = false, hasMessages = false }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -55,9 +57,15 @@ export function ModelSelector({ selectedModel, onModelChange }: ModelSelectorPro
   return (
     <div className="relative" ref={menuRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors hover:bg-white/5"
-        style={{ color: 'rgb(var(--text-primary))' }}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+        style={{
+          color: disabled ? 'rgb(var(--text-secondary))' : 'rgb(var(--text-primary))',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.5 : 1,
+        }}
+        title={hasMessages ? 'Model locked for this conversation. Start a new chat to change models.' : undefined}
       >
         <span className="font-heading text-sm">{currentModel.name}</span>
         <ChevronDown

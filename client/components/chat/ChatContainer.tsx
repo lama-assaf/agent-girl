@@ -919,6 +919,8 @@ export function ChatContainer() {
                     <ModelSelector
                       selectedModel={selectedModel}
                       onModelChange={handleModelChange}
+                      hasMessages={messages.length > 0}
+                      disabled={messages.length > 0}
                     />
                   </div>
                 </div>

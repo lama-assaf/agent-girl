@@ -20,6 +20,17 @@ bun run build
 ```
 Builds the client bundle to `./dist` with minification.
 
+### OAuth Authentication (Claude Pro/Max)
+```bash
+bun run login         # Log in with Claude subscription
+bun run logout        # Log out and clear OAuth tokens
+bun run auth:status   # Check authentication status
+```
+
+**IMPORTANT**: When logged in with OAuth, your API key is **never used**. This ensures you use your Claude Pro/Max subscription instead of API credits, saving money!
+
+See [OAUTH.md](./OAUTH.md) for full OAuth documentation.
+
 ### Run Tests
 ```bash
 bun test              # Run all tests

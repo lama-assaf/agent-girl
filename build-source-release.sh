@@ -34,6 +34,7 @@ echo "📂 Copying source files..."
 cp -r server release/agent-girl-$PLATFORM/
 cp -r client release/agent-girl-$PLATFORM/
 cp -r dist release/agent-girl-$PLATFORM/
+cp cli.ts release/agent-girl-$PLATFORM/
 cp package.json release/agent-girl-$PLATFORM/
 cp bun.lockb release/agent-girl-$PLATFORM/ 2>/dev/null || true
 cp LICENSE release/agent-girl-$PLATFORM/
@@ -106,17 +107,30 @@ cat > release/agent-girl-$PLATFORM/README.txt << 'EOF'
 Agent Girl Application - macOS
 ==============================
 
-Setup (First Time):
+Authentication Setup (Choose ONE):
+
+OPTION 1: Claude Pro/Max Subscription (Recommended - $0 API costs)
+1. Run: agent-girl --login
+2. Your browser will open for authentication
+3. Copy the authorization code and paste it in terminal
+4. Done! Your subscription will be used instead of API credits
+
+OPTION 2: API Key
 1. Open the .env file in a text editor
 2. Add your Anthropic API key (get from https://console.anthropic.com/)
    Replace: ANTHROPIC_API_KEY=sk-ant-your-key-here
    With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
 
 To Run:
-- Double-click the 'agent-girl' file
-- Or run from terminal: ./agent-girl
+- Run from terminal: agent-girl
+- Or double-click the 'agent-girl' file
 - The app will start at http://localhost:3001
 - Your browser should open automatically
+
+OAuth Commands:
+- agent-girl --login      # Login with Claude Pro/Max
+- agent-girl --logout     # Logout from OAuth
+- agent-girl --status     # Check authentication status
 
 First Run:
 - On first launch, Bun runtime will be auto-installed (takes ~5 seconds)
@@ -124,16 +138,18 @@ First Run:
 
 Data Storage:
 - Sessions stored in ~/Documents/agent-girl-app/
+- OAuth tokens stored in ~/.agent-girl/ (secure)
 - All your conversations are saved locally
 
 Requirements:
 - macOS 11+ (Big Sur or later)
-- Anthropic API key (for Claude models)
+- Claude Pro/Max subscription OR Anthropic API key
 - Internet connection (for first-time Bun install)
 
 Troubleshooting:
 - If port 3001 is busy, kill the process: lsof -ti:3001 | xargs kill -9
-- Make sure .env file has your real API key
+- If OAuth login fails, use API key method instead
+- Check auth status: agent-girl --status
 
 Enjoy!
 EOF

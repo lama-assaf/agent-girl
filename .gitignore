@@ -9,7 +9,8 @@ server/generated/
 agent-girl
 release/
 
-# Ignore all .md files except README and CLAUDE
+# Ignore all .md files except README, CLAUDE, and OAUTH
 *.md
 !README.md
 !CLAUDE.md
+!OAUTH.md

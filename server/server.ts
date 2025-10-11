@@ -25,6 +25,22 @@ if (process.argv.includes('--setup')) {
   process.exit(0);
 }
 
+// Check for OAuth flags before starting the server
+if (process.argv.includes('--login') || process.argv.includes('login')) {
+  await import('../cli');
+  process.exit(0);
+}
+
+if (process.argv.includes('--logout') || process.argv.includes('logout')) {
+  await import('../cli');
+  process.exit(0);
+}
+
+if (process.argv.includes('--status') || process.argv.includes('status') || process.argv.includes('--auth-status')) {
+  await import('../cli');
+  process.exit(0);
+}
+
 import { watch } from "fs";
 import { getDefaultWorkingDirectory, ensureDirectory } from "./directoryUtils";
 import { handleStaticFile } from "./staticFileServer";
