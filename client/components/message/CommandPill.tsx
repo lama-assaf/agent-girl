@@ -1,6 +1,6 @@
 /**
- * CommandPill - Renders slash commands as gradient pill badges
- * Similar to sub-agent name styling
+ * CommandPill - Renders slash commands with gradient text color
+ * Removed pill badge background wrapper
  */
 
 import React from 'react';
@@ -26,8 +26,6 @@ export function CommandPill({ commandName }: CommandPillProps) {
   const gradientClass = getCommandGradientClass(commandName);
 
   return (
-    <span className="command-pill">
-      <span className={gradientClass}>{commandName}</span>
-    </span>
+    <span className={gradientClass}>{commandName}</span>
   );
 }
