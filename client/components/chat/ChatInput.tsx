@@ -298,10 +298,14 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                 <button
                   key={cmd.name}
                   type="button"
+                  onMouseDown={(e) => {
+                    // Prevent button from stealing focus from textarea
+                    e.preventDefault();
+                  }}
                   onClick={() => {
                     onChange(`/${cmd.name} `);
                     setShowCommandMenu(false);
-                    textareaRef.current?.focus();
+                    // Textarea maintains focus - no need to refocus
                   }}
                   onMouseEnter={() => setSelectedCommandIndex(index)}
                   className={`w-full text-left px-4 py-5 transition-colors cursor-pointer ${
@@ -414,6 +418,8 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                 textIndent: mode ? `${modeIndicatorWidth}px` : '0px',
                 color: value.match(/(^|\s)(\/([a-z-]+))(?=\s|$)/m) ? 'transparent' : 'rgb(243, 244, 246)',
                 caretColor: 'rgb(243, 244, 246)',
+                position: 'relative',
+                zIndex: 20,
               }}
             />
           </div>
