@@ -22,33 +22,55 @@ export function setupSessionCommands(workingDir: string, mode: string): void {
   // Get the app's base directory (works in both dev and release)
   const baseDir = getBinaryDir();
 
+  console.log(`🔍 Command setup diagnostics:`);
+  console.log(`  - App root (baseDir): ${baseDir}`);
+  console.log(`  - Session working dir: ${workingDir}`);
+  console.log(`  - Commands dest: ${commandsDir}`);
+  console.log(`  - Mode: ${mode}`);
+
+  let copiedCount = 0;
+
   // Copy shared commands (available in all modes)
   const sharedCommandsDir = path.join(baseDir, 'server', 'commands', 'shared');
+  console.log(`  - Shared source: ${sharedCommandsDir} (exists: ${fs.existsSync(sharedCommandsDir)})`);
+
   if (fs.existsSync(sharedCommandsDir)) {
     const sharedFiles = fs.readdirSync(sharedCommandsDir);
+    console.log(`  - Shared files found: ${sharedFiles.join(', ')}`);
     for (const file of sharedFiles) {
       if (file.endsWith('.md')) {
         const sourcePath = path.join(sharedCommandsDir, file);
         const destPath = path.join(commandsDir, file);
         fs.copyFileSync(sourcePath, destPath);
+        copiedCount++;
+        console.log(`    ✓ Copied: ${file}`);
       }
     }
+  } else {
+    console.warn(`⚠️  Shared commands directory not found: ${sharedCommandsDir}`);
   }
 
   // Copy mode-specific commands
   const modeCommandsDir = path.join(baseDir, 'server', 'commands', mode);
+  console.log(`  - Mode source: ${modeCommandsDir} (exists: ${fs.existsSync(modeCommandsDir)})`);
+
   if (fs.existsSync(modeCommandsDir)) {
     const modeFiles = fs.readdirSync(modeCommandsDir);
+    console.log(`  - Mode files found: ${modeFiles.join(', ')}`);
     for (const file of modeFiles) {
       if (file.endsWith('.md')) {
         const sourcePath = path.join(modeCommandsDir, file);
         const destPath = path.join(commandsDir, file);
         fs.copyFileSync(sourcePath, destPath);
+        copiedCount++;
+        console.log(`    ✓ Copied: ${file}`);
       }
     }
+  } else {
+    console.warn(`⚠️  Mode commands directory not found: ${modeCommandsDir}`);
   }
 
-  console.log(`📋 Commands setup: ${commandsDir} (mode: ${mode})`);
+  console.log(`📋 Commands setup complete: ${copiedCount} files copied to ${commandsDir}`);
 }
 
 /**

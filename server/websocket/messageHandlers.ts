@@ -652,8 +652,12 @@ Run bash commands with the understanding that this is your current working direc
                     sessionId: sessionId,
                   })
                 );
+                // SKIP sending tool_use event for ExitPlanMode to avoid duplicate rendering
+                // The exit_plan_mode event already triggers the modal, no need for chat block
+                continue;
               } else if (block.name === 'ExitPlanMode') {
                 console.log('⚠️ Duplicate ExitPlanMode detected, skipping (already sent this turn)');
+                continue; // Skip duplicate ExitPlanMode
               }
 
               // Background processes are now intercepted and spawned via PreToolUse hook

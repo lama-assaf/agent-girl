@@ -31,13 +31,16 @@ export const debugLog = (message: string): void => {
 
 /**
  * Get the directory where the binary/script is located
- * In source-based releases, the launcher script already cd's to the right directory,
- * so we just use process.cwd() which is already correct
+ * Uses import.meta.dir to get the actual file location, then goes up to the app root
  *
  * EXPORTED for use in other modules that need to resolve paths relative to the app root
  */
 export const getBinaryDir = (): string => {
-  return process.cwd();
+  // import.meta.dir gives us /path/to/agent-girl/server
+  // We need to go up one level to /path/to/agent-girl (the app root)
+  const serverDir = import.meta.dir;
+  const appRoot = path.dirname(serverDir);
+  return appRoot;
 };
 
 export interface StartupConfig {
