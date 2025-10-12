@@ -52,9 +52,19 @@ export function loadUserConfig(): UserConfig {
 
   try {
     const content = readFileSync(configPath, 'utf-8');
-    return JSON.parse(content);
+    const trimmed = content.trim();
+
+    // Handle empty/whitespace files gracefully (common on Windows with BOM/CRLF)
+    if (trimmed === '') {
+      console.warn(`⚠️  User config file is empty or contains only whitespace: ${configPath}`);
+      return {};
+    }
+
+    return JSON.parse(trimmed);
   } catch (error) {
-    console.error('Failed to load user config:', error);
+    console.error('❌ Failed to load user config:', error);
+    console.error(`   Path: ${configPath}`);
+    console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
     return {};
   }
 }
