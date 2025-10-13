@@ -35,6 +35,7 @@ export interface Session {
   working_directory: string;
   permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
   mode: 'general' | 'coder' | 'intense-research' | 'spark';
+  sdk_session_id?: string; // SDK's internal session ID for resume functionality
 }
 
 export interface SessionMessage {
@@ -101,6 +102,9 @@ class SessionDatabase {
 
     // Migration: Add mode column if it doesn't exist
     this.migrateMode();
+
+    // Migration: Add sdk_session_id column if it doesn't exist
+    this.migrateSdkSessionId();
   }
 
   private migrateWorkingDirectory() {
@@ -196,6 +200,34 @@ class SessionDatabase {
     }
   }
 
+  private migrateSdkSessionId() {
+    try {
+      // Check if sdk_session_id column exists
+      const columns = this.db.query<{ name: string }, []>(
+        "PRAGMA table_info(sessions)"
+      ).all();
+
+      const hasSdkSessionId = columns.some(col => col.name === 'sdk_session_id');
+
+      if (!hasSdkSessionId) {
+        console.log('📦 Migrating database: Adding sdk_session_id column');
+
+        // Add the column (nullable, as it's only set after first message)
+        this.db.run(`
+          ALTER TABLE sessions
+          ADD COLUMN sdk_session_id TEXT
+        `);
+
+        console.log('✅ sdk_session_id column added successfully');
+      } else {
+        console.log('✅ sdk_session_id column already exists');
+      }
+    } catch (error) {
+      console.error('❌ Database migration failed:', error);
+      throw error;
+    }
+  }
+
   // Session operations
   createSession(title: string = "New Chat", workingDirectory?: string, mode: 'general' | 'coder' | 'intense-research' | 'spark' = 'general'): Session {
     const id = randomUUID();
@@ -276,6 +308,7 @@ class SessionDatabase {
           s.working_directory,
           s.permission_mode,
           s.mode,
+          s.sdk_session_id,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -315,6 +348,7 @@ class SessionDatabase {
           s.working_directory,
           s.permission_mode,
           s.mode,
+          s.sdk_session_id,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -383,6 +417,32 @@ class SessionDatabase {
       return success;
     } catch (error) {
       console.error('❌ Failed to update permission mode:', error);
+      return false;
+    }
+  }
+
+  updateSdkSessionId(sessionId: string, sdkSessionId: string): boolean {
+    try {
+      console.log('🔑 Updating SDK session ID:', {
+        session: sessionId.substring(0, 8),
+        sdkSessionId: sdkSessionId // FULL ID, not truncated
+      });
+
+      const result = this.db.run(
+        "UPDATE sessions SET sdk_session_id = ?, updated_at = ? WHERE id = ?",
+        [sdkSessionId, new Date().toISOString(), sessionId]
+      );
+
+      const success = result.changes > 0;
+      if (success) {
+        console.log('✅ SDK session ID updated successfully');
+      } else {
+        console.warn('⚠️  No session found to update');
+      }
+
+      return success;
+    } catch (error) {
+      console.error('❌ Failed to update SDK session ID:', error);
       return false;
     }
   }

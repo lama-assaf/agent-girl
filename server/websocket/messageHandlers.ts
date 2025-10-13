@@ -193,7 +193,8 @@ async function handleChatMessage(
   const allowedMcpTools = getAllowedMcpTools(providerType);
 
   // Minimal request logging - one line summary
-  console.log(`📨 [${apiModelId} @ ${provider}] Session: ${sessionId?.toString().substring(0, 8)} (${session.mode} mode) ${isNewStream ? '🆕 NEW' : '♻️ CONTINUE'}`);
+  // Note: At this point we haven't checked history yet, so we use isNewStream for subprocess status
+  console.log(`📨 [${apiModelId} @ ${provider}] Session: ${sessionId?.toString().substring(0, 8)} (${session.mode} mode) ${isNewStream ? '🆕 NEW SUBPROCESS' : '♻️ CONTINUE SUBPROCESS'}`);
 
   // Validate working directory (only log on failure)
   const validation = validateDirectory(workingDir);
@@ -242,10 +243,23 @@ Run bash commands with the understanding that this is your current working direc
     // Capture stderr output for better error messages
     let stderrOutput = '';
 
+    // Check if we have SDK session ID from previous subprocess
+    const sessionMessages = sessionDb.getSessionMessages(sessionId as string);
+    const isFirstMessage = sessionMessages.length === 1; // Only current message, no prior
+
+    // Log resume decision
+    if (!isFirstMessage && session.sdk_session_id) {
+      console.log(`📋 Using resume with SDK session ID: ${session.sdk_session_id}`);
+    } else if (!isFirstMessage) {
+      console.log(`⚠️ No SDK session ID stored, cannot use resume`);
+    }
+
     const queryOptions: Record<string, unknown> = {
       model: apiModelId,
       systemPrompt: systemPromptWithContext,
       permissionMode: 'bypassPermissions', // Always spawn with bypass - then switch if needed
+      // Use SDK's internal session ID for resume (if available from previous subprocess)
+      ...(isFirstMessage || !session.sdk_session_id ? {} : { resume: session.sdk_session_id }),
       includePartialMessages: true,
       agents: agentsWithWorkingDir, // Register custom agents with working dir context
       cwd: workingDir, // Set working directory for all tool executions
@@ -445,7 +459,7 @@ Run bash commands with the understanding that this is your current working direc
         // Add AbortController to query options
         queryOptions.abortController = abortController;
 
-        // Spawn SDK with AsyncIterable stream
+        // Spawn SDK with AsyncIterable stream (resume option loads history from transcript files)
         const result = query({
           prompt: messageStream,
           options: queryOptions
@@ -458,7 +472,7 @@ Run bash commands with the understanding that this is your current working direc
         // Set active WebSocket for this session
         sessionStreamManager.updateWebSocket(sessionId as string, ws);
 
-        // Enqueue first message to stream
+        // Enqueue current message (SDK loads history via resume option)
         sessionStreamManager.sendMessage(sessionId as string, promptText);
 
         console.log(`🚀 SDK subprocess spawned with AsyncIterable stream`);
@@ -491,6 +505,16 @@ Run bash commands with the understanding that this is your current working direc
               // Reset timeout on each event (inactivity timer)
               timeoutController.reset();
               timeoutController.checkTimeout();
+
+              // Capture SDK's internal session ID from first system message
+              if (message.type === 'system' && (message as { subtype?: string }).subtype === 'init') {
+                const sdkSessionId = (message as { session_id?: string }).session_id;
+                if (sdkSessionId && sdkSessionId !== sessionId) {
+                  console.log(`🔑 Captured SDK session ID: ${sdkSessionId} (DB: ${sessionId.toString().substring(0, 8)})`);
+                  sessionDb.updateSdkSessionId(sessionId as string, sdkSessionId);
+                }
+                continue; // Skip further processing for system messages
+              }
 
               // Handle turn completion
               if (message.type === 'result') {
@@ -684,9 +708,35 @@ Run bash commands with the understanding that this is your current working direc
             const errorMessage = error instanceof Error ? error.message : String(error);
             if (errorMessage.includes('aborted by user') || errorMessage.includes('AbortError')) {
               console.log(`✅ Generation stopped by user: ${sessionId.toString().substring(0, 8)}`);
+
+              // Save partial response (same as normal turn completion)
+              if (!currentMessageId) {
+                if (currentMessageContent.length > 0) {
+                  sessionDb.addMessage(sessionId as string, 'assistant', JSON.stringify(currentMessageContent));
+                  console.log(`💾 Saved ${currentMessageContent.length} content blocks from aborted response`);
+                } else if (currentTextResponse) {
+                  sessionDb.addMessage(sessionId as string, 'assistant', JSON.stringify([{ type: 'text', text: currentTextResponse }]));
+                  console.log(`💾 Saved ${currentTextResponse.length} chars from aborted response`);
+                }
+              }
+
+              // Send completion signal to client
+              sessionStreamManager.safeSend(
+                sessionId as string,
+                JSON.stringify({ type: 'result', success: true, sessionId: sessionId })
+              );
+
+              // Cancel timeout
+              timeoutController.cancel();
+
+              // Wait for SDK to flush transcript file (give it 500ms)
+              await new Promise(resolve => setTimeout(resolve, 500));
+
+              // Cleanup stream - next message will spawn new subprocess and resume from transcript
               sessionStreamManager.cleanupSession(sessionId as string, 'user_aborted');
               activeQueries.delete(sessionId as string);
-              // No error sent to client - abort was intentional
+
+              // Return - next message will use resume option with SDK session ID
               return;
             }
 
