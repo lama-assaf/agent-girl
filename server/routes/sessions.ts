@@ -134,11 +134,14 @@ export async function handleSessionRoutes(
         setupSessionCommands(session.working_directory, session.mode);
       }
 
+      // Clear SDK session ID to prevent resume with old directory's transcript files
+      sessionDb.updateSdkSessionId(sessionId, null);
+
       // Cleanup SDK stream to force respawn with new cwd on next message
       sessionStreamManager.cleanupSession(sessionId, 'directory_changed');
       activeQueries.delete(sessionId);
 
-      console.log(`🔄 SDK subprocess will restart with new cwd on next message`);
+      console.log(`🔄 SDK subprocess will restart with new cwd on next message (no resume)`);
 
       return new Response(JSON.stringify({ success: true, session }), {
         headers: { 'Content-Type': 'application/json' },

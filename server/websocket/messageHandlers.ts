@@ -263,7 +263,7 @@ Run bash commands with the understanding that this is your current working direc
       includePartialMessages: true,
       agents: agentsWithWorkingDir, // Register custom agents with working dir context
       cwd: workingDir, // Set working directory for all tool executions
-      executable: 'bun', // Explicitly specify bun as the runtime for SDK subprocess
+      executable: process.execPath, // Use absolute path to current Bun runtime (works on all platforms including WSL)
       // abortController will be added after stream creation
 
       // Capture stderr from SDK's bundled CLI for debugging and error context

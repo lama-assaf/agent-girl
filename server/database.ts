@@ -421,11 +421,11 @@ class SessionDatabase {
     }
   }
 
-  updateSdkSessionId(sessionId: string, sdkSessionId: string): boolean {
+  updateSdkSessionId(sessionId: string, sdkSessionId: string | null): boolean {
     try {
       console.log('🔑 Updating SDK session ID:', {
         session: sessionId.substring(0, 8),
-        sdkSessionId: sdkSessionId // FULL ID, not truncated
+        sdkSessionId: sdkSessionId || 'null (clearing)' // FULL ID, not truncated
       });
 
       const result = this.db.run(
