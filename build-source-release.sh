@@ -74,8 +74,22 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-# Check if bun is installed
-if ! command -v bun &> /dev/null; then
+# Check if bun is installed AND is a native binary (not Windows .exe in WSL)
+BUN_PATH=$(command -v bun 2>/dev/null || echo "")
+NEED_INSTALL=false
+
+if [ -z "$BUN_PATH" ]; then
+    # Bun not found at all
+    NEED_INSTALL=true
+elif [[ "$BUN_PATH" == *.exe ]] || [[ "$BUN_PATH" == *"/mnt/c/"* ]] || [[ "$BUN_PATH" == *"\\wsl"* ]]; then
+    # Found Windows bun in WSL - need to install native bun
+    echo "⚠️  Detected Windows Bun in WSL environment"
+    echo "   Installing native WSL Bun for compatibility..."
+    echo
+    NEED_INSTALL=true
+fi
+
+if [ "$NEED_INSTALL" = true ]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  🔧 Installing Bun..."
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
