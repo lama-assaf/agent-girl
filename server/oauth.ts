@@ -1,5 +1,10 @@
 import crypto from 'crypto';
 import { open } from 'openurl';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as fs from 'fs';
+
+const execAsync = promisify(exec);
 
 const CLIENT_ID = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
 const AUTHORIZATION_URL = 'https://claude.ai/oauth/authorize';
@@ -137,6 +142,45 @@ export function isTokenExpired(expiresAt: number): boolean {
 }
 
 /**
+ * Check if running in WSL (Windows Subsystem for Linux)
+ */
+function isWSL(): boolean {
+  try {
+    // Check /proc/version for WSL indicators
+    if (fs.existsSync('/proc/version')) {
+      const version = fs.readFileSync('/proc/version', 'utf8').toLowerCase();
+      return version.includes('microsoft') || version.includes('wsl');
+    }
+  } catch {
+    // Ignore errors
+  }
+  return false;
+}
+
+/**
+ * Open URL in browser - WSL-aware
+ */
+async function openBrowser(url: string): Promise<void> {
+  if (isWSL()) {
+    // In WSL, use Windows command to open browser
+    // cmd.exe /c start opens URL in default Windows browser
+    try {
+      await execAsync(`cmd.exe /c start "${url.replace(/"/g, '\\"')}"`);
+    } catch {
+      // Fallback: try powershell
+      try {
+        await execAsync(`powershell.exe -c Start '${url.replace(/'/g, "''")}'`);
+      } catch {
+        throw new Error('Failed to open browser in WSL');
+      }
+    }
+  } else {
+    // Non-WSL: use openurl package (handles macOS, Linux, Windows)
+    await open(url);
+  }
+}
+
+/**
  * Start OAuth flow - opens browser and returns authorization URL
  */
 export async function startOAuthFlow(): Promise<{ authUrl: string; pkce: PKCEChallenge }> {
@@ -146,9 +190,9 @@ export async function startOAuthFlow(): Promise<{ authUrl: string; pkce: PKCECha
   console.log('\n🔐 Opening browser for Claude authentication...');
   console.log(`\nIf browser doesn't open, visit this URL:\n${authUrl}\n`);
 
-  // Open browser
+  // Open browser (WSL-aware)
   try {
-    await open(authUrl);
+    await openBrowser(authUrl);
   } catch {
     console.error('Failed to open browser automatically. Please open the URL manually.');
   }
