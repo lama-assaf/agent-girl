@@ -14,6 +14,23 @@ interface SlashCommand {
 }
 
 /**
+ * Built-in Claude Code commands that are passed through to the SDK
+ * These commands are handled internally by the SDK and don't require .md files
+ */
+const BUILT_IN_COMMANDS: SlashCommand[] = [
+  {
+    name: 'clear',
+    description: 'Clear conversation history and start fresh',
+    argumentHint: '',
+  },
+  {
+    name: 'compact',
+    description: 'Compact conversation history to reduce token usage',
+    argumentHint: '',
+  },
+];
+
+/**
  * Parse frontmatter from markdown file
  */
 function parseFrontmatter(content: string): { description: string; argumentHint: string } {
@@ -86,7 +103,10 @@ export async function handleCommandRoutes(
       });
     }
 
-    const commands = await loadSessionCommands(session.working_directory, session.mode);
+    const customCommands = await loadSessionCommands(session.working_directory, session.mode);
+
+    // Merge built-in commands with custom commands
+    const commands = [...BUILT_IN_COMMANDS, ...customCommands];
 
     return new Response(JSON.stringify({ commands }), {
       headers: { 'Content-Type': 'application/json' },

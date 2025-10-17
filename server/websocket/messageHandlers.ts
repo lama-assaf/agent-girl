@@ -133,10 +133,6 @@ async function handleChatMessage(
     }
   }
 
-  // Save user message to database (stringify if array)
-  const contentForDb = typeof content === 'string' ? content : JSON.stringify(content);
-  sessionDb.addMessage(sessionId as string, 'user', contentForDb);
-
   // Extract text content for prompt
   let promptText = typeof content === 'string' ? content : '';
   if (Array.isArray(content)) {
@@ -147,9 +143,57 @@ async function handleChatMessage(
     promptText = textBlocks.join('\n');
   }
 
+  // Check for special built-in commands that need server-side handling
+  const trimmedPrompt = promptText.trim();
+
+  // Handle /clear command - clear AI context but keep visual chat history
+  if (trimmedPrompt === '/clear') {
+    console.log('🧹 /clear command detected - clearing AI context (keeping visual history)');
+
+    // Add system message to mark context boundary in chat history
+    sessionDb.addMessage(sessionId as string, 'user', '/clear');
+    sessionDb.addMessage(
+      sessionId as string,
+      'assistant',
+      JSON.stringify([{
+        type: 'text',
+        text: '--- Context cleared. The AI will not remember previous messages ---'
+      }])
+    );
+
+    // Clear SDK session ID to force fresh start (no resume from transcript)
+    sessionDb.updateSdkSessionId(sessionId as string, null);
+
+    // Abort current SDK subprocess if exists
+    const wasAborted = sessionStreamManager.abortSession(sessionId as string);
+    if (wasAborted) {
+      console.log('🛑 Aborted existing SDK subprocess for clean start');
+      sessionStreamManager.cleanupSession(sessionId as string, 'clear_command');
+    }
+
+    // Send context cleared message as assistant_message so client can render it
+    ws.send(JSON.stringify({
+      type: 'assistant_message',
+      content: '--- Context cleared. The AI will not remember previous messages ---',
+      sessionId: sessionId,
+    }));
+
+    ws.send(JSON.stringify({
+      type: 'result',
+      success: true,
+      sessionId: sessionId,
+    }));
+
+    return; // Don't send to SDK
+  }
+
+  // Save user message to database (stringify if array)
+  const contentForDb = typeof content === 'string' ? content : JSON.stringify(content);
+  sessionDb.addMessage(sessionId as string, 'user', contentForDb);
+
   // Expand slash commands if detected
-  if (promptText.trim().startsWith('/')) {
-    const expandedPrompt = expandSlashCommand(promptText.trim(), workingDir);
+  if (trimmedPrompt.startsWith('/')) {
+    const expandedPrompt = expandSlashCommand(trimmedPrompt, workingDir);
     if (expandedPrompt) {
       promptText = expandedPrompt;
     } else {
@@ -406,6 +450,7 @@ Run bash commands with the understanding that this is your current working direc
       timeoutMs: 600000, // 10 minutes
       warningMs: 300000,  // 5 minutes
       onWarning: () => {
+        console.log(`⚠️ [TIMEOUT] Warning: 5 minutes elapsed for session ${sessionId.toString().substring(0, 8)}`);
         // Send warning notification to client (use safeSend for WebSocket lifecycle safety)
         sessionStreamManager.safeSend(
           sessionId as string,
@@ -418,7 +463,27 @@ Run bash commands with the understanding that this is your current working direc
         );
       },
       onTimeout: () => {
-        console.log('⏱️ Request timeout reached (10min)');
+        console.log(`🔴 [TIMEOUT] Hard timeout reached (10min) for session ${sessionId.toString().substring(0, 8)}, aborting session`);
+
+        // Force abort the SDK subprocess
+        const aborted = sessionStreamManager.abortSession(sessionId as string);
+
+        if (aborted) {
+          // Send timeout error to client
+          sessionStreamManager.safeSend(
+            sessionId as string,
+            JSON.stringify({
+              type: 'error',
+              message: 'Task timed out after 10 minutes. Please try breaking down your request into smaller steps.',
+              errorType: 'timeout',
+              sessionId: sessionId,
+            })
+          );
+
+          // Cleanup session immediately
+          sessionStreamManager.cleanupSession(sessionId as string, 'timeout');
+          activeQueries.delete(sessionId as string);
+        }
       },
     });
 
@@ -460,10 +525,15 @@ Run bash commands with the understanding that this is your current working direc
         queryOptions.abortController = abortController;
 
         // Spawn SDK with AsyncIterable stream (resume option loads history from transcript files)
+        console.log(`🔵 [DIAG] About to spawn SDK subprocess for session ${sessionId.toString().substring(0, 8)}`);
+        console.log(`🔵 [DIAG] Query options: model=${queryOptions.model}, cwd=${queryOptions.cwd}, resume=${!!queryOptions.resume}`);
+
         const result = query({
           prompt: messageStream,
           options: queryOptions
         });
+
+        console.log(`🔵 [DIAG] SDK query() returned, registering with session manager`);
 
         // Register query and store for mid-stream control
         sessionStreamManager.registerQuery(sessionId as string, result);
@@ -498,13 +568,36 @@ Run bash commands with the understanding that this is your current working direc
           let currentMessageId: string | null = null; // Track DB message ID for incremental saves
           let exitPlanModeSentThisTurn = false; // Prevent duplicate plan modals
 
+          // Heartbeat logging every 30 seconds to detect hangs
+          const heartbeatInterval = setInterval(() => {
+            const elapsed = timeoutController.getElapsedSeconds();
+            console.log(`💓 [HEARTBEAT] Session ${sessionId.toString().substring(0, 8)} alive: ${elapsed}s elapsed, messages processed: ${totalCharCount} chars`);
+          }, 30000);
+
           try {
+            console.log(`🔵 [DIAG] Starting message processing loop for session ${sessionId.toString().substring(0, 8)}`);
+
             // Stream the response - query() is an AsyncGenerator
             // Loop runs indefinitely, processing message after message
             for await (const message of result) {
-              // Reset timeout on each event (inactivity timer)
-              timeoutController.reset();
+              // Only check timeout (don't reset yet - only reset on meaningful progress)
               timeoutController.checkTimeout();
+
+              // Log every message type for diagnostics
+              const messageType = message.type;
+              const messageSubtype = (message as { subtype?: string }).subtype;
+              console.log(`🔵 [DIAG] Message received: type=${messageType}, subtype=${messageSubtype || 'none'}`);
+
+              // Log full content of type=user messages for debugging
+              if (message.type === 'user') {
+                const userMessage = message as Record<string, unknown>;
+                console.log(`🔵 [DIAG] type=user details:`, {
+                  isSynthetic: userMessage.isSynthetic,
+                  isReplay: userMessage.isReplay,
+                  parent_tool_use_id: userMessage.parent_tool_use_id,
+                  message: userMessage.message ? JSON.stringify(userMessage.message).slice(0, 200) : null,
+                });
+              }
 
               // Capture SDK's internal session ID from first system message
               if (message.type === 'system' && (message as { subtype?: string }).subtype === 'init') {
@@ -516,9 +609,49 @@ Run bash commands with the understanding that this is your current working direc
                 continue; // Skip further processing for system messages
               }
 
+              // Detect compact boundary - conversation was compacted
+              if (message.type === 'system' && (message as { subtype?: string }).subtype === 'compact_boundary') {
+                const compactMessage = message as { compact_metadata?: { trigger: 'manual' | 'auto'; pre_tokens: number } };
+                const trigger = compactMessage.compact_metadata?.trigger || 'manual';
+                const preTokens = compactMessage.compact_metadata?.pre_tokens || 0;
+
+                if (trigger === 'auto') {
+                  console.log(`🗜️ AUTO-COMPACT triggered - context reached limit (${preTokens} tokens before compact)`);
+
+                  // For auto-compact: send notification that compaction is starting (no divider)
+                  // Claude will continue responding after compaction completes
+                  sessionStreamManager.safeSend(
+                    sessionId as string,
+                    JSON.stringify({
+                      type: 'compact_start',
+                      trigger: 'auto',
+                      preTokens: preTokens,
+                      sessionId: sessionId,
+                    })
+                  );
+                } else {
+                  console.log(`🗜️ Manual /compact completed - conversation history was summarized (${preTokens} tokens before compact)`);
+
+                  // For manual compact: send divider to show in chat
+                  sessionStreamManager.safeSend(
+                    sessionId as string,
+                    JSON.stringify({
+                      type: 'assistant_message',
+                      content: '--- History compacted. Previous messages were summarized to reduce token usage ---',
+                      sessionId: sessionId,
+                    })
+                  );
+                }
+
+                continue; // Skip further processing for system messages
+              }
+
               // Handle turn completion
               if (message.type === 'result') {
                 console.log(`✅ Turn completed: ${message.subtype}`);
+
+                // Reset timeout on turn completion (meaningful progress)
+                timeoutController.reset();
 
                 // Final save (if no content was saved incrementally)
                 if (!currentMessageId) {
@@ -526,6 +659,40 @@ Run bash commands with the understanding that this is your current working direc
                     sessionDb.addMessage(sessionId as string, 'assistant', JSON.stringify(currentMessageContent));
                   } else if (currentTextResponse) {
                     sessionDb.addMessage(sessionId as string, 'assistant', JSON.stringify([{ type: 'text', text: currentTextResponse }]));
+                  }
+                }
+
+                // Extract usage data from result message
+                const resultMessage = message as {
+                  usage?: { input_tokens?: number; output_tokens?: number };
+                  modelUsage?: Record<string, {
+                    inputTokens: number;
+                    outputTokens: number;
+                    contextWindow: number;
+                  }>;
+                };
+
+                // Send context usage to client if available
+                if (resultMessage.modelUsage) {
+                  // Get usage for the current model (usually first entry)
+                  const modelNames = Object.keys(resultMessage.modelUsage);
+                  if (modelNames.length > 0) {
+                    const usage = resultMessage.modelUsage[modelNames[0]];
+                    const contextPercentage = Math.round((usage.inputTokens / usage.contextWindow) * 100);
+
+                    console.log(`📊 Context usage: ${usage.inputTokens.toLocaleString()}/${usage.contextWindow.toLocaleString()} tokens (${contextPercentage}%)`);
+
+                    sessionStreamManager.safeSend(
+                      sessionId as string,
+                      JSON.stringify({
+                        type: 'context_usage',
+                        inputTokens: usage.inputTokens,
+                        outputTokens: usage.outputTokens,
+                        contextWindow: usage.contextWindow,
+                        contextPercentage: contextPercentage,
+                        sessionId: sessionId,
+                      })
+                    );
                   }
                 }
 
@@ -571,6 +738,9 @@ Run bash commands with the understanding that this is your current working direc
             const text = event.delta.text;
             currentTextResponse += text;
             deltaChars = text.length;
+
+            // Reset timeout on actual text output (meaningful progress)
+            timeoutController.reset();
 
             sessionStreamManager.safeSend(
               sessionId as string,
@@ -664,6 +834,14 @@ Run bash commands with the understanding that this is your current working direc
           // Handle tool use from complete assistant message
           for (const block of content) {
             if (block.type === 'tool_use') {
+              console.log(`🔵 [DIAG] Tool use detected: ${block.name} (id: ${block.id})`);
+
+              // Detect Task tool (sub-agent spawning)
+              if (block.name === 'Task') {
+                const taskInput = block.input as Record<string, unknown>;
+                console.log(`🟢 [SUB-AGENT] Task tool spawning agent: ${taskInput.subagent_type || 'unknown'}, prompt: ${String(taskInput.prompt).substring(0, 100)}...`);
+              }
+
               // Check if this is ExitPlanMode tool (deduplicate - only send first one per turn)
               if (block.name === 'ExitPlanMode' && !exitPlanModeSentThisTurn) {
                 console.log('🛡️ ExitPlanMode detected, sending plan to client');
@@ -756,6 +934,8 @@ Run bash commands with the understanding that this is your current working direc
             );
           } finally {
             console.log(`🏁 Background loop ended for session ${sessionId?.toString().substring(0, 8)}`);
+            clearInterval(heartbeatInterval);
+            console.log(`🔵 [DIAG] Heartbeat interval cleared`);
           }
         })(); // Execute async IIFE immediately (non-blocking)
 

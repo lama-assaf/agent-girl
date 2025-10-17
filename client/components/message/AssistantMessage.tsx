@@ -1472,6 +1472,54 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
 }
 
 function TextComponent({ text }: { text: TextBlock }) {
+  // Check if this is a context cleared message
+  const isContextCleared = text.text.includes('--- Context cleared');
+  const isHistoryCompacted = text.text.includes('--- History compacted');
+
+  // Render special divider for context cleared messages
+  if (isContextCleared) {
+    return (
+      <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
+        <div className="flex px-4 py-2 w-full text-xs bg-[#0C0E10]">
+          <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+            {/* Refresh icon */}
+            <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21.888 13.5C21.164 18.311 17.013 22 12 22 6.477 22 2 17.523 2 12S6.477 2 12 2c4.1 0 7.625 2.468 9.168 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M17 8h4.4a.6.6 0 0 0 .6-.6V3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-sm font-medium leading-6">Context Cleared</span>
+            <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+            <span className="flex-1 min-w-0 text-xs truncate text-white/60">
+              Previous conversation context has been cleared
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render special divider for history compacted messages
+  if (isHistoryCompacted) {
+    return (
+      <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
+        <div className="flex px-4 py-2 w-full text-xs bg-[#0C0E10]">
+          <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+            {/* Archive/compress icon */}
+            <svg className="size-4" strokeWidth="1.5" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 6h12M6 10h12M6 14h12M6 18h12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 9.5 2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5M2 9.5V4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5.5M2 9.5h20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-sm font-medium leading-6">Conversation Compacted</span>
+            <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+            <span className="flex-1 min-w-0 text-xs truncate text-white/60">
+              Conversation history has been compacted to save tokens
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Memoize components to prevent recreating on every render
   const components = useMemo(() => ({
             // Customize link rendering with URL badges

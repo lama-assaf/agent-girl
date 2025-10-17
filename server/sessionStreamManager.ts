@@ -69,6 +69,7 @@ export class SessionStreamManager {
     }
 
     stream.lastActivityAt = Date.now();
+    console.log(`🔵 [DIAG] Enqueueing message to session ${sessionId.substring(0, 8)}, hasWaitingConsumers=${stream.messageQueue.hasWaitingConsumers}`);
     stream.messageQueue.enqueue(content);
     console.log(`📬 Message queued: ${sessionId.substring(0, 8)} (queue size: ${stream.messageQueue.size})`);
   }
@@ -130,6 +131,7 @@ export class SessionStreamManager {
     }
 
     console.log(`🛑 User-triggered abort: ${sessionId.substring(0, 8)}`);
+    console.log(`🔵 [DIAG] Abort signal sent to SDK subprocess via AbortController`);
     stream.abortController.abort();
 
     // Send abort signal to client
@@ -173,15 +175,19 @@ export class SessionStreamManager {
     if (!stream) return;
 
     console.log(`🗑️ Stream cleanup: ${sessionId.substring(0, 8)} (reason: ${reason})`);
+    console.log(`🔵 [DIAG] Cleanup details: createdAt=${new Date(stream.createdAt).toISOString()}, lastActivityAt=${new Date(stream.lastActivityAt).toISOString()}, queueSize=${stream.messageQueue.size}`);
 
     // Abort SDK subprocess
+    console.log(`🔵 [DIAG] Aborting SDK subprocess via AbortController`);
     stream.abortController.abort();
 
     // Complete message queue (stops iteration)
+    console.log(`🔵 [DIAG] Completing AsyncQueue to stop SDK iteration`);
     stream.messageQueue.complete();
 
     // Remove from registry
     this.streams.delete(sessionId);
+    console.log(`🔵 [DIAG] Session removed from registry, active sessions: ${this.streams.size}`);
   }
 
   /**

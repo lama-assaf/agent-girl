@@ -40,9 +40,14 @@ interface ChatInputProps {
   onKillProcess?: (bashId: string) => void;
   mode?: 'general' | 'coder' | 'intense-research' | 'spark';
   availableCommands?: SlashCommand[];
+  contextUsage?: {
+    inputTokens: number;
+    contextWindow: number;
+    contextPercentage: number;
+  };
 }
 
-export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess, mode, availableCommands = [] }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess, mode, availableCommands = [], contextUsage }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
@@ -475,8 +480,28 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
               </div>
             </div>
 
-            {/* Right side - Send/Stop button */}
+            {/* Right side - Context usage and Send/Stop button */}
             <div className="input-controls-right">
+              {/* Context Usage Display */}
+              {contextUsage && (
+                <div className="flex items-center gap-2 mr-3 text-xs text-gray-400">
+                  <span title={`${contextUsage.inputTokens.toLocaleString()} / ${contextUsage.contextWindow.toLocaleString()} tokens`}>
+                    Context: {contextUsage.contextPercentage}%
+                  </span>
+                  {/* Visual bar indicator */}
+                  <div className="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        contextUsage.contextPercentage >= 90 ? 'bg-red-500' :
+                        contextUsage.contextPercentage >= 70 ? 'bg-yellow-500' :
+                        'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min(contextUsage.contextPercentage, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {isGenerating ? (
                 <button
                   onClick={onStop}

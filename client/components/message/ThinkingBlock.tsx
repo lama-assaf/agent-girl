@@ -19,7 +19,6 @@
  */
 
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
 
 interface ThinkingBlockProps {
   title: string;
@@ -31,42 +30,43 @@ export function ThinkingBlock({ title, content, defaultExpanded = false }: Think
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="thinking-block">
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
+      {/* Header */}
       <button
-        className="thinking-header"
+        className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10"
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
       >
-        <div className="thinking-header-left">
+        <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
           <div className="thinking-indicator">
             <div className="thinking-dot" />
           </div>
-          <div className="thinking-title">{title}</div>
+          <span className="text-sm font-medium leading-6 text-gradient">{title}</span>
         </div>
-        <div className="thinking-chevron">
-          <ChevronDown
-            className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-            size={12}
-            strokeWidth={3}
-          />
+        <div className="flex gap-1 items-center whitespace-nowrap">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+            data-collapsed={!isExpanded}
+            className="p-1.5 rounded-lg transition-all data-[collapsed=true]:-rotate-180"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3.5" stroke="currentColor" className="size-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+            </svg>
+          </button>
         </div>
       </button>
 
-      <div className="thinking-content-wrapper">
-        <div className="thinking-gradient-top" style={{ opacity: isExpanded ? 1 : 0 }} />
-        <div
-          className="thinking-content"
-          style={{
-            height: isExpanded ? 'auto' : '0',
-            maxHeight: isExpanded ? '10rem' : '0',
-          }}
-        >
-          <div className="thinking-content-text">
-            <blockquote className="thinking-blockquote">{content}</blockquote>
+      {/* Content */}
+      {isExpanded && (
+        <div className="p-4 bg-black/30 text-sm">
+          <div className="text-sm leading-5 text-white/90 whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
+            {content}
           </div>
         </div>
-        <div className="thinking-gradient-bottom" style={{ opacity: isExpanded ? 0 : 0 }} />
-      </div>
+      )}
     </div>
   );
 }

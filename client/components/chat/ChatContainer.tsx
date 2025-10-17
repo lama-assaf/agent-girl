@@ -55,6 +55,13 @@ export function ChatContainer() {
   // Live token count during streaming (for loading indicator)
   const [liveTokenCount, setLiveTokenCount] = useState(0);
 
+  // Context usage tracking (per-session)
+  const [contextUsage, setContextUsage] = useState<Map<string, {
+    inputTokens: number;
+    contextWindow: number;
+    contextPercentage: number;
+  }>>(new Map());
+
   // Message cache to preserve streaming state across session switches
   const messageCache = useRef<Map<string, Message[]>>(new Map());
 
@@ -694,6 +701,41 @@ export function ChatContainer() {
       } else if (message.type === 'slash_commands_available' && 'commands' in message) {
         // SDK supportedCommands() returns built-in commands only, not custom .md files
         // We ignore this and use REST API instead
+      } else if (message.type === 'compact_start' && 'trigger' in message && 'preTokens' in message) {
+        // Handle auto-compact notification
+        const compactMsg = message as { type: 'compact_start'; trigger: 'auto' | 'manual'; preTokens: number };
+        if (compactMsg.trigger === 'auto') {
+          const tokenCount = compactMsg.preTokens.toLocaleString();
+          toast.info('Auto-compacting conversation...', {
+            description: `Context reached limit (${tokenCount} tokens). Summarizing history...`,
+            duration: 10000, // Show for 10 seconds (compaction takes time)
+          });
+        }
+      } else if (message.type === 'context_usage' && 'inputTokens' in message && 'contextWindow' in message && 'contextPercentage' in message) {
+        // Handle context usage update
+        const usageMsg = message as {
+          type: 'context_usage';
+          inputTokens: number;
+          outputTokens: number;
+          contextWindow: number;
+          contextPercentage: number;
+          sessionId?: string;
+        };
+
+        const targetSessionId = usageMsg.sessionId || currentSessionId;
+        if (targetSessionId) {
+          setContextUsage(prev => {
+            const newMap = new Map(prev);
+            newMap.set(targetSessionId, {
+              inputTokens: usageMsg.inputTokens,
+              contextWindow: usageMsg.contextWindow,
+              contextPercentage: usageMsg.contextPercentage,
+            });
+            return newMap;
+          });
+
+          console.log(`📊 Context usage updated for session ${targetSessionId.substring(0, 8)}: ${usageMsg.contextPercentage}%`);
+        }
       }
     },
   });
@@ -979,6 +1021,7 @@ export function ChatContainer() {
               onKillProcess={handleKillProcess}
               mode={currentSessionId ? currentSessionMode : undefined}
               availableCommands={availableCommands}
+              contextUsage={currentSessionId ? contextUsage.get(currentSessionId) : undefined}
             />
           </>
         )}

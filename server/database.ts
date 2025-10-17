@@ -585,6 +585,29 @@ class SessionDatabase {
     return messages;
   }
 
+  clearSessionMessages(sessionId: string): boolean {
+    try {
+      console.log('🧹 Clearing all messages for session:', sessionId.substring(0, 8));
+
+      const result = this.db.run(
+        "DELETE FROM messages WHERE session_id = ?",
+        [sessionId]
+      );
+
+      const success = result.changes > 0;
+      if (success) {
+        console.log(`✅ Cleared ${result.changes} messages from session`);
+      } else {
+        console.log('⚠️  No messages found to clear');
+      }
+
+      return success;
+    } catch (error) {
+      console.error('❌ Failed to clear session messages:', error);
+      return false;
+    }
+  }
+
   close() {
     this.db.close();
   }

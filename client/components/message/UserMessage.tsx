@@ -62,8 +62,16 @@ export function UserMessage({ message }: UserMessageProps) {
       showError('COPY_FAILED', errorMsg);
     }
   };
-  const isToolResult = 'content' in message && Array.isArray(message.content) && 
+  const isToolResult = 'content' in message && Array.isArray(message.content) &&
     message.content.some(c => typeof c === 'object' && 'tool_use_id' in c);
+
+  // Hide /clear and /compact command messages (they're shown as dividers instead)
+  if (!isToolResult && 'content' in message && typeof message.content === 'string') {
+    const trimmedContent = message.content.trim();
+    if (trimmedContent === '/clear' || trimmedContent === '/compact') {
+      return null;
+    }
+  }
 
   if (isToolResult) {
     const toolResultMessage = message as UserToolResultMessage;

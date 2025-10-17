@@ -120,6 +120,20 @@ interface SlashCommandsAvailableEvent extends BaseWebSocketMessage {
   commands: SlashCommand[];
 }
 
+interface CompactStartEvent extends BaseWebSocketMessage {
+  type: 'compact_start';
+  trigger: 'auto' | 'manual';
+  preTokens: number;
+}
+
+interface ContextUsageEvent extends BaseWebSocketMessage {
+  type: 'context_usage';
+  inputTokens: number;
+  outputTokens: number;
+  contextWindow: number;
+  contextPercentage: number;
+}
+
 export type WebSocketMessage =
   | AssistantMessageEvent
   | ToolUseEvent
@@ -137,6 +151,8 @@ export type WebSocketMessage =
   | ThinkingStartEvent
   | ThinkingDeltaEvent
   | SlashCommandsAvailableEvent
+  | CompactStartEvent
+  | ContextUsageEvent
   | BaseWebSocketMessage; // Fallback for unknown types
 
 export type { SlashCommand };

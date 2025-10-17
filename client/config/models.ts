@@ -49,6 +49,13 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     provider: 'anthropic',
   },
   {
+    id: 'haiku',
+    name: 'Claude Haiku 4.5',
+    description: 'Fast and efficient model for quick tasks and rapid responses',
+    apiModelId: 'claude-haiku-4-5-20251001',
+    provider: 'anthropic',
+  },
+  {
     id: 'glm-4.6',
     name: 'GLM 4.6',
     description: 'Z.AI\'s flagship model for powerful reasoning and coding',

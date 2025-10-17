@@ -2,6 +2,12 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * Built-in Claude Code commands that are handled by the SDK
+ * These don't need .md files and are passed through unchanged
+ */
+export const BUILT_IN_COMMANDS = new Set(['clear', 'compact']);
+
+/**
  * Parse frontmatter from markdown file
  */
 function parseFrontmatter(content: string): {
@@ -51,7 +57,13 @@ export function expandSlashCommand(
 
   const [, commandName, , commandArgs = ''] = commandMatch;
 
-  // Look for command file in .claude/commands/
+  // Check if this is a built-in command (handled by SDK internally)
+  if (BUILT_IN_COMMANDS.has(commandName)) {
+    console.log(`✨ Built-in command detected: /${commandName}, passing through to SDK`);
+    return message; // Return original message unchanged - SDK will handle it
+  }
+
+  // Look for custom command file in .claude/commands/
   const commandsDir = path.join(workingDir, '.claude', 'commands');
   const commandFile = path.join(commandsDir, `${commandName}.md`);
 
