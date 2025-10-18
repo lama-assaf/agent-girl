@@ -710,7 +710,8 @@ Run bash commands with the understanding that this is your current working direc
                   const modelNames = Object.keys(resultMessage.modelUsage);
                   if (modelNames.length > 0) {
                     const usage = resultMessage.modelUsage[modelNames[0]];
-                    const contextPercentage = Math.round((usage.inputTokens / usage.contextWindow) * 100);
+                    // Use 1 decimal place precision to avoid 0% for small percentages
+                    const contextPercentage = Number(((usage.inputTokens / usage.contextWindow) * 100).toFixed(1));
 
                     console.log(`📊 Context usage: ${usage.inputTokens.toLocaleString()}/${usage.contextWindow.toLocaleString()} tokens (${contextPercentage}%)`);
 
