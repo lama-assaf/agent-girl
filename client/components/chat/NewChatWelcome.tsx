@@ -36,6 +36,8 @@ interface NewChatWelcomeProps {
   isPlanMode?: boolean;
   onTogglePlanMode?: () => void;
   availableCommands?: SlashCommand[];
+  onOpenBuildWizard?: () => void;
+  mode?: 'general' | 'coder' | 'intense-research' | 'spark';
 }
 
 const CAPABILITIES = [
@@ -46,14 +48,21 @@ const CAPABILITIES = [
   "I can analyze data and files"
 ];
 
-export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating, isPlanMode, onTogglePlanMode, availableCommands = [] }: NewChatWelcomeProps) {
+export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating, isPlanMode, onTogglePlanMode, availableCommands = [], onOpenBuildWizard, mode }: NewChatWelcomeProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
   const [_isDraggingOver, setIsDraggingOver] = useState(false);
 
-  // Mode selection state
-  const [selectedMode, setSelectedMode] = useState<'general' | 'coder' | 'intense-research' | 'spark'>('general');
+  // Mode selection state (synchronized with parent via props)
+  const [selectedMode, setSelectedMode] = useState<'general' | 'coder' | 'intense-research' | 'spark'>(mode || 'general');
+
+  // Sync local mode state with prop when it changes
+  useEffect(() => {
+    if (mode) {
+      setSelectedMode(mode);
+    }
+  }, [mode]);
   const [modeIndicatorWidth, setModeIndicatorWidth] = useState(80);
 
   // Slash command autocomplete state
@@ -552,7 +561,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
 
           {/* Mode Selector below input */}
           <div className="mt-6">
-            <ModeSelector selectedMode={selectedMode} onSelectMode={setSelectedMode} />
+            <ModeSelector selectedMode={selectedMode} onSelectMode={setSelectedMode} onOpenBuildWizard={onOpenBuildWizard} />
           </div>
         </div>
       </div>

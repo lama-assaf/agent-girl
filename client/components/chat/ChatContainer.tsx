@@ -28,6 +28,7 @@ import { ModelSelector } from '../header/ModelSelector';
 import { WorkingDirectoryDisplay } from '../header/WorkingDirectoryDisplay';
 import { AboutButton } from '../header/AboutButton';
 import { PlanApprovalModal } from '../plan/PlanApprovalModal';
+import { BuildWizard } from '../build-wizard/BuildWizard';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useSessionAPI, type Session } from '../../hooks/useSessionAPI';
 import { Menu, Edit3 } from 'lucide-react';
@@ -87,6 +88,9 @@ export function ChatContainer() {
 
   // Background processes (per-session)
   const [backgroundProcesses, setBackgroundProcesses] = useState<Map<string, BackgroundProcess[]>>(new Map());
+
+  // Build wizard state
+  const [isBuildWizardOpen, setIsBuildWizardOpen] = useState(false);
 
   const sessionAPI = useSessionAPI();
 
@@ -808,8 +812,9 @@ export function ChatContainer() {
     });
   };
 
-  const handleSubmit = async (files?: import('../message/types').FileAttachment[], mode?: 'general' | 'coder' | 'intense-research' | 'spark') => {
-    if (!inputValue.trim()) return;
+  const handleSubmit = async (files?: import('../message/types').FileAttachment[], mode?: 'general' | 'coder' | 'intense-research' | 'spark', messageOverride?: string) => {
+    const messageText = messageOverride || inputValue;
+    if (!messageText.trim()) return;
 
     if (!isConnected) return;
 
@@ -859,7 +864,7 @@ export function ChatContainer() {
       const userMessage: Message = {
         id: Date.now().toString(),
         type: 'user',
-        content: inputValue,
+        content: messageText,
         timestamp: new Date().toISOString(),
         attachments: files,
       };
@@ -869,17 +874,17 @@ export function ChatContainer() {
 
       // Build content: if there are image files, send as array of blocks
       // Otherwise, send as plain string (existing behavior)
-      let messageContent: string | Array<Record<string, unknown>> = inputValue;
+      let messageContent: string | Array<Record<string, unknown>> = messageText;
 
       if (files && files.length > 0) {
         // Convert to content blocks format (text + images)
         const contentBlocks: Array<Record<string, unknown>> = [];
 
         // Add text block if there's input
-        if (inputValue.trim()) {
+        if (messageText.trim()) {
           contentBlocks.push({
             type: 'text',
-            text: inputValue
+            text: messageText
           });
         }
 
@@ -936,6 +941,30 @@ export function ChatContainer() {
       stopGeneration(currentSessionId);
       setSessionLoading(currentSessionId, false);
     }
+  };
+
+  // Build wizard handlers
+  const handleOpenBuildWizard = () => {
+    setIsBuildWizardOpen(true);
+  };
+
+  const handleCloseBuildWizard = () => {
+    setIsBuildWizardOpen(false);
+  };
+
+  const handleBuildComplete = (prompt: string) => {
+    // Close wizard
+    setIsBuildWizardOpen(false);
+
+    // Clear current session to force creation of new session with Coder mode
+    setCurrentSessionId(null);
+    setCurrentSessionMode('coder');
+    setMessages([]);
+
+    // Auto-submit immediately with prompt override (no need to wait for state)
+    setTimeout(() => {
+      handleSubmit(undefined, 'coder', prompt);
+    }, 100);
   };
 
   return (
@@ -1049,6 +1078,8 @@ export function ChatContainer() {
             isPlanMode={isPlanMode}
             onTogglePlanMode={handleTogglePlanMode}
             availableCommands={availableCommands}
+            onOpenBuildWizard={handleOpenBuildWizard}
+            mode={currentSessionMode}
           />
         ) : (
           // Chat Interface
@@ -1084,6 +1115,14 @@ export function ChatContainer() {
           onApprove={handleApprovePlan}
           onReject={handleRejectPlan}
           isResponseInProgress={isLoading}
+        />
+      )}
+
+      {/* Build Wizard */}
+      {isBuildWizardOpen && (
+        <BuildWizard
+          onComplete={handleBuildComplete}
+          onClose={handleCloseBuildWizard}
         />
       )}
     </div>

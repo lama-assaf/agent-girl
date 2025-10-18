@@ -19,12 +19,13 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, Plus, X, Square } from 'lucide-react';
+import { Send, Plus, X, Square, Palette } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 import type { BackgroundProcess } from '../process/BackgroundProcessMonitor';
 import { ModeIndicator } from './ModeIndicator';
 import type { SlashCommand } from '../../hooks/useWebSocket';
 import { CommandTextRenderer } from '../message/CommandTextRenderer';
+import { StyleConfigModal } from './StyleConfigModal';
 
 interface ChatInputProps {
   value: string;
@@ -53,6 +54,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [modeIndicatorWidth, setModeIndicatorWidth] = useState(80);
+  const [isStyleConfigOpen, setIsStyleConfigOpen] = useState(false);
 
   // Slash command autocomplete state
   const [showCommandMenu, setShowCommandMenu] = useState(false);
@@ -469,6 +471,18 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                   </button>
                 )}
 
+                {/* Style Configuration button - only in Coder mode */}
+                {mode === 'coder' && (
+                  <button
+                    onClick={() => setIsStyleConfigOpen(true)}
+                    className="btn-icon rounded-lg"
+                    title="Configure styling & design system"
+                    type="button"
+                  >
+                    <Palette size={20} />
+                  </button>
+                )}
+
                 {/* Background Process Monitor */}
                 {/* TODO: Fix background process display - temporarily disabled */}
                 {/* {onKillProcess && (
@@ -527,6 +541,21 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
         </div>
       </form>
       </div>
+
+      {/* Style Configuration Modal */}
+      {isStyleConfigOpen && (
+        <StyleConfigModal
+          onComplete={(prompt) => {
+            setIsStyleConfigOpen(false);
+            onChange(prompt);
+            // Focus textarea after modal closes
+            setTimeout(() => {
+              textareaRef.current?.focus();
+            }, 100);
+          }}
+          onClose={() => setIsStyleConfigOpen(false)}
+        />
+      )}
     </div>
   );
 }
