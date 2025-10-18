@@ -10,6 +10,7 @@ import { getBinaryDir } from './startup';
  * Setup slash commands for a session by copying template .md files
  * Creates .claude/commands/ directory in session's working directory
  * and populates it with shared + mode-specific commands
+ * Also copies mode-specific CLAUDE.md to working directory root
  */
 export function setupSessionCommands(workingDir: string, mode: string): void {
   const commandsDir = path.join(workingDir, '.claude', 'commands');
@@ -46,6 +47,16 @@ export function setupSessionCommands(workingDir: string, mode: string): void {
       fs.copyFileSync(sourcePath, destPath);
       copiedCount++;
     }
+  }
+
+  // Copy mode-specific CLAUDE.md to working directory root
+  const templateClaudeFile = path.join(baseDir, 'server', 'templates', mode, 'CLAUDE.md');
+  const destClaudeFile = path.join(workingDir, 'CLAUDE.md');
+
+  // Only copy if template exists and destination doesn't exist (don't overwrite user's CLAUDE.md)
+  if (fs.existsSync(templateClaudeFile) && !fs.existsSync(destClaudeFile)) {
+    fs.copyFileSync(templateClaudeFile, destClaudeFile);
+    console.log(`📝 Created CLAUDE.md for ${mode} mode`);
   }
 
   // Only log if commands were actually copied (less noise)
