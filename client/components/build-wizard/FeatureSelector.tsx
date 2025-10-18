@@ -18,8 +18,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from 'react';
-import { Check, Lock, Database, Palette, Zap, Code2, Layers } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Lock, Database, Palette, Zap, Code2, Layers, HelpCircle, Sparkles } from 'lucide-react';
 import type { ProjectTemplate } from './buildConfig';
 
 interface FeatureSelectorProps {
@@ -44,11 +44,55 @@ const FEATURE_ICONS: Record<string, React.ReactNode> = {
   'storage': <Database style={{ width: '20px', height: '20px' }} />,
 };
 
+// Simple Tooltip Component
+function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <div
+      style={{ position: 'relative', display: 'inline-flex' }}
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {children}
+      {isVisible && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: '8px',
+            backgroundColor: 'rgb(20, 22, 24)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            width: '420px',
+            maxWidth: '90vw',
+            fontSize: '13px',
+            lineHeight: '1.6',
+            color: 'rgb(229, 231, 235)',
+            zIndex: 10000,
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'none',
+            whiteSpace: 'normal',
+            wordWrap: 'break-word',
+          }}
+        >
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function FeatureSelector({
   template,
   selectedFeatures,
   onToggleFeature,
 }: FeatureSelectorProps) {
+  const [hoveredFeature, setHoveredFeature] = useState<string | null>(null);
+
   return (
     <div style={{
       display: 'flex',
@@ -88,11 +132,14 @@ export function FeatureSelector({
       }}>
         {template.features.map((feature, index) => {
           const isSelected = selectedFeatures.has(feature.id);
+          const isHovered = hoveredFeature === feature.id;
 
           return (
             <button
               key={feature.id}
               onClick={() => onToggleFeature(feature.id)}
+              onMouseEnter={() => setHoveredFeature(feature.id)}
+              onMouseLeave={() => setHoveredFeature(null)}
               className="promptCard waterfall"
               style={{
                 display: 'flex',
@@ -107,6 +154,8 @@ export function FeatureSelector({
                 backgroundImage: isSelected ? template.gradient : 'none',
                 borderColor: isSelected ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)',
                 transition: 'all 300ms',
+                position: 'relative',
+                zIndex: isHovered ? 10001 : 1,
                 ...(isSelected ? {
                   backgroundSize: '200% auto',
                   animation: 'shimmer 3s linear infinite, waterfall 0.3s ease-out forwards',
@@ -142,14 +191,43 @@ export function FeatureSelector({
                   flex: 1,
                   minWidth: 0,
                 }}>
-                  <h3 style={{
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    marginBottom: '4px',
-                    color: isSelected ? '#000000' : 'rgb(243, 244, 246)',
-                  }}>
-                    {feature.name}
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <h3 style={{
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      color: isSelected ? '#000000' : 'rgb(243, 244, 246)',
+                    }}>
+                      {feature.name}
+                    </h3>
+                    {feature.recommended && (
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        backgroundColor: isSelected ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.15)',
+                        color: isSelected ? 'rgb(21, 128, 61)' : 'rgb(34, 197, 94)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                      }}>
+                        <Sparkles style={{ width: '10px', height: '10px' }} />
+                        Recommended
+                      </span>
+                    )}
+                    {feature.tooltip && (
+                      <Tooltip text={feature.tooltip}>
+                        <HelpCircle
+                          style={{
+                            width: '14px',
+                            height: '14px',
+                            color: isSelected ? 'rgba(0, 0, 0, 0.5)' : 'rgb(107, 114, 128)',
+                            cursor: 'help',
+                          }}
+                        />
+                      </Tooltip>
+                    )}
+                  </div>
                   <p style={{
                     fontSize: '13px',
                     lineHeight: '1.5',

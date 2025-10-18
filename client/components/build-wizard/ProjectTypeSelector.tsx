@@ -19,11 +19,53 @@
  */
 
 import React, { useState } from 'react';
-import { Rocket, Chrome, Layout, Package } from 'lucide-react';
+import { Rocket, Chrome, Layout, Package, HelpCircle } from 'lucide-react';
 import { PROJECT_TEMPLATES, type ProjectTemplate } from './buildConfig';
 
 interface ProjectTypeSelectorProps {
   onSelect: (template: ProjectTemplate) => void;
+}
+
+// Simple Tooltip Component
+function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <div
+      style={{ position: 'relative', display: 'inline-flex' }}
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {children}
+      {isVisible && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: '8px',
+            backgroundColor: 'rgb(20, 22, 24)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            width: '420px',
+            maxWidth: '90vw',
+            fontSize: '13px',
+            lineHeight: '1.6',
+            color: 'rgb(229, 231, 235)',
+            zIndex: 10000,
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'none',
+            whiteSpace: 'normal',
+            wordWrap: 'break-word',
+          }}
+        >
+          {text}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Map template IDs to icons
@@ -110,6 +152,8 @@ export function ProjectTypeSelector({ onSelect }: ProjectTypeSelectorProps) {
                   ? '0 8px 24px rgba(0, 0, 0, 0.3)'
                   : '0 2px 8px rgba(0, 0, 0, 0.1)',
                 transition: 'all 300ms',
+                position: 'relative',
+                zIndex: isHovered ? 10001 : 1,
               }}
             >
               {/* Icon with gradient background */}
@@ -133,14 +177,29 @@ export function ProjectTypeSelector({ onSelect }: ProjectTypeSelectorProps) {
               </div>
 
               {/* Template Name */}
-              <h3 style={{
-                fontSize: '16px',
-                fontWeight: 600,
-                color: 'white',
-                marginBottom: '4px',
-              }}>
-                {template.name}
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <h3 style={{
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: 'white',
+                }}>
+                  {template.name}
+                </h3>
+                {template.tooltip && (
+                  <Tooltip text={template.tooltip}>
+                    <HelpCircle
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        color: 'rgb(107, 114, 128)',
+                        cursor: 'help',
+                        flexShrink: 0,
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Tooltip>
+                )}
+              </div>
 
               {/* Description */}
               <p style={{

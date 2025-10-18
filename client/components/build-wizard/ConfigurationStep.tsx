@@ -18,8 +18,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from 'react';
-import { Settings } from 'lucide-react';
+import React, { useState } from 'react';
+import { Settings, HelpCircle } from 'lucide-react';
 import type { ProjectTemplate } from './buildConfig';
 
 interface ConfigurationStepProps {
@@ -31,6 +31,48 @@ interface ConfigurationStepProps {
   onProjectNameChange: (name: string) => void;
 }
 
+// Simple Tooltip Component
+function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <div
+      style={{ position: 'relative', display: 'inline-flex' }}
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {children}
+      {isVisible && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: '8px',
+            backgroundColor: 'rgb(20, 22, 24)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            width: '420px',
+            maxWidth: '90vw',
+            fontSize: '13px',
+            lineHeight: '1.6',
+            color: 'rgb(229, 231, 235)',
+            zIndex: 10000,
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'none',
+            whiteSpace: 'normal',
+            wordWrap: 'break-word',
+          }}
+        >
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ConfigurationStep({
   template,
   selectedFeatures,
@@ -39,6 +81,8 @@ export function ConfigurationStep({
   projectName,
   onProjectNameChange,
 }: ConfigurationStepProps) {
+  const [hoveredConfig, setHoveredConfig] = useState<string | null>(null);
+
   // Get all config options from selected features
   const configOptions = template.features
     .filter(f => selectedFeatures.has(f.id))
@@ -143,64 +187,108 @@ export function ConfigurationStep({
 
         {/* Feature Configurations */}
         {configOptions.length > 0 ? (
-          configOptions.map((opt, index) => (
-            <div
-              key={opt.id}
-              className="promptCard waterfall"
-              style={{
-                padding: '16px',
-                borderRadius: '10px',
-                border: '2px solid rgba(255, 255, 255, 0.1)',
-                backgroundColor: 'rgb(38, 40, 42)',
-                animationDelay: `${index * 60}ms`,
-              }}
-            >
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: 500,
-                color: 'white',
+          configOptions.map((opt, index) => {
+            const isHovered = hoveredConfig === opt.id;
+
+            return (
+              <div
+                key={opt.id}
+                className="promptCard waterfall"
+                onMouseEnter={() => setHoveredConfig(opt.id)}
+                onMouseLeave={() => setHoveredConfig(null)}
+                style={{
+                  padding: '16px',
+                  borderRadius: '10px',
+                  border: '2px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'rgb(38, 40, 42)',
+                  animationDelay: `${index * 60}ms`,
+                  position: 'relative',
+                  zIndex: isHovered ? 10001 : 1,
+                }}
+              >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
                 marginBottom: '8px',
               }}>
-                {opt.label}
-                <span style={{
-                  color: 'rgb(107, 114, 128)',
-                  fontSize: '12px',
-                  marginLeft: '8px',
+                <label style={{
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'white',
                 }}>
-                  ({opt.featureName})
-                </span>
-              </label>
+                  {opt.label}
+                  <span style={{
+                    color: 'rgb(107, 114, 128)',
+                    fontSize: '12px',
+                    marginLeft: '8px',
+                  }}>
+                    ({opt.featureName})
+                  </span>
+                </label>
+                {opt.tooltip && (
+                  <Tooltip text={opt.tooltip}>
+                    <HelpCircle
+                      style={{
+                        width: '14px',
+                        height: '14px',
+                        color: 'rgb(107, 114, 128)',
+                        cursor: 'help',
+                      }}
+                    />
+                  </Tooltip>
+                )}
+              </div>
 
               {opt.type === 'select' && opt.options ? (
-                <select
-                  value={String(configurations[opt.id] || opt.defaultValue || opt.options[0].value)}
-                  onChange={(e) => onUpdateConfig(opt.id, e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    border: '2px solid rgba(255, 255, 255, 0.1)',
-                    backgroundColor: 'rgb(31, 41, 55)',
-                    color: 'white',
-                    fontSize: '14px',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 300ms',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                  }}
-                >
-                  {opt.options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={String(configurations[opt.id] || opt.defaultValue || opt.options[0].value)}
+                    onChange={(e) => onUpdateConfig(opt.id, e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: '2px solid rgba(255, 255, 255, 0.1)',
+                      backgroundColor: 'rgb(31, 41, 55)',
+                      color: 'white',
+                      fontSize: '14px',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 300ms',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }}
+                  >
+                    {opt.options.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.recommended ? '★ ' : ''}{option.label}{option.recommended ? ' (Recommended)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {(() => {
+                    const selectedValue = String(configurations[opt.id] || opt.defaultValue || opt.options[0].value);
+                    const selectedOption = opt.options.find(o => o.value === selectedValue);
+                    return selectedOption?.tooltip ? (
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                        fontSize: '12px',
+                        lineHeight: '1.5',
+                        color: 'rgb(147, 197, 253)',
+                      }}>
+                        {selectedOption.tooltip}
+                      </div>
+                    ) : null;
+                  })()}
+                </>
               ) : opt.type === 'toggle' ? (
                 <button
                   onClick={() => onUpdateConfig(opt.id, !configurations[opt.id])}
@@ -231,7 +319,8 @@ export function ConfigurationStep({
                 </button>
               ) : null}
             </div>
-          ))
+            );
+          })
         ) : (
           <div style={{
             textAlign: 'center',
