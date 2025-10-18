@@ -36,6 +36,9 @@ export interface Session {
   permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
   mode: 'general' | 'coder' | 'intense-research' | 'spark';
   sdk_session_id?: string; // SDK's internal session ID for resume functionality
+  context_input_tokens?: number;
+  context_window?: number;
+  context_percentage?: number;
 }
 
 export interface SessionMessage {
@@ -105,6 +108,9 @@ class SessionDatabase {
 
     // Migration: Add sdk_session_id column if it doesn't exist
     this.migrateSdkSessionId();
+
+    // Migration: Add context usage columns if they don't exist
+    this.migrateContextUsage();
   }
 
   private migrateWorkingDirectory() {
@@ -221,6 +227,52 @@ class SessionDatabase {
         console.log('✅ sdk_session_id column added successfully');
       } else {
         console.log('✅ sdk_session_id column already exists');
+      }
+    } catch (error) {
+      console.error('❌ Database migration failed:', error);
+      throw error;
+    }
+  }
+
+  private migrateContextUsage() {
+    try {
+      // Check if context usage columns exist
+      const columns = this.db.query<{ name: string }, []>(
+        "PRAGMA table_info(sessions)"
+      ).all();
+
+      const hasContextInputTokens = columns.some(col => col.name === 'context_input_tokens');
+      const hasContextWindow = columns.some(col => col.name === 'context_window');
+      const hasContextPercentage = columns.some(col => col.name === 'context_percentage');
+
+      if (!hasContextInputTokens || !hasContextWindow || !hasContextPercentage) {
+        console.log('📦 Migrating database: Adding context usage columns');
+
+        // Add the columns (nullable, as they're only set after first message)
+        if (!hasContextInputTokens) {
+          this.db.run(`
+            ALTER TABLE sessions
+            ADD COLUMN context_input_tokens INTEGER
+          `);
+        }
+
+        if (!hasContextWindow) {
+          this.db.run(`
+            ALTER TABLE sessions
+            ADD COLUMN context_window INTEGER
+          `);
+        }
+
+        if (!hasContextPercentage) {
+          this.db.run(`
+            ALTER TABLE sessions
+            ADD COLUMN context_percentage INTEGER
+          `);
+        }
+
+        console.log('✅ Context usage columns added successfully');
+      } else {
+        console.log('✅ Context usage columns already exist');
       }
     } catch (error) {
       console.error('❌ Database migration failed:', error);
@@ -443,6 +495,25 @@ class SessionDatabase {
       return success;
     } catch (error) {
       console.error('❌ Failed to update SDK session ID:', error);
+      return false;
+    }
+  }
+
+  updateContextUsage(sessionId: string, inputTokens: number, contextWindow: number, contextPercentage: number): boolean {
+    try {
+      const result = this.db.run(
+        "UPDATE sessions SET context_input_tokens = ?, context_window = ?, context_percentage = ?, updated_at = ? WHERE id = ?",
+        [inputTokens, contextWindow, contextPercentage, new Date().toISOString(), sessionId]
+      );
+
+      const success = result.changes > 0;
+      if (!success) {
+        console.warn('⚠️  No session found to update context usage');
+      }
+
+      return success;
+    } catch (error) {
+      console.error('❌ Failed to update context usage:', error);
       return false;
     }
   }

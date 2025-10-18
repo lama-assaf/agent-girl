@@ -129,6 +129,25 @@ export function ChatContainer() {
     setIsLoadingSessions(true);
     const loadedSessions = await sessionAPI.fetchSessions();
     setSessions(loadedSessions);
+
+    // Initialize context usage from loaded sessions
+    const newContextUsage = new Map<string, {
+      inputTokens: number;
+      contextWindow: number;
+      contextPercentage: number;
+    }>();
+
+    loadedSessions.forEach(session => {
+      if (session.context_input_tokens && session.context_window && session.context_percentage !== undefined) {
+        newContextUsage.set(session.id, {
+          inputTokens: session.context_input_tokens,
+          contextWindow: session.context_window,
+          contextPercentage: session.context_percentage,
+        });
+      }
+    });
+
+    setContextUsage(newContextUsage);
     setIsLoadingSessions(false);
   };
 

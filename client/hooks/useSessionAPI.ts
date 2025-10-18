@@ -31,6 +31,9 @@ export interface Session {
   working_directory: string;
   permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
   mode: 'general' | 'coder' | 'intense-research' | 'spark';
+  context_input_tokens?: number;
+  context_window?: number;
+  context_percentage?: number;
 }
 
 export interface SessionMessage {

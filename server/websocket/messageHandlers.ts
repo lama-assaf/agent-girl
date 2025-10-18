@@ -714,6 +714,14 @@ Run bash commands with the understanding that this is your current working direc
 
                     console.log(`📊 Context usage: ${usage.inputTokens.toLocaleString()}/${usage.contextWindow.toLocaleString()} tokens (${contextPercentage}%)`);
 
+                    // Save context usage to database for persistence
+                    sessionDb.updateContextUsage(
+                      sessionId as string,
+                      usage.inputTokens,
+                      usage.contextWindow,
+                      contextPercentage
+                    );
+
                     sessionStreamManager.safeSend(
                       sessionId as string,
                       JSON.stringify({
