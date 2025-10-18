@@ -126,6 +126,15 @@ interface CompactStartEvent extends BaseWebSocketMessage {
   preTokens: number;
 }
 
+interface CompactLoadingEvent extends BaseWebSocketMessage {
+  type: 'compact_loading';
+}
+
+interface CompactCompleteEvent extends BaseWebSocketMessage {
+  type: 'compact_complete';
+  preTokens: number;
+}
+
 interface ContextUsageEvent extends BaseWebSocketMessage {
   type: 'context_usage';
   inputTokens: number;
@@ -152,6 +161,8 @@ export type WebSocketMessage =
   | ThinkingDeltaEvent
   | SlashCommandsAvailableEvent
   | CompactStartEvent
+  | CompactLoadingEvent
+  | CompactCompleteEvent
   | ContextUsageEvent
   | BaseWebSocketMessage; // Fallback for unknown types
 

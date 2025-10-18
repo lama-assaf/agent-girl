@@ -146,6 +146,18 @@ async function handleChatMessage(
   // Check for special built-in commands that need server-side handling
   const trimmedPrompt = promptText.trim();
 
+  // Handle /compact command - show loading state while compacting
+  if (trimmedPrompt === '/compact') {
+    console.log('🗜️ /compact command detected - sending loading message');
+
+    // Send loading message to client
+    ws.send(JSON.stringify({
+      type: 'compact_loading',
+      sessionId: sessionId,
+    }));
+    // Continue to SDK - it will handle the actual compaction
+  }
+
   // Handle /clear command - clear AI context but keep visual chat history
   if (trimmedPrompt === '/clear') {
     console.log('🧹 /clear command detected - clearing AI context (keeping visual history)');
@@ -618,6 +630,16 @@ Run bash commands with the understanding that this is your current working direc
                 if (trigger === 'auto') {
                   console.log(`🗜️ AUTO-COMPACT triggered - context reached limit (${preTokens} tokens before compact)`);
 
+                  // Save divider message to database for auto-compact persistence
+                  sessionDb.addMessage(
+                    sessionId as string,
+                    'assistant',
+                    JSON.stringify([{
+                      type: 'text',
+                      text: `--- Auto-compact: Context reached limit (${preTokens.toLocaleString()} tokens). History was automatically summarized ---`
+                    }])
+                  );
+
                   // For auto-compact: send notification that compaction is starting (no divider)
                   // Claude will continue responding after compaction completes
                   sessionStreamManager.safeSend(
@@ -632,12 +654,22 @@ Run bash commands with the understanding that this is your current working direc
                 } else {
                   console.log(`🗜️ Manual /compact completed - conversation history was summarized (${preTokens} tokens before compact)`);
 
-                  // For manual compact: send divider to show in chat
+                  // Save divider message to database for persistence
+                  sessionDb.addMessage(
+                    sessionId as string,
+                    'assistant',
+                    JSON.stringify([{
+                      type: 'text',
+                      text: `--- History compacted. Previous messages were summarized to reduce token usage (${preTokens.toLocaleString()} tokens before compact) ---`
+                    }])
+                  );
+
+                  // For manual compact: send completion message to replace loading state
                   sessionStreamManager.safeSend(
                     sessionId as string,
                     JSON.stringify({
-                      type: 'assistant_message',
-                      content: '--- History compacted. Previous messages were summarized to reduce token usage ---',
+                      type: 'compact_complete',
+                      preTokens: preTokens,
                       sessionId: sessionId,
                     })
                   );

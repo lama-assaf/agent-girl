@@ -1632,16 +1632,27 @@ function TextComponent({ text }: { text: TextBlock }) {
             ),
           }) , []); // Empty deps - components never change
 
+  // Check if this is the compacting loading message
+  const isCompactingMessage = text.text === 'Compacting conversation...';
+
   return (
     <div className="text-base" style={{ color: 'rgb(var(--text-primary))' }}>
-      <div className="prose prose-base max-w-none prose-invert">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={components}
-        >
+      {isCompactingMessage ? (
+        // Render with shimmer gradient effect
+        <div className="text-gradient text-base font-semibold">
           {text.text}
-        </ReactMarkdown>
-      </div>
+        </div>
+      ) : (
+        // Normal markdown rendering
+        <div className="prose prose-base max-w-none prose-invert">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={components}
+          >
+            {text.text}
+          </ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 }

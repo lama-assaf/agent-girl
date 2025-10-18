@@ -711,6 +711,37 @@ export function ChatContainer() {
             duration: 10000, // Show for 10 seconds (compaction takes time)
           });
         }
+      } else if (message.type === 'compact_loading') {
+        // Handle /compact loading state - add temporary loading message with shimmer effect
+        const targetSessionId = message.sessionId || currentSessionId;
+        if (targetSessionId === currentSessionId) {
+          const loadingMessage: Message = {
+            id: 'compact-loading',
+            type: 'assistant',
+            content: [{ type: 'text', text: 'Compacting conversation...' }],
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, loadingMessage]);
+        }
+      } else if (message.type === 'compact_complete' && 'preTokens' in message) {
+        // Handle /compact completion - remove loading message and add final divider
+        const targetSessionId = message.sessionId || currentSessionId;
+        if (targetSessionId === currentSessionId) {
+          const compactMsg = message as { type: 'compact_complete'; preTokens: number };
+          const tokenCount = compactMsg.preTokens.toLocaleString();
+
+          // Remove loading message
+          setMessages((prev) => prev.filter(m => m.id !== 'compact-loading'));
+
+          // Add final divider message
+          const dividerMessage: Message = {
+            id: Date.now().toString(),
+            type: 'assistant',
+            content: [{ type: 'text', text: `--- History compacted. Previous messages were summarized to reduce token usage (${tokenCount} tokens before compact) ---` }],
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, dividerMessage]);
+        }
       } else if (message.type === 'context_usage' && 'inputTokens' in message && 'contextWindow' in message && 'contextPercentage' in message) {
         // Handle context usage update
         const usageMsg = message as {
