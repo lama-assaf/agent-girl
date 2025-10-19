@@ -27,6 +27,8 @@ export interface FeatureOption {
   tooltip?: string; // Beginner-friendly explanation with use cases
   recommended?: boolean; // Show "Recommended" badge
   configOptions?: ConfigOption[];
+  autoBundles?: string[]; // Feature IDs that are automatically included when this feature is selected
+  hidden?: boolean; // Don't show in UI (only added via auto-bundling or always included)
 }
 
 export interface ConfigOption {
@@ -155,6 +157,7 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
         name: 'API Layer',
         description: 'Type-safe API integration',
         tooltip: 'Connect your frontend (what users see) to your backend (server/database). Without this, your app can\'t fetch or save data. Use this for any app that needs a backend API.',
+        recommended: true,
         configOptions: [
           {
             id: 'apiType',
@@ -167,88 +170,6 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
               { value: 'graphql', label: 'GraphQL', tooltip: 'Flexible queries, fetch only what you need. Best for complex apps with lots of data relationships. Steeper learning curve.' },
             ],
             defaultValue: 'trpc',
-          },
-        ],
-      },
-      {
-        id: 'ai-integration',
-        name: 'AI Integration',
-        description: 'Add AI capabilities to your app',
-        tooltip: 'Add ChatGPT-like features to your app: chatbots, content generation, text analysis, summaries, translations. Use this to build AI-powered tools, writing assistants, smart search, or automated customer support.',
-        configOptions: [
-          {
-            id: 'aiProvider',
-            label: 'AI Provider',
-            type: 'select',
-            tooltip: 'Choose which AI model will power your app',
-            options: [
-              { value: 'vercel-ai', label: 'Vercel AI SDK', tooltip: 'Works with OpenAI, Anthropic, Google, and more. Switch providers anytime without changing code. Best for flexibility.', recommended: true },
-              { value: 'openai', label: 'OpenAI', tooltip: 'ChatGPT creator. Great for chatbots and content generation. Pricing: $0.0015 per 1K words. Free $5 credit for new accounts.' },
-              { value: 'anthropic', label: 'Anthropic Claude', tooltip: 'Best for long documents and complex reasoning. More accurate than ChatGPT for analysis. Pricing: $0.008 per 1K words.' },
-            ],
-            defaultValue: 'vercel-ai',
-          },
-        ],
-      },
-      {
-        id: 'payments',
-        name: 'Payments',
-        description: 'Accept payments and manage subscriptions',
-        tooltip: 'Let users pay you with credit cards for one-time purchases or monthly subscriptions. Essential for SaaS, online courses, premium features, memberships, or any app that makes money. Handles checkout, billing, and tax automatically.',
-        configOptions: [
-          {
-            id: 'paymentProvider',
-            label: 'Payment Provider',
-            type: 'select',
-            tooltip: 'Choose which service will handle your payments and money',
-            options: [
-              { value: 'stripe', label: 'Stripe', tooltip: 'Industry standard, works in 100+ countries. Fees: 2.9% + 30¢ per transaction. Best documentation and features. Used by Amazon, Google, Shopify.', recommended: true },
-              { value: 'paddle', label: 'Paddle', tooltip: 'Handles all taxes and compliance for you (SaaS focus). Fees: 5% + 50¢. Best if selling globally and want easy tax handling. Merchant of record.' },
-              { value: 'lemonsqueezy', label: 'LemonSqueezy', tooltip: 'Simplest setup, merchant of record handles taxes. Fees: 5% + 50¢. Best for digital products and courses. Quick start for indie devs.' },
-            ],
-            defaultValue: 'stripe',
-          },
-        ],
-      },
-      {
-        id: 'email',
-        name: 'Email',
-        description: 'Send transactional and marketing emails',
-        tooltip: 'Send emails from your app: welcome emails, password resets, receipts, notifications, newsletters. Essential for user communication. Without this, users won\'t get confirmation emails or important updates.',
-        configOptions: [
-          {
-            id: 'emailProvider',
-            label: 'Email Provider',
-            type: 'select',
-            tooltip: 'Choose which service will send emails for your app',
-            options: [
-              { value: 'resend', label: 'Resend', tooltip: 'Modern, simple API with React Email templates. Free: 3,000 emails/month. Then $20/month. Best for startups and modern apps.', recommended: true },
-              { value: 'sendgrid', label: 'SendGrid', tooltip: 'Popular enterprise option. Free: 100 emails/day. Paid plans from $15/month. Good for marketing emails and analytics.' },
-              { value: 'postmark', label: 'Postmark', tooltip: 'Fastest delivery, best for transactional emails (receipts, passwords). $15/month for 10K emails. Reliable delivery focus.' },
-              { value: 'nodemailer', label: 'Nodemailer', tooltip: 'Free but requires your own email server (Gmail, etc.). More complex setup. Use only if you have specific email server requirements.' },
-            ],
-            defaultValue: 'resend',
-          },
-        ],
-      },
-      {
-        id: 'file-storage',
-        name: 'File Storage',
-        description: 'Upload and store user files',
-        tooltip: 'Let users upload files: profile pictures, documents, videos, PDFs. Use for apps with user content, portfolios, file sharing, or media platforms. Files are stored in the cloud, not on your server.',
-        configOptions: [
-          {
-            id: 'storageProvider',
-            label: 'Storage Provider',
-            type: 'select',
-            tooltip: 'Choose where user-uploaded files will be stored',
-            options: [
-              { value: 'uploadthing', label: 'UploadThing', tooltip: 'Easiest setup for Next.js. Free: 2GB storage, 2GB bandwidth/month. Handles file uploads with one line of code. Best for quick starts.', recommended: true },
-              { value: 's3', label: 'AWS S3', tooltip: 'Industry standard, unlimited scale. $0.023 per GB/month. Best for large apps with many files. More complex setup but most powerful.' },
-              { value: 'r2', label: 'Cloudflare R2', tooltip: 'Like S3 but free bandwidth. $0.015 per GB/month. Best if serving many files to users (downloads, media). Good for cost savings.' },
-              { value: 'supabase-storage', label: 'Supabase Storage', tooltip: 'Free 1GB. Best if you\'re already using Supabase for database. Includes image transformations and CDN.' },
-            ],
-            defaultValue: 'uploadthing',
           },
         ],
       },
@@ -282,32 +203,6 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
               { value: 'vitest-only', label: 'Vitest only', tooltip: 'Unit tests only, no browser testing. Fastest setup. Good for APIs or simple apps.' },
             ],
             defaultValue: 'vitest-playwright',
-          },
-        ],
-      },
-      {
-        id: 'error-tracking',
-        name: 'Error Tracking',
-        description: 'Sentry for production error monitoring',
-        tooltip: 'Get notified when your app crashes or has errors. See exactly what went wrong, which users are affected, and stack traces. Essential for production apps. Free tier: 5,000 errors/month.',
-      },
-      {
-        id: 'analytics',
-        name: 'Analytics',
-        description: 'Privacy-focused analytics',
-        tooltip: 'See how many people use your app, which pages they visit, where they\'re from. Privacy-friendly alternatives to Google Analytics. Understand your users without invading privacy.',
-        configOptions: [
-          {
-            id: 'analyticsProvider',
-            label: 'Analytics Provider',
-            type: 'select',
-            tooltip: 'Choose your analytics platform',
-            options: [
-              { value: 'posthog', label: 'PostHog', tooltip: 'All-in-one: analytics + feature flags + session replay. Free: 1M events/month. Best for product analytics and understanding user behavior.', recommended: true },
-              { value: 'plausible', label: 'Plausible', tooltip: 'Simplest, lightweight, privacy-first. €9/month for 10K pageviews. Great for simple traffic tracking. European, GDPR compliant.' },
-              { value: 'umami', label: 'Umami', tooltip: 'Free and open source. Self-hosted or cloud. Simple pageview tracking. Best if you want full data ownership.' },
-            ],
-            defaultValue: 'posthog',
           },
         ],
       },
@@ -600,6 +495,7 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
         name: 'Payments',
         description: 'Accept payments and manage subscriptions',
         tooltip: 'Let users pay you with credit cards for one-time purchases or monthly subscriptions. Essential for SaaS, online courses, premium features, memberships, or any app that makes money. Handles checkout, billing, and tax automatically.',
+        autoBundles: ['email', 'rate-limiting'], // Payments need receipts and webhook protection
         configOptions: [
           {
             id: 'paymentProvider',
@@ -608,8 +504,8 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
             tooltip: 'Choose which service will handle your payments and money',
             options: [
               { value: 'stripe', label: 'Stripe', tooltip: 'Industry standard, works in 100+ countries. Fees: 2.9% + 30¢ per transaction. Best documentation and features. Used by Amazon, Google, Shopify.', recommended: true },
+              { value: 'lemonsqueezy', label: 'LemonSqueezy', tooltip: 'Simplest setup, merchant of record handles taxes. Fees: 5% + 50¢. Best for digital products and courses. Quick start for indie devs. Recently acquired by Stripe.' },
               { value: 'paddle', label: 'Paddle', tooltip: 'Handles all taxes and compliance for you (SaaS focus). Fees: 5% + 50¢. Best if selling globally and want easy tax handling. Merchant of record.' },
-              { value: 'lemonsqueezy', label: 'LemonSqueezy', tooltip: 'Simplest setup, merchant of record handles taxes. Fees: 5% + 50¢. Best for digital products and courses. Quick start for indie devs.' },
             ],
             defaultValue: 'stripe',
           },
@@ -627,10 +523,8 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
             type: 'select',
             tooltip: 'Choose which service will send emails for your app',
             options: [
-              { value: 'resend', label: 'Resend', tooltip: 'Modern, simple API with React Email templates. Free: 3,000 emails/month. Then $20/month. Best for startups and modern apps.', recommended: true },
-              { value: 'sendgrid', label: 'SendGrid', tooltip: 'Popular enterprise option. Free: 100 emails/day. Paid plans from $15/month. Good for marketing emails and analytics.' },
-              { value: 'postmark', label: 'Postmark', tooltip: 'Fastest delivery, best for transactional emails (receipts, passwords). $15/month for 10K emails. Reliable delivery focus.' },
-              { value: 'nodemailer', label: 'Nodemailer', tooltip: 'Free but requires your own email server (Gmail, etc.). More complex setup. Use only if you have specific email server requirements.' },
+              { value: 'resend', label: 'Resend + React Email', tooltip: 'Modern, simple API with beautiful React Email templates. Free: 3,000 emails/month, then $20/month. Best for startups and modern apps. 270K+ weekly downloads.', recommended: true },
+              { value: 'sendgrid', label: 'SendGrid', tooltip: 'Enterprise option. Free: 100 emails/day. Paid from $20/month. Good for marketing emails and analytics. Higher deliverability.' },
             ],
             defaultValue: 'resend',
           },
@@ -737,10 +631,29 @@ export function generateBuildPrompt(
   selectedFeatures: Set<string>,
   configurations: Record<string, string | boolean | number>
 ): string {
-  const featuresList = Array.from(selectedFeatures)
+  // AUTO-BUNDLING LOGIC: Expand selected features with auto-bundled dependencies
+  const expandedFeatures = new Set(selectedFeatures);
+
+  selectedFeatures.forEach(fId => {
+    const feature = template.features.find(f => f.id === fId);
+    if (feature?.autoBundles) {
+      feature.autoBundles.forEach(bundledId => {
+        expandedFeatures.add(bundledId);
+      });
+    }
+  });
+
+  // Always include hidden features that should be in every project
+  template.features.forEach(f => {
+    if (f.hidden && !f.autoBundles) {
+      expandedFeatures.add(f.id);
+    }
+  });
+
+  const featuresList = Array.from(expandedFeatures)
     .map(fId => {
       const feature = template.features.find(f => f.id === fId);
-      if (!feature) return null;
+      if (!feature || feature.hidden) return null; // Don't list hidden features
 
       const configs = feature.configOptions
         ?.map(opt => {
@@ -769,10 +682,10 @@ export function generateBuildPrompt(
     });
   }
 
-  // Build research tasks for parallel agent spawning
-  const researchTasks = Array.from(selectedFeatures).map(fId => {
+  // Build research tasks for parallel agent spawning (use expandedFeatures to include auto-bundled deps)
+  const researchTasks = Array.from(expandedFeatures).map(fId => {
     const feature = template.features.find(f => f.id === fId);
-    if (!feature) return null;
+    if (!feature || feature.hidden) return null; // Skip hidden features from research
 
     // Map features to research queries
     const researchMap: Record<string, string> = {
@@ -780,19 +693,21 @@ export function generateBuildPrompt(
       'database': `Latest ${configurations['orm'] || 'Prisma'} + ${configurations['dbType'] || 'PostgreSQL'} setup`,
       'styling': `Current ${configurations['uiLibrary'] || 'shadcn/ui'} installation for ${template.name}`,
       'api': `Latest ${configurations['apiType'] || 'tRPC'} setup with ${template.name}`,
-      'ai-integration': `Latest ${configurations['aiProvider'] || 'Vercel AI SDK'} setup with ${template.name} and best practices`,
-      'payments': `Latest ${configurations['paymentProvider'] || 'Stripe'} integration with ${template.name} (webhooks, subscriptions, checkout)`,
-      'email': `Latest ${configurations['emailProvider'] || 'Resend'} setup with ${template.name} and React Email templates`,
-      'file-storage': `Latest ${configurations['storageProvider'] || 'UploadThing'} integration with ${template.name} (upload, display, delete)`,
       'testing': `Current ${configurations['testingTools'] || 'Vitest + Playwright'} configuration`,
       'code-quality': 'Latest ESLint flat config + Prettier + Husky v9 setup',
       'env-validation': 'Current @t3-oss/env-nextjs or Zod env validation pattern',
-      'error-tracking': 'Latest Sentry integration for production',
-      'analytics': `Current ${configurations['analyticsProvider'] || 'PostHog'} setup`,
       'deployment': `Latest ${configurations['deployTarget'] || 'Vercel'} deployment config`,
       'framework': `Latest ${configurations['uiFramework'] || 'React'} setup with WXT`,
       'routing': 'Current React Router v6 setup patterns',
       'state': `Latest ${configurations['stateLibrary'] || 'Zustand'} integration patterns`,
+      // Vite-specific features (these are still in the Vite template)
+      'ai-integration': `Latest ${configurations['aiProvider'] || 'Vercel AI SDK'} setup with ${template.name} and best practices`,
+      'payments': `Latest ${configurations['paymentProvider'] || 'Stripe'} integration with ${template.name} (webhooks, subscriptions, checkout)`,
+      'email': `Latest ${configurations['emailProvider'] || 'Resend'} setup with ${template.name} and React Email templates`,
+      'file-storage': `Latest ${configurations['storageProvider'] || 'UploadThing'} integration with ${template.name}`,
+      'error-tracking': `Latest Sentry integration for ${template.name}`,
+      'analytics': `Latest ${configurations['analyticsProvider'] || 'PostHog'} setup for ${template.name}`,
+      'ui-library': `Latest ${configurations['componentLib'] || 'shadcn/ui'} installation for ${template.name}`,
     };
 
     return researchMap[fId];
@@ -838,11 +753,22 @@ cd ${projectName}
 \`\`\`
 
 STEP 4: INSTALL AND CONFIGURE FEATURES
-Using the research findings, set up each selected feature with the LATEST verified setup:
-${Array.from(selectedFeatures).map(fId => {
+Using the research findings, set up each selected feature with the LATEST verified setup.
+
+IMPORTANT: Some features have been AUTO-BUNDLED because they are required dependencies:
+${Array.from(expandedFeatures).filter(fId => {
   const feature = template.features.find(f => f.id === fId);
-  if (!feature) return '';
-  return `- Set up ${feature.name}: ${feature.description}`;
+  return feature && !selectedFeatures.has(fId) && !feature.hidden;
+}).map(fId => {
+  const feature = template.features.find(f => f.id === fId);
+  return `- ${feature?.name} (auto-included for security/functionality)`;
+}).filter(Boolean).join('\n') || '(None)'}
+
+Features to implement:
+${Array.from(expandedFeatures).map(fId => {
+  const feature = template.features.find(f => f.id === fId);
+  if (!feature || feature.hidden) return '';
+  return `- ${feature.name}: ${feature.description}`;
 }).filter(Boolean).join('\n')}
 
 For each feature:

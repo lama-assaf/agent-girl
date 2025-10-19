@@ -29,6 +29,7 @@ import { WorkingDirectoryDisplay } from '../header/WorkingDirectoryDisplay';
 import { AboutButton } from '../header/AboutButton';
 import { PlanApprovalModal } from '../plan/PlanApprovalModal';
 import { BuildWizard } from '../build-wizard/BuildWizard';
+import { ScrollButton } from './ScrollButton';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useSessionAPI, type Session } from '../../hooks/useSessionAPI';
 import { Menu, Edit3 } from 'lucide-react';
@@ -43,6 +44,9 @@ export function ChatContainer() {
   const [inputValue, setInputValue] = useState('');
   const [loadingSessions, setLoadingSessions] = useState<Set<string>>(new Set());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Ref for scroll container in MessageList
+  const scrollContainerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
   // Session management
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -1085,7 +1089,12 @@ export function ChatContainer() {
           // Chat Interface
           <>
             {/* Messages */}
-            <MessageList messages={messages} isLoading={isCurrentSessionLoading} liveTokenCount={liveTokenCount} />
+            <MessageList
+              messages={messages}
+              isLoading={isCurrentSessionLoading}
+              liveTokenCount={liveTokenCount}
+              scrollContainerRef={scrollContainerRef}
+            />
 
             {/* Input */}
             <ChatInput
@@ -1125,6 +1134,9 @@ export function ChatContainer() {
           onClose={handleCloseBuildWizard}
         />
       )}
+
+      {/* Scroll Button - only show when messages exist */}
+      {messages.length > 0 && <ScrollButton scrollContainerRef={scrollContainerRef} />}
     </div>
   );
 }

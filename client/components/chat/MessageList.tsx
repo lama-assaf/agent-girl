@@ -28,10 +28,11 @@ interface MessageListProps {
   messages: Message[];
   isLoading?: boolean;
   liveTokenCount?: number;
+  scrollContainerRef?: React.RefObject<HTMLDivElement>;
 }
 
-export function MessageList({ messages, isLoading, liveTokenCount = 0 }: MessageListProps) {
-  const parentRef = useRef<HTMLDivElement>(null);
+export function MessageList({ messages, isLoading, liveTokenCount = 0, scrollContainerRef }: MessageListProps) {
+  const parentRef = scrollContainerRef || useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Elapsed time tracking

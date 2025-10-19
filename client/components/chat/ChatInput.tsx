@@ -19,13 +19,14 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, Plus, X, Square, Palette } from 'lucide-react';
+import { Send, Plus, X, Square, Palette, List } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 import type { BackgroundProcess } from '../process/BackgroundProcessMonitor';
 import { ModeIndicator } from './ModeIndicator';
 import type { SlashCommand } from '../../hooks/useWebSocket';
 import { CommandTextRenderer } from '../message/CommandTextRenderer';
 import { StyleConfigModal } from './StyleConfigModal';
+import { FeaturesModal } from './FeaturesModal';
 
 interface ChatInputProps {
   value: string;
@@ -55,6 +56,7 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [modeIndicatorWidth, setModeIndicatorWidth] = useState(80);
   const [isStyleConfigOpen, setIsStyleConfigOpen] = useState(false);
+  const [isFeaturesModalOpen, setIsFeaturesModalOpen] = useState(false);
 
   // Slash command autocomplete state
   const [showCommandMenu, setShowCommandMenu] = useState(false);
@@ -483,6 +485,18 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                   </button>
                 )}
 
+                {/* Features button - only in Coder mode */}
+                {mode === 'coder' && (
+                  <button
+                    onClick={() => setIsFeaturesModalOpen(true)}
+                    className="btn-icon rounded-lg"
+                    title="Define features to build"
+                    type="button"
+                  >
+                    <List size={20} />
+                  </button>
+                )}
+
                 {/* Background Process Monitor */}
                 {/* TODO: Fix background process display - temporarily disabled */}
                 {/* {onKillProcess && (
@@ -554,6 +568,21 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
             }, 100);
           }}
           onClose={() => setIsStyleConfigOpen(false)}
+        />
+      )}
+
+      {/* Features Modal */}
+      {isFeaturesModalOpen && (
+        <FeaturesModal
+          onComplete={(prompt) => {
+            setIsFeaturesModalOpen(false);
+            onChange(prompt);
+            // Focus textarea after modal closes
+            setTimeout(() => {
+              textareaRef.current?.focus();
+            }, 100);
+          }}
+          onClose={() => setIsFeaturesModalOpen(false)}
         />
       )}
     </div>

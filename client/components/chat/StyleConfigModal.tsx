@@ -602,7 +602,17 @@ function AnimationPreviewCard({ preset, isSelected, onSelect }: {
                 border: preset.id === 'spinner' ? '3px solid rgba(59, 130, 246, 0.3)' : 'none',
                 borderTopColor: preset.id === 'spinner' ? 'rgb(59, 130, 246)' : 'transparent',
                 backgroundColor: preset.id === 'pulse' ? 'rgb(59, 130, 246)' : preset.id === 'shimmer' ? 'rgb(59, 130, 246)' : 'transparent',
-                animation: preset.id === 'spinner' ? `spin ${preset.duration} ${preset.easing} infinite` : preset.id === 'pulse' ? `pulse ${preset.duration} ${preset.easing} infinite` : 'none',
+                ...(preset.id === 'spinner' ? {
+                  animationName: 'spin',
+                  animationDuration: preset.duration,
+                  animationTimingFunction: preset.easing,
+                  animationIterationCount: 'infinite',
+                } : preset.id === 'pulse' ? {
+                  animationName: 'pulse',
+                  animationDuration: preset.duration,
+                  animationTimingFunction: preset.easing,
+                  animationIterationCount: 'infinite',
+                } : {}),
               }}
             />
             <style>{`
@@ -646,7 +656,9 @@ function AnimationPreviewCard({ preset, isSelected, onSelect }: {
                       borderRadius: '50%',
                       backgroundColor: 'rgba(255, 255, 255, 0.6)',
                       transform: 'translate(-50%, -50%)',
-                      animation: `ripple ${preset.duration} ${preset.easing}`,
+                      animationName: 'ripple',
+                      animationDuration: preset.duration,
+                      animationTimingFunction: preset.easing,
                     }}
                   />
                 )}
@@ -678,7 +690,11 @@ function AnimationPreviewCard({ preset, isSelected, onSelect }: {
                   color: 'white',
                   fontSize: '12px',
                   fontWeight: 500,
-                  animation: isAnimating ? `shake ${preset.duration} ${preset.easing}` : 'none',
+                  ...(isAnimating ? {
+                    animationName: 'shake',
+                    animationDuration: preset.duration,
+                    animationTimingFunction: preset.easing,
+                  } : {}),
                 }}
               >
                 ✗ Error
@@ -978,32 +994,68 @@ STEP 2: After all ${agentTypes.length} agents complete their work, verify that:
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: '900px',
-          maxHeight: '90vh',
+          maxWidth: '1152px',
+          height: '90vh',
           borderRadius: '16px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
           overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
           backgroundColor: 'rgb(20, 22, 24)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
         }}
       >
-        {/* Header */}
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            padding: '8px',
+            borderRadius: '8px',
+            color: 'white',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            border: 'none',
+            cursor: 'pointer',
+            zIndex: 10,
+            transition: 'background-color 200ms',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+          }}
+          aria-label="Close modal"
+        >
+          <X style={{ width: '20px', height: '20px' }} />
+        </button>
+
+        {/* Spacer for close button */}
+        <div style={{ height: '60px', flexShrink: 0 }} />
+
+        {/* Content */}
         <div
           style={{
-            padding: '24px 32px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            flex: 1,
+            overflowY: 'auto',
+            paddingBottom: '80px',
           }}
         >
-          <div>
+          {/* Header */}
+          <div
+            style={{
+              padding: '0 32px 24px',
+              textAlign: 'center',
+            }}
+          >
             <h2
               style={{
                 fontSize: '24px',
                 fontWeight: 600,
                 color: 'white',
-                marginBottom: '4px',
+                marginBottom: '8px',
               }}
             >
               Style Configuration
@@ -1012,36 +1064,9 @@ STEP 2: After all ${agentTypes.length} agents complete their work, verify that:
               Configure professional fonts and colors following best practices
             </p>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px',
-              borderRadius: '8px',
-              color: 'white',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'background-color 200ms',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-            }}
-          >
-            <X style={{ width: '20px', height: '20px' }} />
-          </button>
-        </div>
 
-        {/* Content */}
-        <div
-          style={{
-            padding: '32px',
-            overflowY: 'auto',
-            maxHeight: 'calc(90vh - 180px)',
-          }}
-        >
+          {/* Scrollable content */}
+          <div style={{ padding: '0 32px' }}>
           {/* Font Pairings */}
           <div style={{ marginBottom: '32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
@@ -1226,16 +1251,23 @@ STEP 2: After all ${agentTypes.length} agents complete their work, verify that:
               );
             })}
           </div>
+          </div>
         </div>
 
-        {/* Footer */}
+        {/* Fixed Footer */}
         <div
           style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
             padding: '16px 32px',
+            backgroundColor: 'rgb(20, 22, 24)',
             borderTop: '1px solid rgba(255, 255, 255, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            zIndex: 10,
           }}
         >
           <button

@@ -1447,3 +1447,63 @@
     transform: rotate(360deg);
   }
 }
+
+/* Scroll Button */
+.scroll-button {
+  position: fixed;
+  right: 3rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(218, 238, 255, 0.1) 0%, rgba(218, 238, 255, 0.05) 100%);
+  border: 1px solid rgba(218, 238, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 0 0 1px rgba(218, 238, 255, 0.1), 0 2px 8px rgba(218, 238, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  z-index: 50;
+  color: rgb(var(--blue-accent));
+}
+
+.scroll-button-bottom {
+  bottom: 8rem;
+  animation: fadeInFromBottom 0.25s ease-in forwards;
+}
+
+.scroll-button-top {
+  top: 6rem;
+  animation: fadeInFromTop 0.25s ease-in forwards;
+}
+
+.scroll-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 1px rgba(218, 238, 255, 0.2), 0 4px 12px rgba(218, 238, 255, 0.15);
+}
+
+@keyframes fadeInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
