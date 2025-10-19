@@ -141,3 +141,41 @@ export async function initializeStartup(): Promise<StartupConfig> {
     autoprefixer,
   };
 }
+
+/**
+ * Check if Node.js v18+ is available for Claude SDK subprocess
+ * The SDK requires Node.js runtime even though the server runs on Bun
+ */
+export async function checkNodeAvailability(): Promise<void> {
+  try {
+    const { execSync } = await import('child_process');
+    const version = execSync('node --version', { encoding: 'utf8' }).trim();
+    const majorVersion = parseInt(version.replace('v', '').split('.')[0]);
+
+    if (majorVersion < 18) {
+      throw new Error(
+        `Node.js v18+ required for Claude SDK. Found: ${version}\n` +
+        'Please upgrade: https://nodejs.org'
+      );
+    }
+
+    debugLog(`✅ Node.js ${version} available for SDK subprocess`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // If execSync failed because node is not found
+    if (errorMessage.includes('ENOENT') || errorMessage.includes('not found') || errorMessage.includes('command not found')) {
+      throw new Error(
+        'Node.js v18+ not found. Required for Claude SDK subprocess.\n' +
+        'Install from: https://nodejs.org\n\n' +
+        'Installation instructions:\n' +
+        '  • macOS: brew install node\n' +
+        '  • Linux: sudo apt install nodejs npm (Ubuntu/Debian)\n' +
+        '  • Windows: Download from https://nodejs.org'
+      );
+    }
+
+    // Re-throw other errors (like version check failure)
+    throw error;
+  }
+}

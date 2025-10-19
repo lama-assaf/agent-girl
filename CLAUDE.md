@@ -54,7 +54,9 @@ mkdir data
 
 ### Core Integration Pattern
 
-The application uses the **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) for AI interactions. The SDK bundles the Claude Code CLI internally and spawns it as a subprocess to handle tool execution (Read, Write, Bash, etc.).
+The application uses the **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) for AI interactions. The SDK bundles the Claude Code CLI internally and spawns it as a subprocess using **Node.js** to handle tool execution (Read, Write, Bash, etc.).
+
+**Important**: The SDK subprocess requires Node.js v18+ even though the server runs on Bun. This ensures compatibility with the SDK's native runtime environment and resolves potential timeout issues.
 
 Key integration points:
 
@@ -354,3 +356,4 @@ CREATE INDEX idx_messages_session_id ON messages(session_id)
 5. **WebSocket reconnection**: Maximum 5 reconnection attempts before manual intervention needed
 6. **MCP tools**: Z.AI models use `mcp__web-search-prime__search`, not `WebSearch` or `WebFetch`
 7. **Custom agents**: Agent names must match exactly in `AGENT_REGISTRY` for Task tool spawning to work
+8. **Node.js requirement**: The Claude SDK subprocess requires Node.js v18+. Server runs on Bun, but SDK spawns Node processes. Auto-installed by launcher scripts if missing.

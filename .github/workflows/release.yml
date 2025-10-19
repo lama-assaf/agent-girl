@@ -101,6 +101,44 @@ jobs:
               echo
           fi
 
+          # Check if Node.js is installed (required for Claude SDK)
+          NEED_NODE=false
+          if ! command -v node &> /dev/null; then
+              NEED_NODE=true
+          else
+              # Check Node.js version
+              NODE_VERSION=$(node --version | sed 's/v//' | cut -d'.' -f1)
+              if [ "$NODE_VERSION" -lt 18 ]; then
+                  echo "⚠️  Node.js v${NODE_VERSION} found, but v18+ required"
+                  NEED_NODE=true
+              fi
+          fi
+
+          if [ "$NEED_NODE" = true ]; then
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "  🔧 Installing Node.js..."
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+              # Check if Homebrew is available
+              if command -v brew &> /dev/null; then
+                  brew install node
+              else
+                  # Use nvm as fallback
+                  echo "Installing Node.js via nvm..."
+                  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+                  export NVM_DIR="$HOME/.nvm"
+                  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+                  nvm install --lts
+              fi
+
+              echo
+              echo "✅ Node.js installed successfully!"
+              echo
+          fi
+
+          echo "✅ Node.js $(node --version) ready"
+          echo ""
+
           # Start the server in production mode
           echo "🚀 Starting Agent Girl..."
           echo
@@ -145,7 +183,7 @@ jobs:
           - Your browser should open automatically
 
           First Run:
-          - On first launch, Bun runtime will be auto-installed (takes ~5 seconds)
+          - On first launch, Bun and Node.js will be auto-installed (takes ~10 seconds)
           - Subsequent launches are instant
 
           Data Storage:
@@ -154,8 +192,9 @@ jobs:
 
           Requirements:
           - macOS 11+ (Big Sur or later)
+          - Node.js v18+ (auto-installed if missing)
           - Anthropic API key (for Claude models)
-          - Internet connection (for first-time Bun install)
+          - Internet connection (for first-time setup)
 
           Troubleshooting:
           - If port 3001 is busy, kill the process: lsof -ti:3001 | xargs kill -9
@@ -296,6 +335,41 @@ jobs:
               echo.
           )
 
+          :: Check if Node.js is installed (required for Claude SDK)
+          where node >nul 2>nul
+          if %ERRORLEVEL% NEQ 0 (
+              echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+              echo   🔧 Installing Node.js...
+              echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+              :: Try winget first (Windows 10+)
+              where winget >nul 2>nul
+              if %ERRORLEVEL% EQU 0 (
+                  winget install -e --id OpenJS.NodeJS.LTS --silent --accept-source-agreements --accept-package-agreements
+              ) else (
+                  :: Fallback to chocolatey
+                  where choco >nul 2>nul
+                  if %ERRORLEVEL% EQU 0 (
+                      choco install nodejs-lts -y
+                  ) else (
+                      echo ⚠️  Please install Node.js manually from https://nodejs.org
+                      echo    Or install winget/chocolatey first
+                      pause
+                      exit /b 1
+                  )
+              )
+
+              :: Refresh PATH
+              set "PATH=%ProgramFiles%\nodejs;%PATH%"
+
+              echo.
+              echo ✅ Node.js installed successfully!
+              echo.
+          )
+
+          echo ✅ Node.js ready
+          echo.
+
           :: Start the server in production mode
           echo 🚀 Starting Agent Girl...
           echo.
@@ -339,7 +413,7 @@ jobs:
           - Your browser should open automatically
 
           First Run:
-          - On first launch, Bun runtime will be auto-installed (takes ~10 seconds)
+          - On first launch, Bun and Node.js will be auto-installed (takes ~15 seconds)
           - Subsequent launches are instant
 
           Data Storage:
@@ -348,8 +422,9 @@ jobs:
 
           Requirements:
           - Windows 10 or later
+          - Node.js v18+ (auto-installed if missing)
           - Anthropic API key (for Claude models)
-          - Internet connection (for first-time Bun install)
+          - Internet connection (for first-time setup)
 
           Troubleshooting:
           - If port 3001 is busy, kill the process using Task Manager
@@ -448,6 +523,38 @@ jobs:
               echo
           fi
 
+          # Check if Node.js is installed (required for Claude SDK)
+          NEED_NODE=false
+          if ! command -v node &> /dev/null; then
+              NEED_NODE=true
+          else
+              # Check Node.js version
+              NODE_VERSION=$(node --version | sed 's/v//' | cut -d'.' -f1)
+              if [ "$NODE_VERSION" -lt 18 ]; then
+                  echo "⚠️  Node.js v${NODE_VERSION} found, but v18+ required"
+                  NEED_NODE=true
+              fi
+          fi
+
+          if [ "$NEED_NODE" = true ]; then
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "  🔧 Installing Node.js..."
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+              # Use NodeSource installer for latest LTS
+              echo "Installing Node.js via NodeSource..."
+              curl -fsSL https://deb.nodesource.com/setup_lts.x -o /tmp/nodesource_setup.sh
+              sudo -E bash /tmp/nodesource_setup.sh
+              sudo apt-get install -y nodejs || sudo dnf install -y nodejs || sudo pacman -S --noconfirm nodejs npm
+
+              echo
+              echo "✅ Node.js installed successfully!"
+              echo
+          fi
+
+          echo "✅ Node.js $(node --version) ready"
+          echo ""
+
           # Start the server in production mode
           echo "🚀 Starting Agent Girl..."
           echo
@@ -493,7 +600,7 @@ jobs:
           - Your browser should open automatically
 
           First Run:
-          - On first launch, Bun runtime will be auto-installed (takes ~5 seconds)
+          - On first launch, Bun and Node.js will be auto-installed (takes ~10 seconds)
           - Subsequent launches are instant
 
           Data Storage:
@@ -503,8 +610,9 @@ jobs:
           Requirements:
           - Linux (Ubuntu 20.04+, Debian 10+, Fedora, Arch, etc.)
           - x64 architecture
+          - Node.js v18+ (auto-installed if missing)
           - Anthropic API key (for Claude models)
-          - Internet connection (for first-time Bun install)
+          - Internet connection (for first-time setup)
 
           Troubleshooting:
           - If port 3001 is busy, kill the process: lsof -ti:3001 | xargs kill -9

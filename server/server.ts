@@ -46,7 +46,7 @@ if (oauthFlag) {
 import { watch } from "fs";
 import { getDefaultWorkingDirectory, ensureDirectory } from "./directoryUtils";
 import { handleStaticFile } from "./staticFileServer";
-import { initializeStartup } from "./startup";
+import { initializeStartup, checkNodeAvailability } from "./startup";
 import { handleSessionRoutes } from "./routes/sessions";
 import { handleDirectoryRoutes } from "./routes/directory";
 import { handleUserConfigRoutes } from "./routes/userConfig";
@@ -56,6 +56,9 @@ import type { ServerWebSocket } from "bun";
 
 // Initialize startup configuration (loads env vars, sets up PostCSS)
 const { isStandalone: IS_STANDALONE, binaryDir: BINARY_DIR, postcss, tailwindcss, autoprefixer } = await initializeStartup();
+
+// Check Node.js availability for Claude SDK subprocess
+await checkNodeAvailability();
 
 // Initialize default working directory
 const DEFAULT_WORKING_DIR = getDefaultWorkingDirectory();
