@@ -92,6 +92,16 @@ export async function handleSessionRoutes(
 
     if (result.success) {
       const session = sessionDb.getSession(sessionId);
+
+      // Clear SDK session ID to prevent resume with old directory path in transcripts
+      sessionDb.updateSdkSessionId(sessionId, null);
+
+      // Cleanup SDK stream to force respawn with new cwd on next message
+      sessionStreamManager.cleanupSession(sessionId, 'folder_renamed');
+      activeQueries.delete(sessionId);
+
+      console.log(`🔄 SDK subprocess will restart with new folder path on next message (no resume)`);
+
       return new Response(JSON.stringify({ success: true, session }), {
         headers: { 'Content-Type': 'application/json' },
       });
