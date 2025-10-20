@@ -93,6 +93,9 @@ export function ChatContainer() {
   // Background processes (per-session)
   const [backgroundProcesses, setBackgroundProcesses] = useState<Map<string, BackgroundProcess[]>>(new Map());
 
+  // Track active long-running command by bashId for updates
+  const activeLongRunningCommandRef = useRef<string | null>(null);
+
   // Build wizard state
   const [isBuildWizardOpen, setIsBuildWizardOpen] = useState(false);
 
@@ -725,6 +728,133 @@ export function ChatContainer() {
             return newMap;
           });
         }
+      } else if (message.type === 'long_running_command_started' && 'bashId' in message && 'command' in message && 'commandType' in message) {
+        // Handle long-running command started - add as message block
+        const longRunningMsg = message as {
+          type: 'long_running_command_started';
+          bashId: string;
+          command: string;
+          commandType: 'install' | 'build' | 'test';
+          description?: string;
+          startedAt: number;
+        };
+
+        activeLongRunningCommandRef.current = longRunningMsg.bashId;
+
+        // Add a new assistant message with the long-running command block
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}`,
+            type: 'assistant' as const,
+            timestamp: new Date().toISOString(),
+            content: [{
+              type: 'long_running_command' as const,
+              bashId: longRunningMsg.bashId,
+              command: longRunningMsg.command,
+              commandType: longRunningMsg.commandType,
+              output: '',
+              status: 'running' as const,
+              startedAt: longRunningMsg.startedAt,
+            }],
+          },
+        ]);
+      } else if (message.type === 'command_output_chunk' && 'bashId' in message && 'output' in message) {
+        // Handle streaming output from long-running command - update message block
+        const outputMsg = message as { type: 'command_output_chunk'; bashId: string; output: string };
+
+        setMessages(prev => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage?.type === 'assistant' && lastMessage.content.length > 0) {
+            const lastBlock = lastMessage.content[lastMessage.content.length - 1];
+            if (lastBlock.type === 'long_running_command' && lastBlock.bashId === outputMsg.bashId) {
+              // Update the output of the last long-running command block
+              return [
+                ...prev.slice(0, -1),
+                {
+                  ...lastMessage,
+                  content: [
+                    ...lastMessage.content.slice(0, -1),
+                    {
+                      ...lastBlock,
+                      output: lastBlock.output + outputMsg.output,
+                    },
+                  ],
+                },
+              ];
+            }
+          }
+          return prev;
+        });
+      } else if (message.type === 'long_running_command_completed' && 'bashId' in message) {
+        // Handle long-running command completion - update message block status
+        const completedMsg = message as { type: 'long_running_command_completed'; bashId: string; exitCode: number };
+
+        setMessages(prev => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage?.type === 'assistant' && lastMessage.content.length > 0) {
+            const lastBlock = lastMessage.content[lastMessage.content.length - 1];
+            if (lastBlock.type === 'long_running_command' && lastBlock.bashId === completedMsg.bashId) {
+              toast.success('Command completed', {
+                description: 'Installation finished successfully',
+                duration: 3000,
+              });
+
+              activeLongRunningCommandRef.current = null;
+
+              // Update status to completed
+              return [
+                ...prev.slice(0, -1),
+                {
+                  ...lastMessage,
+                  content: [
+                    ...lastMessage.content.slice(0, -1),
+                    {
+                      ...lastBlock,
+                      status: 'completed' as const,
+                    },
+                  ],
+                },
+              ];
+            }
+          }
+          return prev;
+        });
+      } else if (message.type === 'long_running_command_failed' && 'bashId' in message && 'error' in message) {
+        // Handle long-running command failure - update message block status
+        const failedMsg = message as { type: 'long_running_command_failed'; bashId: string; error: string };
+
+        setMessages(prev => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage?.type === 'assistant' && lastMessage.content.length > 0) {
+            const lastBlock = lastMessage.content[lastMessage.content.length - 1];
+            if (lastBlock.type === 'long_running_command' && lastBlock.bashId === failedMsg.bashId) {
+              toast.error('Command failed', {
+                description: failedMsg.error,
+                duration: 5000,
+              });
+
+              activeLongRunningCommandRef.current = null;
+
+              // Update status to failed
+              return [
+                ...prev.slice(0, -1),
+                {
+                  ...lastMessage,
+                  content: [
+                    ...lastMessage.content.slice(0, -1),
+                    {
+                      ...lastBlock,
+                      status: 'failed' as const,
+                      output: lastBlock.output + '\n\nError: ' + failedMsg.error,
+                    },
+                  ],
+                },
+              ];
+            }
+          }
+          return prev;
+        });
       } else if (message.type === 'slash_commands_available' && 'commands' in message) {
         // SDK supportedCommands() returns built-in commands only, not custom .md files
         // We ignore this and use REST API instead
@@ -794,6 +924,11 @@ export function ChatContainer() {
 
           console.log(`📊 Context usage updated for session ${targetSessionId.substring(0, 8)}: ${usageMsg.contextPercentage}%`);
         }
+      } else if (message.type === 'keepalive') {
+        // Keepalive messages are sent every 30s to prevent WebSocket idle timeout
+        // during long-running operations. No action needed - just acknowledge receipt.
+        // Optionally log for debugging (commented out to reduce noise)
+        // console.log(`💓 Keepalive received (${message.elapsedSeconds}s elapsed)`);
       }
     },
   });

@@ -45,11 +45,6 @@ export async function getProviders(): Promise<Record<ProviderType, ProviderConfi
   if (cachedAnthropicKey === null) {
     cachedAnthropicKey = process.env.ANTHROPIC_API_KEY || '';
     cachedZaiKey = process.env.ZAI_API_KEY || '';
-
-    // Diagnostic logging (only on first initialization)
-    console.log('🔑 API keys cached from environment:');
-    console.log(`  - ANTHROPIC_API_KEY: ${cachedAnthropicKey ? `${cachedAnthropicKey.slice(0, 10)}...` : '(not set)'}`);
-    console.log(`  - ZAI_API_KEY: ${cachedZaiKey ? `${cachedZaiKey.slice(0, 10)}...` : '(not set)'}`);
   }
 
   // Check for OAuth tokens for Anthropic provider
@@ -79,14 +74,11 @@ export async function getProviders(): Promise<Record<ProviderType, ProviderConfi
  * If OAuth tokens exist, they will be used instead of the API key
  */
 export async function configureProvider(provider: ProviderType): Promise<void> {
-  console.log(`🔵 [PROVIDER] Configuring provider: ${provider}`);
-
   const providers = await getProviders();
   const config = providers[provider];
 
   // IMPORTANT: Clear ALL auth environment variables first
   // This ensures clean state when switching providers
-  console.log(`🔵 [PROVIDER] Clearing all auth environment variables`);
   delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
   delete process.env.ANTHROPIC_AUTH_TOKEN;
   delete process.env.ANTHROPIC_API_KEY;
@@ -94,8 +86,6 @@ export async function configureProvider(provider: ProviderType): Promise<void> {
 
   // Check if using OAuth for this provider
   if (provider === 'anthropic' && config.oauthTokens) {
-    console.log(`🔵 [PROVIDER] Using OAuth authentication (API key will be ignored)`);
-
     // Check if token needs refresh
     if (isTokenExpired(config.oauthTokens.expiresAt)) {
       console.log('⏳ OAuth token expired, refreshing...');
@@ -117,7 +107,6 @@ export async function configureProvider(provider: ProviderType): Promise<void> {
       // Use CLAUDE_CODE_OAUTH_TOKEN for OAuth authentication
       // The Claude Code CLI subprocess will use this for Bearer token auth
       process.env.CLAUDE_CODE_OAUTH_TOKEN = config.oauthTokens.accessToken;
-      console.log(`🔵 [PROVIDER] OAuth token set, authentication configured`);
 
       return;
     }
@@ -138,29 +127,21 @@ export async function configureProvider(provider: ProviderType): Promise<void> {
     );
   }
 
-  console.log(`🔵 [PROVIDER] Using API key authentication for ${config.name}`);
-
   // Set or clear base URL
   if (config.baseUrl) {
-    console.log(`🔵 [PROVIDER] Setting base URL: ${config.baseUrl}`);
     process.env.ANTHROPIC_BASE_URL = config.baseUrl;
   } else {
-    console.log(`🔵 [PROVIDER] Using default Anthropic base URL (https://api.anthropic.com)`);
     delete process.env.ANTHROPIC_BASE_URL;
   }
 
   // Z.AI uses Bearer token (ANTHROPIC_AUTH_TOKEN), not x-api-key
   if (provider === 'z-ai') {
-    console.log(`🔵 [PROVIDER] Setting Z.AI auth token (Bearer token, not x-api-key)`);
     process.env.ANTHROPIC_AUTH_TOKEN = config.apiKey;
     process.env.ANTHROPIC_API_KEY = '';
   } else {
-    console.log(`🔵 [PROVIDER] Setting Anthropic API key (x-api-key header)`);
     // Standard Anthropic API uses x-api-key header
     process.env.ANTHROPIC_API_KEY = config.apiKey;
   }
-
-  console.log(`🔵 [PROVIDER] Provider configuration complete for ${config.name}`);
 }
 
 /**

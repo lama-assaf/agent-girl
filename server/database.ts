@@ -314,9 +314,6 @@ class SessionDatabase {
       finalWorkingDir = this.createChatDirectory(id);
     }
 
-    console.log('📁 Creating session with working directory:', finalWorkingDir);
-    console.log('🎭 Mode:', mode);
-
     this.db.run(
       "INSERT INTO sessions (id, title, created_at, updated_at, working_directory, permission_mode, mode) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [id, title, now, now, finalWorkingDir, 'bypassPermissions', mode]
@@ -459,20 +456,13 @@ class SessionDatabase {
 
   updatePermissionMode(sessionId: string, mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan'): boolean {
     try {
-      console.log('🔐 Updating permission mode:', {
-        session: sessionId,
-        mode
-      });
-
       const result = this.db.run(
         "UPDATE sessions SET permission_mode = ?, updated_at = ? WHERE id = ?",
         [mode, new Date().toISOString(), sessionId]
       );
 
       const success = result.changes > 0;
-      if (success) {
-        console.log('✅ Permission mode updated successfully');
-      } else {
+      if (!success) {
         console.warn('⚠️  No session found to update');
       }
 
@@ -485,20 +475,13 @@ class SessionDatabase {
 
   updateSdkSessionId(sessionId: string, sdkSessionId: string | null): boolean {
     try {
-      console.log('🔑 Updating SDK session ID:', {
-        session: sessionId.substring(0, 8),
-        sdkSessionId: sdkSessionId || 'null (clearing)' // FULL ID, not truncated
-      });
-
       const result = this.db.run(
         "UPDATE sessions SET sdk_session_id = ?, updated_at = ? WHERE id = ?",
         [sdkSessionId, new Date().toISOString(), sessionId]
       );
 
       const success = result.changes > 0;
-      if (success) {
-        console.log('✅ SDK session ID updated successfully');
-      } else {
+      if (!success) {
         console.warn('⚠️  No session found to update');
       }
 

@@ -98,14 +98,14 @@ if (!IS_STANDALONE) {
 
 const server = Bun.serve({
   port: 3001,
-  idleTimeout: 120,
+  idleTimeout: 255, // 4.25 minutes (Bun's maximum) - keepalive messages every 30s prevent timeout
 
   websocket: {
     open(ws: ServerWebSocket<ChatWebSocketData>) {
       if (ws.data?.type === 'hot-reload') {
         hotReloadClients.add(ws);
       }
-      console.log(`WebSocket opened: ${ws.data?.type}`);
+      // Session ID is assigned in first message, not on connection
     },
 
     async message(ws: ServerWebSocket<ChatWebSocketData>, message: string) {
@@ -115,8 +115,9 @@ const server = Bun.serve({
     close(ws: ServerWebSocket<ChatWebSocketData>) {
       if (ws.data?.type === 'hot-reload') {
         hotReloadClients.delete(ws);
+      } else if (ws.data?.type === 'chat' && ws.data?.sessionId) {
+        console.log(`🔌 WebSocket disconnected: session ${ws.data.sessionId.substring(0, 8)}`);
       }
-      console.log(`WebSocket closed: ${ws.data?.type}`);
     }
   },
 

@@ -22,7 +22,7 @@ import React, { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { SyntaxHighlighter, vscDarkPlus } from '../../utils/syntaxHighlighter';
-import { AssistantMessage as AssistantMessageType, ToolUseBlock, TextBlock, TodoItem } from './types';
+import { AssistantMessage as AssistantMessageType, ToolUseBlock, TextBlock, TodoItem, LongRunningCommandBlock } from './types';
 import { ThinkingBlock } from './ThinkingBlock';
 import { CodeBlockWithCopy } from './CodeBlockWithCopy';
 import { URLBadge } from './URLBadge';
@@ -1428,7 +1428,7 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
       default:
         // Fallback to raw JSON for unknown tools
         return (
-          <pre className="text-xs bg-white p-2 border border-gray-200 overflow-x-auto whitespace-pre-wrap font-mono">
+          <pre className="text-xs bg-black/20 text-white p-2 border border-white/10 overflow-x-auto whitespace-pre-wrap font-mono">
             {JSON.stringify(input, null, 2)}
           </pre>
         );
@@ -1467,6 +1467,100 @@ function ToolUseComponent({ toolUse }: { toolUse: ToolUseBlock }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Long-running command component (matches Bash tool display styling exactly)
+function LongRunningCommandComponent({ command }: { command: LongRunningCommandBlock }) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  const getStatusIcon = () => {
+    switch (command.status) {
+      case 'completed':
+        return (
+          <svg className="size-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        );
+      case 'failed':
+        return (
+          <svg className="size-4 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        );
+      default:
+        return (
+          <svg className="size-4 animate-spin" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        );
+    }
+  };
+
+  const getToolName = () => {
+    const action = command.commandType === 'install' ? 'Install' : command.commandType === 'build' ? 'Build' : 'Test';
+    return action;
+  };
+
+  const getStatusBadge = () => {
+    switch (command.status) {
+      case 'completed': return <span className="text-xs text-green-500">(completed)</span>;
+      case 'failed': return <span className="text-xs text-red-500">(failed)</span>;
+      default: return <span className="text-xs text-blue-400">(running)</span>;
+    }
+  };
+
+  return (
+    <div className="w-full border border-white/10 rounded-xl my-3 overflow-hidden">
+      {/* Header */}
+      <div className="flex justify-between px-4 py-2 w-full text-xs bg-[#0C0E10] border-b border-white/10">
+        <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
+          {getStatusIcon()}
+          <span className="text-sm font-medium leading-6">{getToolName()}</span>
+          <div className="bg-gray-700 shrink-0 min-h-4 w-[1px] h-4" role="separator" aria-orientation="vertical" />
+          <span className="flex-1 min-w-0 text-xs truncate text-white/60">
+            {command.command}
+          </span>
+        </div>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="ml-2 flex p-1 rounded transition-colors hover:bg-gray-700 duration-150 shrink-0"
+          title={isExpanded ? "Collapse" : "Expand"}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+            className={`size-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Body */}
+      {isExpanded && (
+        <div className="p-4 bg-[#0C0E10]">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-white/60">Status:</span>
+              {getStatusBadge()}
+            </div>
+            {command.output && (
+              <div>
+                <div className="text-xs font-semibold text-white/60 mb-2">Output:</div>
+                <pre className="text-xs bg-black/20 text-white p-2 border border-white/10 overflow-x-auto whitespace-pre-wrap font-mono max-h-[300px] overflow-y-auto rounded">
+                  {command.output.slice(-2000)}
+                </pre>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1713,6 +1807,8 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                   return <ToolUseComponent key={index} toolUse={block} />;
                 } else if (block.type === 'thinking') {
                   return <ThinkingBlock key={index} title="Agent Girl's thoughts..." content={block.thinking} />;
+                } else if (block.type === 'long_running_command') {
+                  return <LongRunningCommandComponent key={index} command={block} />;
                 }
                 return null;
               })}

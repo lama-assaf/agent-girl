@@ -80,6 +80,33 @@ interface BackgroundProcessExitedEvent extends BaseWebSocketMessage {
   exitCode: number;
 }
 
+interface _LongRunningCommandStartedEvent extends BaseWebSocketMessage {
+  type: 'long_running_command_started';
+  bashId: string;
+  command: string;
+  commandType: 'install' | 'build' | 'test';
+  description?: string;
+  startedAt: number;
+}
+
+interface _CommandOutputChunkEvent extends BaseWebSocketMessage {
+  type: 'command_output_chunk';
+  bashId: string;
+  output: string;
+}
+
+interface _LongRunningCommandCompletedEvent extends BaseWebSocketMessage {
+  type: 'long_running_command_completed';
+  bashId: string;
+  exitCode: number;
+}
+
+interface _LongRunningCommandFailedEvent extends BaseWebSocketMessage {
+  type: 'long_running_command_failed';
+  bashId: string;
+  error: string;
+}
+
 interface TimeoutWarningEvent extends BaseWebSocketMessage {
   type: 'timeout_warning';
   message: string;
@@ -143,6 +170,11 @@ interface ContextUsageEvent extends BaseWebSocketMessage {
   contextPercentage: number;
 }
 
+interface KeepaliveEvent extends BaseWebSocketMessage {
+  type: 'keepalive';
+  elapsedSeconds: number;
+}
+
 export type WebSocketMessage =
   | AssistantMessageEvent
   | ToolUseEvent
@@ -164,6 +196,7 @@ export type WebSocketMessage =
   | CompactLoadingEvent
   | CompactCompleteEvent
   | ContextUsageEvent
+  | KeepaliveEvent
   | BaseWebSocketMessage; // Fallback for unknown types
 
 export type { SlashCommand };

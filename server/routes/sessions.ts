@@ -159,11 +159,6 @@ export async function handleSessionRoutes(
     const sessionId = url.pathname.split('/')[3];
     const body = await req.json() as { mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' };
 
-    console.log('🔐 API: Update permission mode request:', {
-      sessionId,
-      mode: body.mode
-    });
-
     const success = sessionDb.updatePermissionMode(sessionId, body.mode);
 
     if (success) {

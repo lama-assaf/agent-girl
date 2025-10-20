@@ -94,13 +94,6 @@ async function handleChatMessage(
   const imagePaths: string[] = [];
   const filePaths: string[] = [];
 
-  // Debug: log the content structure
-  console.log('🔍 Content type:', typeof content);
-  console.log('🔍 Content is array?', Array.isArray(content));
-  if (Array.isArray(content)) {
-    console.log('🔍 Content blocks:', content.map((b: Record<string, unknown>) => ({ type: b?.type, hasSource: !!b?.source, hasData: !!b?.data })));
-  }
-
   // Check if content is an array (contains blocks like text/image/file)
   const contentIsArray = Array.isArray(content);
   if (contentIsArray) {
@@ -108,29 +101,28 @@ async function handleChatMessage(
 
     // Extract and save images and files
     for (const block of contentBlocks) {
-      console.log('🔍 Processing block:', { type: block.type, hasSource: !!block.source, hasData: !!block.data });
-
       // Handle images
       if (block.type === 'image' && typeof block.source === 'object') {
         const source = block.source as Record<string, unknown>;
-        console.log('🔍 Image source:', { type: source.type, hasData: !!source.data });
         if (source.type === 'base64' && typeof source.data === 'string') {
           // Save image to pictures folder
           const base64Data = `data:${source.media_type || 'image/png'};base64,${source.data}`;
           const imagePath = saveImageToSessionPictures(base64Data, sessionId as string, workingDir);
           imagePaths.push(imagePath);
-          console.log('✅ Image saved and path added:', imagePath);
         }
       }
 
       // Handle document files
       if (block.type === 'document' && typeof block.data === 'string' && typeof block.name === 'string') {
-        console.log('🔍 Document file:', { name: block.name });
         const filePath = saveFileToSessionFiles(block.data as string, block.name as string, sessionId as string, workingDir);
         filePaths.push(filePath);
-        console.log('✅ File saved and path added:', filePath);
       }
     }
+  }
+
+  // Log attachments if any were saved
+  if (imagePaths.length > 0 || filePaths.length > 0) {
+    console.log(`📎 Attachments: ${imagePaths.length} image(s), ${filePaths.length} file(s)`);
   }
 
   // Extract text content for prompt
@@ -379,80 +371,204 @@ Run bash commands with the understanding that this is your current working direc
       queryOptions.allowedTools = allowedMcpTools;
     }
 
-    // Add PreToolUse hook to intercept background Bash commands
+    // Add PreToolUse hook to intercept background Bash commands and long-running commands
     queryOptions.hooks = {
       PreToolUse: [{
         hooks: [async (input: HookInput, toolUseID: string | undefined) => {
           // PreToolUse hook has tool_name and tool_input properties
           type PreToolUseInput = HookInput & { tool_name: string; tool_input: Record<string, unknown> };
 
-          console.log('🔧 PreToolUse hook triggered:', { event: input.hook_event_name, tool: (input as PreToolUseInput).tool_name });
-
           if (input.hook_event_name !== 'PreToolUse') return {};
 
           const { tool_name, tool_input } = input as PreToolUseInput;
-          console.log('🔧 Tool name:', tool_name, 'Tool input:', JSON.stringify(tool_input).slice(0, 200));
 
           if (tool_name !== 'Bash') return {};
 
           const bashInput = tool_input as Record<string, unknown>;
-          console.log('🔧 Bash input run_in_background:', bashInput.run_in_background);
-
-          if (bashInput.run_in_background !== true) return {};
-
-          // This is a background Bash command - intercept it!
-          console.log('🎯 INTERCEPTING BACKGROUND BASH COMMAND!');
           const command = bashInput.command as string;
           const description = bashInput.description as string | undefined;
           const bashId = toolUseID || `bg-${Date.now()}`;
 
-          // Check if this specific command is already running for this session
-          const existingProcess = backgroundProcessManager.findExistingProcess(sessionId as string, command);
+          // Detect long-running commands (install, build, test)
+          const isInstallCommand = /\b(npm|bun|yarn|pnpm)\s+(install|i|add)\b/i.test(command);
+          const isBuildCommand = /\b(npm|bun|yarn|pnpm)\s+(run\s+)?(build|compile)\b/i.test(command);
+          const isTestCommand = /\b(npm|bun|yarn|pnpm)\s+(run\s+)?test\b/i.test(command);
+          const isLongRunningCommand = isInstallCommand || isBuildCommand || isTestCommand;
 
-          if (existingProcess) {
-            // Check if the process is actually still alive
+          // Handle long-running commands with monitored background execution
+          if (isLongRunningCommand && bashInput.run_in_background !== true) {
+            const commandType = isInstallCommand ? 'install' : isBuildCommand ? 'build' : 'test';
+
+            // Spawn background process
+            const { pid } = await backgroundProcessManager.spawn(command, workingDir, bashId, sessionId as string, description);
+
+            console.log(`📦 Running ${commandType} (PID ${pid}): ${command.slice(0, 50)}${command.length > 50 ? '...' : ''}`);
+
+            // Save long-running command to database immediately
+            const longRunningCommandBlock = {
+              type: 'long_running_command',
+              bashId,
+              command,
+              commandType,
+              output: '',
+              status: 'running',
+            };
+            const dbMessage = sessionDb.addMessage(
+              sessionId as string,
+              'assistant',
+              JSON.stringify([longRunningCommandBlock])
+            );
+
+            // Notify client that long-running command started
+            ws.send(JSON.stringify({
+              type: 'long_running_command_started',
+              bashId,
+              command,
+              commandType,
+              description,
+              startedAt: Date.now(),
+            }));
+
+            let accumulatedOutput = '';
+
             try {
-              // kill -0 doesn't kill the process, just checks if it exists
-              process.kill(existingProcess.pid, 0);
-              // Process is alive, block duplicate
-              console.log(`⚠️  This command is already running for this session, skipping spawn: ${command}`);
+              // Wait for completion with output streaming
+              const result = await backgroundProcessManager.waitForCompletion(bashId, {
+                timeout: 600000, // 10 minutes
+                hangTimeout: 120000, // 2 minutes no output = hang
+                onOutput: (chunk) => {
+                  // Accumulate output
+                  accumulatedOutput += chunk;
+
+                  // Update database with accumulated output
+                  sessionDb.updateMessage(
+                    dbMessage.id,
+                    JSON.stringify([{
+                      ...longRunningCommandBlock,
+                      output: accumulatedOutput,
+                    }])
+                  );
+
+                  // Stream output to client
+                  ws.send(JSON.stringify({
+                    type: 'command_output_chunk',
+                    bashId,
+                    output: chunk,
+                  }));
+                },
+              });
+
+              // Log and notify completion
+              console.log(`✅ Command completed (exit ${result.exitCode}): ${command.slice(0, 50)}${command.length > 50 ? '...' : ''}`);
+
+              // Update database with final status
+              sessionDb.updateMessage(
+                dbMessage.id,
+                JSON.stringify([{
+                  ...longRunningCommandBlock,
+                  output: accumulatedOutput || result.output,
+                  status: 'completed',
+                }])
+              );
+
+              ws.send(JSON.stringify({
+                type: 'long_running_command_completed',
+                bashId,
+                exitCode: result.exitCode,
+              }));
+
+
+              // Return the actual output to Claude
               return {
                 decision: 'approve' as const,
                 updatedInput: {
-                  command: `echo "✓ Command already running in background (PID ${existingProcess.pid}, started at ${new Date(existingProcess.startedAt).toLocaleTimeString()})"`,
+                  command: `cat <<'EOF'\n${result.output}\nEOF`,
                   description,
                 },
               };
-            } catch {
-              // Process is dead, remove from registry and allow respawn
-              console.log(`🧹 Process ${existingProcess.pid} is dead, removing from registry and allowing respawn`);
-              backgroundProcessManager.delete(existingProcess.bashId);
+            } catch (error) {
+              console.error(`❌ Long-running command failed:`, error);
+
+              // Update database with error status
+              sessionDb.updateMessage(
+                dbMessage.id,
+                JSON.stringify([{
+                  ...longRunningCommandBlock,
+                  output: accumulatedOutput || (error instanceof Error ? error.message : String(error)),
+                  status: 'failed',
+                }])
+              );
+
+              // Notify error
+              ws.send(JSON.stringify({
+                type: 'long_running_command_failed',
+                bashId,
+                error: error instanceof Error ? error.message : String(error),
+              }));
+
+              // Return error to Claude
+              return {
+                decision: 'approve' as const,
+                updatedInput: {
+                  command: `echo "Error: ${error instanceof Error ? error.message : String(error)}" >&2 && exit 1`,
+                  description,
+                },
+              };
             }
           }
 
-          // Spawn the process ourselves
-          const { pid } = await backgroundProcessManager.spawn(command, workingDir, bashId, sessionId as string, description);
+          // Handle regular background commands (e.g., dev servers)
+          if (bashInput.run_in_background === true) {
 
-          // Notify the client
-          ws.send(JSON.stringify({
-            type: 'background_process_started',
-            bashId,
-            command,
-            description,
-            startedAt: Date.now(),
-          }));
+            // Check if this specific command is already running for this session
+            const existingProcess = backgroundProcessManager.findExistingProcess(sessionId as string, command);
 
-          console.log(`✅ Background process spawned (PID ${pid}), replacing command with success echo`);
+            if (existingProcess) {
+              // Check if the process is actually still alive
+              try {
+                // kill -0 doesn't kill the process, just checks if it exists
+                process.kill(existingProcess.pid, 0);
+                // Process is alive, block duplicate
+                return {
+                  decision: 'approve' as const,
+                  updatedInput: {
+                    command: `echo "✓ Command already running in background (PID ${existingProcess.pid}, started at ${new Date(existingProcess.startedAt).toLocaleTimeString()})"`,
+                    description,
+                  },
+                };
+              } catch {
+                // Process is dead, remove from registry and allow respawn
+                backgroundProcessManager.delete(existingProcess.bashId);
+              }
+            }
 
-          // Replace the command with an echo so the SDK gets a successful result
-          // This prevents the agent from retrying
-          return {
-            decision: 'approve' as const,
-            updatedInput: {
-              command: `echo "✓ Background server started (PID ${pid})"`,
+            // Spawn the process ourselves
+            const { pid } = await backgroundProcessManager.spawn(command, workingDir, bashId, sessionId as string, description);
+
+            console.log(`🚀 Background process spawned (PID ${pid}): ${command.slice(0, 50)}${command.length > 50 ? '...' : ''}`);
+
+            // Notify the client
+            ws.send(JSON.stringify({
+              type: 'background_process_started',
+              bashId,
+              command,
               description,
-            },
-          };
+              startedAt: Date.now(),
+            }));
+
+            // Replace the command with an echo so the SDK gets a successful result
+            // This prevents the agent from retrying
+            return {
+              decision: 'approve' as const,
+              updatedInput: {
+                command: `echo "✓ Background server started (PID ${pid})"`,
+                description,
+              },
+            };
+          }
+
+          // Not a special command, let it pass through
+          return {};
         }],
       }],
     };
@@ -531,21 +647,16 @@ Run bash commands with the understanding that this is your current working direc
           return;
         }
 
-        console.log(`🎮 AbortController attached to session: ${sessionId.toString().substring(0, 8)}`);
-
         // Add AbortController to query options
         queryOptions.abortController = abortController;
 
         // Spawn SDK with AsyncIterable stream (resume option loads history from transcript files)
-        console.log(`🔵 [DIAG] About to spawn SDK subprocess for session ${sessionId.toString().substring(0, 8)}`);
-        console.log(`🔵 [DIAG] Query options: model=${queryOptions.model}, cwd=${queryOptions.cwd}, resume=${!!queryOptions.resume}`);
-
         const result = query({
           prompt: messageStream,
           options: queryOptions
         });
 
-        console.log(`🔵 [DIAG] SDK query() returned, registering with session manager`);
+        console.log(`✅ SDK subprocess spawned successfully`);
 
         // Register query and store for mid-stream control
         sessionStreamManager.registerQuery(sessionId as string, result);
@@ -557,12 +668,10 @@ Run bash commands with the understanding that this is your current working direc
         // Enqueue current message (SDK loads history via resume option)
         sessionStreamManager.sendMessage(sessionId as string, promptText);
 
-        console.log(`🚀 SDK subprocess spawned with AsyncIterable stream`);
-
         // If session is in plan mode, immediately switch after spawn
         // (SDK always spawns with bypassPermissions to allow bidirectional mode switching)
         if (session.permission_mode === 'plan') {
-          console.log('🔄 Session in plan mode, switching SDK to plan mode');
+          console.log('🔄 Switching to plan mode');
           await result.setPermissionMode('plan');
         }
 
@@ -580,42 +689,32 @@ Run bash commands with the understanding that this is your current working direc
           let currentMessageId: string | null = null; // Track DB message ID for incremental saves
           let exitPlanModeSentThisTurn = false; // Prevent duplicate plan modals
 
-          // Heartbeat logging every 30 seconds to detect hangs
+          // Heartbeat every 30 seconds to prevent WebSocket idle timeout
           const heartbeatInterval = setInterval(() => {
             const elapsed = timeoutController.getElapsedSeconds();
-            console.log(`💓 [HEARTBEAT] Session ${sessionId.toString().substring(0, 8)} alive: ${elapsed}s elapsed, messages processed: ${totalCharCount} chars`);
+
+            // Send keepalive through WebSocket to prevent Bun's idleTimeout from closing the connection
+            sessionStreamManager.safeSend(
+              sessionId as string,
+              JSON.stringify({
+                type: 'keepalive',
+                elapsedSeconds: elapsed,
+                sessionId: sessionId,
+              })
+            );
           }, 30000);
 
           try {
-            console.log(`🔵 [DIAG] Starting message processing loop for session ${sessionId.toString().substring(0, 8)}`);
-
             // Stream the response - query() is an AsyncGenerator
             // Loop runs indefinitely, processing message after message
             for await (const message of result) {
               // Only check timeout (don't reset yet - only reset on meaningful progress)
               timeoutController.checkTimeout();
 
-              // Log every message type for diagnostics
-              const messageType = message.type;
-              const messageSubtype = (message as { subtype?: string }).subtype;
-              console.log(`🔵 [DIAG] Message received: type=${messageType}, subtype=${messageSubtype || 'none'}`);
-
-              // Log full content of type=user messages for debugging
-              if (message.type === 'user') {
-                const userMessage = message as Record<string, unknown>;
-                console.log(`🔵 [DIAG] type=user details:`, {
-                  isSynthetic: userMessage.isSynthetic,
-                  isReplay: userMessage.isReplay,
-                  parent_tool_use_id: userMessage.parent_tool_use_id,
-                  message: userMessage.message ? JSON.stringify(userMessage.message).slice(0, 200) : null,
-                });
-              }
-
               // Capture SDK's internal session ID from first system message
               if (message.type === 'system' && (message as { subtype?: string }).subtype === 'init') {
                 const sdkSessionId = (message as { session_id?: string }).session_id;
                 if (sdkSessionId && sdkSessionId !== sessionId) {
-                  console.log(`🔑 Captured SDK session ID: ${sdkSessionId} (DB: ${sessionId.toString().substring(0, 8)})`);
                   sessionDb.updateSdkSessionId(sessionId as string, sdkSessionId);
                 }
                 continue; // Skip further processing for system messages
@@ -628,7 +727,7 @@ Run bash commands with the understanding that this is your current working direc
                 const preTokens = compactMessage.compact_metadata?.pre_tokens || 0;
 
                 if (trigger === 'auto') {
-                  console.log(`🗜️ AUTO-COMPACT triggered - context reached limit (${preTokens} tokens before compact)`);
+                  console.log(`🗜️ Auto-compact: ${preTokens.toLocaleString()} tokens → summarized`);
 
                   // Save divider message to database for auto-compact persistence
                   sessionDb.addMessage(
@@ -652,7 +751,7 @@ Run bash commands with the understanding that this is your current working direc
                     })
                   );
                 } else {
-                  console.log(`🗜️ Manual /compact completed - conversation history was summarized (${preTokens} tokens before compact)`);
+                  console.log(`🗜️ Manual compact: ${preTokens.toLocaleString()} tokens → summarized`);
 
                   // Save divider message to database for persistence
                   sessionDb.addMessage(
@@ -875,17 +974,8 @@ Run bash commands with the understanding that this is your current working direc
           // Handle tool use from complete assistant message
           for (const block of content) {
             if (block.type === 'tool_use') {
-              console.log(`🔵 [DIAG] Tool use detected: ${block.name} (id: ${block.id})`);
-
-              // Detect Task tool (sub-agent spawning)
-              if (block.name === 'Task') {
-                const taskInput = block.input as Record<string, unknown>;
-                console.log(`🟢 [SUB-AGENT] Task tool spawning agent: ${taskInput.subagent_type || 'unknown'}, prompt: ${String(taskInput.prompt).substring(0, 100)}...`);
-              }
-
               // Check if this is ExitPlanMode tool (deduplicate - only send first one per turn)
               if (block.name === 'ExitPlanMode' && !exitPlanModeSentThisTurn) {
-                console.log('🛡️ ExitPlanMode detected, sending plan to client');
                 exitPlanModeSentThisTurn = true; // Mark as sent
                 sessionStreamManager.safeSend(
                   sessionId as string,
@@ -899,7 +989,6 @@ Run bash commands with the understanding that this is your current working direc
                 // The exit_plan_mode event already triggers the modal, no need for chat block
                 continue;
               } else if (block.name === 'ExitPlanMode') {
-                console.log('⚠️ Duplicate ExitPlanMode detected, skipping (already sent this turn)');
                 continue; // Skip duplicate ExitPlanMode
               }
 
@@ -974,14 +1063,10 @@ Run bash commands with the understanding that this is your current working direc
               })
             );
           } finally {
-            console.log(`🏁 Background loop ended for session ${sessionId?.toString().substring(0, 8)}`);
             clearInterval(heartbeatInterval);
-            console.log(`🔵 [DIAG] Heartbeat interval cleared`);
           }
         })(); // Execute async IIFE immediately (non-blocking)
 
-        // Success! SDK spawned and background loop started
-        console.log(`✅ Request handling complete - background loop running`);
         break; // Exit retry loop
 
       } catch (error) {
