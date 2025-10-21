@@ -472,6 +472,137 @@ extract_and_install() {
 }
 
 # =============================================================================
+# Validate and Rebuild Dependencies
+# =============================================================================
+
+validate_and_rebuild_dependencies() {
+  log_section "Validating Runtime Dependencies"
+
+  cd "$INSTALL_DIR"
+
+  # 1. Check for Node.js v18+ (CRITICAL for Claude SDK subprocess)
+  log_info "Checking Node.js availability..."
+  if ! command -v node &> /dev/null; then
+    log_warning "Node.js not found!"
+    echo ""
+    echo "Agent Girl requires Node.js v18+ for the Claude SDK subprocess."
+    echo ""
+    echo "Installation instructions:"
+    case "$OS_PREFIX" in
+      macos)
+        echo "  ${CYAN}brew install node${NC}"
+        ;;
+      linux)
+        if grep -qi "ubuntu\|debian" /etc/os-release 2>/dev/null; then
+          echo "  ${CYAN}curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -${NC}"
+          echo "  ${CYAN}sudo apt-get install -y nodejs${NC}"
+        else
+          echo "  ${CYAN}Visit: https://nodejs.org${NC}"
+        fi
+        ;;
+      windows)
+        echo "  ${CYAN}Visit: https://nodejs.org${NC}"
+        ;;
+    esac
+    echo ""
+    fatal_error "Node.js v18+ is required but not installed"
+  fi
+
+  # Verify Node.js version
+  NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1)
+  if [[ -z "$NODE_VERSION" ]] || [[ $NODE_VERSION -lt 18 ]]; then
+    fatal_error "Node.js v18+ required (found: v${NODE_VERSION:-unknown})" \
+      "Please upgrade Node.js: https://nodejs.org"
+  fi
+
+  log_success "Node.js v$NODE_VERSION found"
+
+  # 2. Check if Node.js is in a usable PATH location (detect Windows Node in WSL)
+  NODE_PATH=$(which node)
+  if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
+    log_warning "Detected Windows Node.js in WSL environment!"
+    echo ""
+    echo "You have Windows Node.js in your PATH, but Agent Girl needs native WSL Node."
+    echo ""
+
+    # Check if we can auto-install
+    if grep -qi "ubuntu\|debian" /etc/os-release 2>/dev/null; then
+      log_info "Auto-installing native WSL Node.js..."
+
+      if curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - 2>/dev/null && \
+         sudo apt-get install -y nodejs 2>/dev/null; then
+
+        # Prepend native node to PATH for this session
+        export PATH="/usr/bin:$PATH"
+        log_success "Native WSL Node.js installed"
+
+        # Verify it worked
+        NODE_PATH=$(which node)
+        if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
+          log_warning "Please add 'export PATH=\"/usr/bin:\$PATH\"' to your ~/.bashrc"
+        fi
+      else
+        fatal_error "Could not auto-install native WSL Node.js" \
+          "Please install manually: https://nodejs.org"
+      fi
+    else
+      fatal_error "Windows Node.js detected in WSL" \
+        "Please install native WSL Node.js: https://nodejs.org"
+    fi
+  fi
+
+  # 3. Rebuild platform-specific dependencies (sharp, etc.)
+  log_info "Rebuilding platform-specific dependencies..."
+
+  # Check if Bun is available
+  if ! command -v bun &> /dev/null; then
+    log_warning "Bun not installed - dependencies will be installed on first run"
+    log_info "The launcher script will auto-install Bun when you start the app"
+    return
+  fi
+
+  # Remove potentially mismatched binaries
+  rm -rf node_modules/@img/sharp-* 2>/dev/null || true
+
+  # Reinstall to get correct platform binaries
+  log_info "Running: bun install --production"
+  if bun install --production > /dev/null 2>&1; then
+    log_success "Dependencies rebuilt for $ARCH_NAME"
+  else
+    log_warning "Dependency install had warnings (non-fatal, will retry on first run)"
+  fi
+
+  # 4. Verify critical binaries exist for this platform
+  EXPECTED_SHARP=""
+  case "$PLATFORM" in
+    macos-arm64)
+      EXPECTED_SHARP="node_modules/@img/sharp-darwin-arm64"
+      ;;
+    macos-intel)
+      EXPECTED_SHARP="node_modules/@img/sharp-darwin-x64"
+      ;;
+    linux-x64)
+      EXPECTED_SHARP="node_modules/@img/sharp-linux-x64"
+      ;;
+    linux-arm64)
+      EXPECTED_SHARP="node_modules/@img/sharp-linux-arm64"
+      ;;
+    windows-x64)
+      EXPECTED_SHARP="node_modules/@img/sharp-win32-x64"
+      ;;
+  esac
+
+  if [[ -n "$EXPECTED_SHARP" ]] && [[ ! -d "$EXPECTED_SHARP" ]]; then
+    log_warning "Platform-specific sharp binary not found"
+    log_info "Will be installed on first run"
+  else
+    log_success "Platform-specific binaries verified"
+  fi
+
+  log_success "All runtime dependencies validated"
+}
+
+# =============================================================================
 # API Key Configuration
 # =============================================================================
 
@@ -832,6 +963,7 @@ main() {
   fetch_release_info
   download_release
   extract_and_install
+  validate_and_rebuild_dependencies
   configure_api_keys
   configure_personalization
   create_global_launcher

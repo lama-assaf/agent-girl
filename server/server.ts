@@ -52,7 +52,7 @@ import { handleDirectoryRoutes } from "./routes/directory";
 import { handleUserConfigRoutes } from "./routes/userConfig";
 import { handleCommandRoutes } from "./routes/commands";
 import { handleWebSocketMessage } from "./websocket/messageHandlers";
-import type { ServerWebSocket } from "bun";
+import type { ServerWebSocket, Server as ServerType } from "bun";
 
 // Initialize startup configuration (loads env vars, sets up PostCSS)
 const { isStandalone: IS_STANDALONE, binaryDir: BINARY_DIR, postcss, tailwindcss, autoprefixer } = await initializeStartup();
@@ -121,7 +121,7 @@ const server = Bun.serve({
     }
   },
 
-  async fetch(req: Request, server: { upgrade: (req: Request, data?: { data: ChatWebSocketData }) => boolean }) {
+  async fetch(req: Request, server: ServerType<ChatWebSocketData>) {
     const url = new URL(req.url);
 
     // WebSocket endpoints

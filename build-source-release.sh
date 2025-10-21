@@ -74,18 +74,53 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-# Check if bun is installed AND is a native binary (not Windows .exe in WSL)
+# =============================================================================
+# Runtime Validation (runs every time to catch environment changes)
+# =============================================================================
+
+# 1. Check Node.js availability and version
+if ! command -v node &> /dev/null; then
+    echo "❌ Node.js not found!"
+    echo ""
+    echo "Agent Girl requires Node.js v18+ for the Claude SDK."
+    echo "Install from: https://nodejs.org"
+    echo ""
+    exit 1
+fi
+
+NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1)
+if [[ -z "$NODE_VERSION" ]] || [[ $NODE_VERSION -lt 18 ]]; then
+    echo "❌ Node.js v18+ required (found: v${NODE_VERSION:-unknown})"
+    echo "Please upgrade: https://nodejs.org"
+    exit 1
+fi
+
+# 2. Detect WSL environment and check for Windows Node.js
+NODE_PATH=$(which node)
+if grep -qi microsoft /proc/version 2>/dev/null; then
+    # We're in WSL
+    if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
+        echo "❌ Windows Node.js detected in WSL!"
+        echo ""
+        echo "You have Windows Node in your PATH, but Agent Girl needs native WSL Node."
+        echo "Please install Node.js for WSL:"
+        echo "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
+        echo "  sudo apt-get install -y nodejs"
+        echo ""
+        echo "Then prepend /usr/bin to your PATH in ~/.bashrc:"
+        echo "  export PATH=\"/usr/bin:\$PATH\""
+        exit 1
+    fi
+fi
+
+# 3. Check Bun availability (with WSL detection)
 BUN_PATH=$(command -v bun 2>/dev/null || echo "")
 NEED_INSTALL=false
 
 if [ -z "$BUN_PATH" ]; then
-    # Bun not found at all
     NEED_INSTALL=true
 elif [[ "$BUN_PATH" == *.exe ]] || [[ "$BUN_PATH" == *"/mnt/c/"* ]] || [[ "$BUN_PATH" == *"\\wsl"* ]]; then
-    # Found Windows bun in WSL - need to install native bun
-    echo "⚠️  Detected Windows Bun in WSL environment"
-    echo "   Installing native WSL Bun for compatibility..."
-    echo
+    echo "⚠️  Windows Bun detected in WSL - installing native version..."
     NEED_INSTALL=true
 fi
 
@@ -94,16 +129,26 @@ if [ "$NEED_INSTALL" = true ]; then
     echo "  🔧 Installing Bun..."
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     curl -fsSL https://bun.sh/install | bash
-
-    # Add bun to PATH for this session
     export PATH="$HOME/.bun/bin:$PATH"
-
-    echo
-    echo "✅ Bun installed successfully!"
+    echo "✅ Bun installed!"
     echo
 fi
 
-# Start the server (pass all arguments through)
+# 4. Verify dependencies are installed and correct for this platform
+if [ ! -d "node_modules" ]; then
+    echo "📦 First run - installing dependencies..."
+    bun install --production
+    echo "✅ Dependencies installed!"
+fi
+
+# 5. Quick sanity check - verify SDK exists
+if [ ! -f "node_modules/@anthropic-ai/claude-agent-sdk/cli.js" ]; then
+    echo "⚠️  Claude SDK missing - reinstalling dependencies..."
+    rm -rf node_modules
+    bun install --production
+fi
+
+# Start the server
 echo "🚀 Starting Agent Girl..."
 echo
 exec bun run server/server.ts "$@"
