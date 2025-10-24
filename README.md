@@ -164,7 +164,7 @@ agent-girl
 1. Navigate to install directory
 2. Double-click the `agent-girl` executable
 
-The app starts at **http://localhost:3001** and opens automatically in your browser.
+The app starts at **http://localhost:4000** and opens automatically in your browser.
 
 ### 3. Start Chatting
 
@@ -254,7 +254,7 @@ EOF
 bun run dev
 ```
 
-Development server runs at **http://localhost:3001** with hot reload.
+Development server runs at **http://localhost:4000** with hot reload.
 
 ### Build from Source
 

@@ -40,7 +40,7 @@ export async function handleStaticFile(
       const hotReloadScript = `
         <script>
           (function() {
-            const ws = new WebSocket('ws://localhost:3001/hot-reload');
+            const ws = new WebSocket('ws://localhost:4000/hot-reload');
             ws.onmessage = (event) => {
               const data = JSON.parse(event.data);
               if (data.type === 'reload') {

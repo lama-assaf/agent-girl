@@ -125,7 +125,7 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0, scrollCon
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="empty-state">
-          <h2 className="empty-state-title">Welcome to Agent Girl Chat</h2>
+          <h2 className="empty-state-title">Welcome to Llama Girl Chat</h2>
           <p className="empty-state-description">
             Start a conversation with Claude. I can help you with coding, analysis, and complex tasks
             using the Agent SDK tools.

@@ -65,13 +65,13 @@ export function PreLoader({ onComplete, duration = 2000 }: PreLoaderProps) {
       <div className="preloader-content" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <img
           src="/client/agent-boy.svg"
-          alt="Agent Girl"
+          alt="Llama Girl"
           className="preloader-icon"
           style={{ width: '48px', height: '48px', objectFit: 'contain' }}
           loading="eager"
         />
         <div className="preloader-text text-gradient" style={{ fontFamily: "'Press Start 2P', cursive", fontSize: '2.5rem', fontWeight: 500 }}>
-          Agent Girl
+          Llama Girl
         </div>
       </div>
     </div>

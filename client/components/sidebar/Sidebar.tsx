@@ -154,7 +154,7 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
         {/* Header */}
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <img src="/client/agent-boy.svg" alt="Agent Girl" className="sidebar-logo-icon" />
+            <img src="/client/agent-boy.svg" alt="Llama Girl" className="sidebar-logo-icon" />
           </div>
           <button className="sidebar-toggle-btn" onClick={onToggle} aria-label="Toggle Sidebar">
             <Menu size={24} opacity={0.8} className={isOpen ? '' : 'rotate-180'} />

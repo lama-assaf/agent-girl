@@ -17,7 +17,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="KenKaiii/agent-girl"
+REPO="lama-assaf/agent-girl"
 APP_NAME="agent-girl"
 MIN_DISK_SPACE_MB=100
 
@@ -929,7 +929,7 @@ show_success_message() {
   fi
 
   echo ""
-  echo -e "${BLUE}🌐 The app will start at:${NC} ${CYAN}http://localhost:3001${NC}"
+  echo -e "${BLUE}🌐 The app will start at:${NC} ${CYAN}http://localhost:4000${NC}"
   echo ""
 
   # License info

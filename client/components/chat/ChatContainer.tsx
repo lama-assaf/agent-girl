@@ -1160,7 +1160,7 @@ export function ChatContainer() {
                     {!isSidebarOpen && (
                       <img
                         src="/client/agent-boy.svg"
-                        alt="Agent Girl"
+                        alt="Llama Girl"
                         className="header-icon"
                         loading="eager"
                         onError={(e) => {
@@ -1173,7 +1173,7 @@ export function ChatContainer() {
                       />
                     )}
                     <div className="header-title text-gradient">
-                      Agent Girl
+                      Llama Girl
                     </div>
                     {/* Model Selector */}
                     <ModelSelector

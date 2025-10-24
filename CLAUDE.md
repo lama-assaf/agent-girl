@@ -12,7 +12,7 @@ Agent Girl is a modern chat interface powered by the Claude Agent SDK. It's buil
 ```bash
 bun run dev
 ```
-Starts the server at `http://localhost:3001` with hot reload enabled. The server watches for changes in `.tsx`, `.ts`, `.css`, and `.html` files in the `client/` directory.
+Starts the server at `http://localhost:4000` with hot reload enabled. The server watches for changes in `.tsx`, `.ts`, `.css`, and `.html` files in the `client/` directory.
 
 ### Build Client Bundle
 ```bash

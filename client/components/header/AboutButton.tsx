@@ -30,7 +30,7 @@ export function AboutButton() {
       <button
         onClick={() => setIsModalOpen(true)}
         className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-        aria-label="About Agent Girl"
+        aria-label="About Llama Girl"
         title="About"
       >
         <Info className="w-4 h-4" style={{ color: 'rgb(var(--text-secondary))' }} />
