@@ -64,8 +64,46 @@ class SessionDatabase {
       dbPath = path.join(appDataDir, 'sessions.db');
     }
 
-    this.db = new Database(dbPath, { create: true });
-    this.initialize();
+    try {
+      this.db = new Database(dbPath, { create: true });
+      this.initialize();
+    } catch (error) {
+      // Handle SQLITE_AUTH error (usually from corruption)
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'SQLITE_AUTH') {
+        console.error('❌ Database authorization failed (likely corruption)');
+        console.log('🔄 Attempting recovery by backing up and recreating database...');
+
+        // Backup corrupted database
+        const backupPath = `${dbPath}.corrupted.${Date.now()}`;
+        try {
+          fs.renameSync(dbPath, backupPath);
+          console.log(`✅ Backed up corrupted database to: ${backupPath}`);
+        } catch (backupError) {
+          console.error('⚠️  Could not backup corrupted database:', backupError);
+          // Try deleting instead
+          try {
+            fs.unlinkSync(dbPath);
+            console.log('✅ Deleted corrupted database file');
+          } catch (deleteError) {
+            console.error('❌ Could not delete corrupted database:', deleteError);
+            throw new Error('Database is corrupted and cannot be recovered. Please manually delete: ' + dbPath);
+          }
+        }
+
+        // Retry with fresh database
+        try {
+          this.db = new Database(dbPath, { create: true });
+          this.initialize();
+          console.log('✅ Successfully created fresh database');
+        } catch (retryError) {
+          console.error('❌ Failed to create fresh database:', retryError);
+          throw retryError;
+        }
+      } else {
+        // Other errors - rethrow
+        throw error;
+      }
+    }
   }
 
   private initialize() {
@@ -368,6 +406,9 @@ class SessionDatabase {
           s.permission_mode,
           s.mode,
           s.sdk_session_id,
+          s.context_input_tokens,
+          s.context_window,
+          s.context_percentage,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -408,6 +449,9 @@ class SessionDatabase {
           s.permission_mode,
           s.mode,
           s.sdk_session_id,
+          s.context_input_tokens,
+          s.context_window,
+          s.context_percentage,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -494,6 +538,7 @@ class SessionDatabase {
 
   updateContextUsage(sessionId: string, inputTokens: number, contextWindow: number, contextPercentage: number): boolean {
     try {
+      // Use SDK's reported inputTokens directly (it includes full context)
       const result = this.db.run(
         "UPDATE sessions SET context_input_tokens = ?, context_window = ?, context_percentage = ?, updated_at = ? WHERE id = ?",
         [inputTokens, contextWindow, contextPercentage, new Date().toISOString(), sessionId]
