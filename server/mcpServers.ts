@@ -76,15 +76,22 @@ export const MCP_SERVERS_BY_PROVIDER: Record<ProviderType, Record<string, McpSer
 
 /**
  * Get MCP servers for a specific provider
+ *
+ * @param provider - The provider type
+ * @param _modelId - Optional model ID for model-specific MCP server restrictions
  */
-export function getMcpServers(provider: ProviderType): Record<string, McpServerConfig> {
-  return MCP_SERVERS_BY_PROVIDER[provider] || {};
+export function getMcpServers(provider: ProviderType, _modelId?: string): Record<string, McpServerConfig> {
+  const servers = MCP_SERVERS_BY_PROVIDER[provider] || {};
+  return servers;
 }
 
 /**
  * Get allowed tools for a provider's MCP servers
+ *
+ * @param provider - The provider type
+ * @param _modelId - Optional model ID for model-specific tool restrictions
  */
-export function getAllowedMcpTools(provider: ProviderType): string[] {
+export function getAllowedMcpTools(provider: ProviderType, _modelId?: string): string[] {
   // Grep.app MCP tools - available to all providers
   const grepTools = [
     'mcp__grep__searchGitHub',

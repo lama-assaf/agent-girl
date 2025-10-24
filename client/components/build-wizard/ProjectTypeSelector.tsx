@@ -19,7 +19,7 @@
  */
 
 import React, { useState } from 'react';
-import { Rocket, Chrome, Layout, Package, HelpCircle } from 'lucide-react';
+import { Rocket, Chrome, Layout, Package, HelpCircle, Bot, Puzzle, MessageSquare, Monitor, Zap, Smartphone } from 'lucide-react';
 import { PROJECT_TEMPLATES, type ProjectTemplate } from './buildConfig';
 
 interface ProjectTypeSelectorProps {
@@ -68,12 +68,18 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
   );
 }
 
-// Map template IDs to icons
+// Map template IDs to icons with consistent sizing
 const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
-  'nextjs': <Rocket style={{ width: '20px', height: '20px' }} />,
-  'chrome-wxt': <Chrome style={{ width: '20px', height: '20px' }} />,
-  'chrome-plasmo': <Chrome style={{ width: '20px', height: '20px' }} />,
-  'vite-react': <Layout style={{ width: '20px', height: '20px' }} />,
+  'nextjs': <Rocket style={{ width: '24px', height: '24px' }} />,
+  'chrome-wxt': <Chrome style={{ width: '24px', height: '24px' }} />,
+  'chrome-plasmo': <Chrome style={{ width: '24px', height: '24px' }} />,
+  'vite-react': <Layout style={{ width: '24px', height: '24px' }} />,
+  'mcp-server': <Puzzle style={{ width: '24px', height: '24px' }} />,
+  'discord-bot': <Bot style={{ width: '24px', height: '24px' }} />,
+  'slack-bot': <MessageSquare style={{ width: '24px', height: '24px' }} />,
+  'tauri-desktop': <Monitor style={{ width: '24px', height: '24px' }} />,
+  'backend-api': <Zap style={{ width: '24px', height: '24px' }} />,
+  'expo-mobile': <Smartphone style={{ width: '24px', height: '24px' }} />,
 };
 
 export function ProjectTypeSelector({ onSelect }: ProjectTypeSelectorProps) {

@@ -5,7 +5,7 @@
 
 import type { ServerWebSocket } from "bun";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { HookInput } from "@anthropic-ai/claude-agent-sdk/sdkTypes";
+import type { HookInput, SDKCompactBoundaryMessage } from "@anthropic-ai/claude-agent-sdk";
 import { sessionDb } from "../database";
 import { getSystemPrompt, injectWorkingDirIntoAgents } from "../systemPrompt";
 import { AVAILABLE_MODELS } from "../../client/config/models";
@@ -24,6 +24,20 @@ import { expandSlashCommand } from "../slashCommandExpander";
 interface ChatWebSocketData {
   type: 'hot-reload' | 'chat';
   sessionId?: string;
+}
+
+/**
+ * Type guard to check if a message is a compact boundary message
+ */
+function isCompactBoundaryMessage(message: unknown): message is SDKCompactBoundaryMessage {
+  return (
+    typeof message === 'object' &&
+    message !== null &&
+    'type' in message &&
+    message.type === 'system' &&
+    'subtype' in message &&
+    message.subtype === 'compact_boundary'
+  );
 }
 
 // Build model mapping from configuration
@@ -236,9 +250,9 @@ async function handleChatMessage(
     return;
   }
 
-  // Get MCP servers for this provider
-  const mcpServers = getMcpServers(providerType);
-  const allowedMcpTools = getAllowedMcpTools(providerType);
+  // Get MCP servers for this provider (model-specific filtering for GLM)
+  const mcpServers = getMcpServers(providerType, apiModelId);
+  const allowedMcpTools = getAllowedMcpTools(providerType, apiModelId);
 
   // Minimal request logging - one line summary
   // Note: At this point we haven't checked history yet, so we use isNewStream for subprocess status
@@ -311,7 +325,7 @@ Run bash commands with the understanding that this is your current working direc
       includePartialMessages: true,
       agents: agentsWithWorkingDir, // Register custom agents with working dir context
       cwd: workingDir, // Set working directory for all tool executions
-      executable: 'node', // Use Node.js for SDK subprocess (matches SDK's native environment)
+      // Let SDK manage its own subprocess spawning - don't override executable
       // abortController will be added after stream creation
 
       // Capture stderr from SDK's bundled CLI for debugging and error context
@@ -323,7 +337,7 @@ Run bash commands with the understanding that this is your current working direc
           return; // Skip this line entirely
         }
 
-        console.error('🔴 SDK CLI stderr:', trimmedData);
+        console.error(`🔴 SDK CLI stderr [${provider}/${apiModelId}]:`, trimmedData);
 
         // Only capture lines that look like actual errors, not debug output or command echoes
         const lowerData = trimmedData.toLowerCase();
@@ -656,8 +670,6 @@ Run bash commands with the understanding that this is your current working direc
           options: queryOptions
         });
 
-        console.log(`✅ SDK subprocess spawned successfully`);
-
         // Register query and store for mid-stream control
         sessionStreamManager.registerQuery(sessionId as string, result);
         activeQueries.set(sessionId as string, result);
@@ -721,10 +733,9 @@ Run bash commands with the understanding that this is your current working direc
               }
 
               // Detect compact boundary - conversation was compacted
-              if (message.type === 'system' && (message as { subtype?: string }).subtype === 'compact_boundary') {
-                const compactMessage = message as { compact_metadata?: { trigger: 'manual' | 'auto'; pre_tokens: number } };
-                const trigger = compactMessage.compact_metadata?.trigger || 'manual';
-                const preTokens = compactMessage.compact_metadata?.pre_tokens || 0;
+              if (isCompactBoundaryMessage(message)) {
+                const trigger = message.compact_metadata.trigger;
+                const preTokens = message.compact_metadata.pre_tokens;
 
                 if (trigger === 'auto') {
                   console.log(`🗜️ Auto-compact: ${preTokens.toLocaleString()} tokens → summarized`);
@@ -833,7 +844,40 @@ Run bash commands with the understanding that this is your current working direc
                         sessionId: sessionId,
                       })
                     );
+                  } else {
+                    console.warn(`⚠️  Result message has modelUsage but no model entries`);
                   }
+                } else if (resultMessage.usage?.input_tokens) {
+                  // Fallback: Use basic usage field when modelUsage is missing
+                  // This happens for tool-only turns, permission requests, etc.
+                  const inputTokens = resultMessage.usage.input_tokens;
+                  const outputTokens = resultMessage.usage.output_tokens || 0;
+                  const DEFAULT_CONTEXT_WINDOW = 200000; // Standard for most models
+                  const contextPercentage = Number(((inputTokens / DEFAULT_CONTEXT_WINDOW) * 100).toFixed(1));
+
+                  console.log(`📊 Context usage (estimated): ${inputTokens.toLocaleString()}/${DEFAULT_CONTEXT_WINDOW.toLocaleString()} tokens (${contextPercentage}%)`);
+
+                  // Save estimated context usage to database
+                  sessionDb.updateContextUsage(
+                    sessionId as string,
+                    inputTokens,
+                    DEFAULT_CONTEXT_WINDOW,
+                    contextPercentage
+                  );
+
+                  sessionStreamManager.safeSend(
+                    sessionId as string,
+                    JSON.stringify({
+                      type: 'context_usage',
+                      inputTokens: inputTokens,
+                      outputTokens: outputTokens,
+                      contextWindow: DEFAULT_CONTEXT_WINDOW,
+                      contextPercentage: contextPercentage,
+                      sessionId: sessionId,
+                    })
+                  );
+                } else {
+                  console.warn(`⚠️  Result message missing both modelUsage and usage fields - context percentage not updated`);
                 }
 
                 // Send completion signal (safe send checks WebSocket readyState)
@@ -950,6 +994,10 @@ Run bash commands with the understanding that this is your current working direc
             );
           }
         }
+              } else if (message.type === 'user') {
+                // Tool result messages - these are responses from tool executions (including spawned agents)
+                // These messages are tool results - SDK processes them internally
+                continue; // Continue to next message
               } else if (message.type === 'assistant') {
                 // Capture full message content structure for database storage
                 const content = message.message.content;

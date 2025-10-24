@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { ProjectTypeSelector } from './ProjectTypeSelector';
@@ -41,6 +41,16 @@ export function BuildWizard({ onComplete, onClose }: BuildWizardProps) {
   const [configurations, setConfigurations] = useState<Record<string, string | boolean | number>>({});
   const [projectName, setProjectName] = useState('my-project');
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Ref for scrollable content container
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top whenever step changes
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentStep]);
 
   // Smooth transition helper
   const transitionToStep = (nextStep: WizardStep) => {
@@ -195,6 +205,7 @@ export function BuildWizard({ onComplete, onClose }: BuildWizardProps) {
 
         {/* Step Content with Transitions */}
         <div
+          ref={contentRef}
           style={{
             flex: 1,
             overflowY: 'auto',

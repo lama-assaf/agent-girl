@@ -1568,7 +1568,8 @@ function LongRunningCommandComponent({ command }: { command: LongRunningCommandB
 function TextComponent({ text }: { text: TextBlock }) {
   // Check if this is a context cleared message
   const isContextCleared = text.text.includes('--- Context cleared');
-  const isHistoryCompacted = text.text.includes('--- History compacted');
+  // Check for both manual and auto-compact messages
+  const isHistoryCompacted = text.text.includes('--- History compacted') || text.text.includes('--- Auto-compact');
 
   // Render special divider for context cleared messages
   if (isContextCleared) {

@@ -3,8 +3,7 @@
  * Based on Microsoft VSCode and chatcode patterns
  */
 
-import type { SDKUserMessage } from "@anthropic-ai/claude-agent-sdk/sdkTypes";
-import type { Query } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKUserMessage, Query } from "@anthropic-ai/claude-agent-sdk";
 import type { ServerWebSocket } from "bun";
 import { AsyncQueue } from "./utils/AsyncQueue";
 
@@ -20,7 +19,7 @@ interface SessionStream {
 
 export class SessionStreamManager {
   private streams = new Map<string, SessionStream>();
-  private readonly SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  private readonly SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours (SDK pre-flight checks can be slow on WSL)
   private readonly MAX_CONCURRENT_SESSIONS = 100;
   private cleanupInterval: Timer | null = null;
 
