@@ -269,6 +269,14 @@ async function handleChatMessage(
     return;
   }
 
+  // Warn if on WSL with Windows filesystem (10-20x performance penalty)
+  if (process.platform === 'linux' && workingDir.startsWith('/mnt/')) {
+    console.warn('⚠️  WARNING: Working directory is on Windows filesystem (WSL)');
+    console.warn(`   Path: ${workingDir}`);
+    console.warn('   This causes 10-20x slower file I/O operations');
+    console.warn('   Move project to Linux filesystem (~/projects/) for better performance');
+  }
+
   // For existing streams: Update WebSocket, enqueue message, and return
   // Background response loop is already running
   if (!isNewStream) {
@@ -676,10 +684,14 @@ Run bash commands with the understanding that this is your current working direc
         queryOptions.abortController = abortController;
 
         // Spawn SDK with AsyncIterable stream (resume option loads history from transcript files)
+        console.log(`🔄 [SDK] Spawning Claude SDK subprocess for session ${sessionId.toString().substring(0, 8)}...`);
+        const spawnStart = Date.now();
         const result = query({
           prompt: messageStream,
           options: queryOptions
         });
+        const spawnTime = Date.now() - spawnStart;
+        console.log(`✅ [SDK] Subprocess spawned in ${spawnTime}ms for session ${sessionId.toString().substring(0, 8)}`);
 
         // Register query and store for mid-stream control
         sessionStreamManager.registerQuery(sessionId as string, result);
