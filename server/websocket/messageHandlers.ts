@@ -269,6 +269,14 @@ async function handleChatMessage(
     return;
   }
 
+  // Warn if on WSL with Windows filesystem (10-20x performance penalty)
+  if (process.platform === 'linux' && workingDir.startsWith('/mnt/')) {
+    console.warn('⚠️  WARNING: Working directory is on Windows filesystem (WSL)');
+    console.warn(`   Path: ${workingDir}`);
+    console.warn('   This causes 10-20x slower file I/O operations');
+    console.warn('   Move project to Linux filesystem (~/projects/) for better performance');
+  }
+
   // For existing streams: Update WebSocket, enqueue message, and return
   // Background response loop is already running
   if (!isNewStream) {
@@ -298,6 +306,17 @@ When creating files for this session, use the WORKING DIRECTORY path above.
 All file paths should be relative to this directory or use absolute paths within it.
 Run bash commands with the understanding that this is your current working directory.
 `;
+
+    // Debug: Log system prompt size
+    const promptWordCount = systemPromptWithContext.split(/\s+/).length;
+    const estimatedTokens = Math.round(promptWordCount * 1.3);
+    console.log(`📏 System prompt size: ${promptWordCount} words (~${estimatedTokens} tokens)`);
+
+    // Debug: Write full system prompt to temp file for inspection
+    const fs = await import('fs');
+    const debugPath = `/tmp/system-prompt-${session.mode || 'general'}-debug.txt`;
+    fs.writeFileSync(debugPath, systemPromptWithContext);
+    console.log(`📝 Full system prompt written to: ${debugPath}`);
 
     // Inject working directory context into all custom agent prompts
     const agentsWithWorkingDir = injectWorkingDirIntoAgents(AGENT_REGISTRY, workingDir);
@@ -665,10 +684,14 @@ Run bash commands with the understanding that this is your current working direc
         queryOptions.abortController = abortController;
 
         // Spawn SDK with AsyncIterable stream (resume option loads history from transcript files)
+        console.log(`🔄 [SDK] Spawning Claude SDK subprocess for session ${sessionId.toString().substring(0, 8)}...`);
+        const spawnStart = Date.now();
         const result = query({
           prompt: messageStream,
           options: queryOptions
         });
+        const spawnTime = Date.now() - spawnStart;
+        console.log(`✅ [SDK] Subprocess spawned in ${spawnTime}ms for session ${sessionId.toString().substring(0, 8)}`);
 
         // Register query and store for mid-stream control
         sessionStreamManager.registerQuery(sessionId as string, result);
@@ -700,6 +723,7 @@ Run bash commands with the understanding that this is your current working direc
           let totalCharCount = 0;
           let currentMessageId: string | null = null; // Track DB message ID for incremental saves
           let exitPlanModeSentThisTurn = false; // Prevent duplicate plan modals
+          let toolUseCount = 0; // Track number of tools executed (for hang detection logging)
 
           // Heartbeat every 30 seconds to prevent WebSocket idle timeout
           const heartbeatInterval = setInterval(() => {
@@ -806,7 +830,12 @@ Run bash commands with the understanding that this is your current working direc
 
                 // Extract usage data from result message
                 const resultMessage = message as {
-                  usage?: { input_tokens?: number; output_tokens?: number };
+                  usage?: {
+                    input_tokens?: number;
+                    output_tokens?: number;
+                    cache_creation_input_tokens?: number;
+                    cache_read_input_tokens?: number;
+                  };
                   modelUsage?: Record<string, {
                     inputTokens: number;
                     outputTokens: number;
@@ -816,19 +845,27 @@ Run bash commands with the understanding that this is your current working direc
 
                 // Send context usage to client if available
                 if (resultMessage.modelUsage) {
-                  // Get usage for the current model (usually first entry)
-                  const modelNames = Object.keys(resultMessage.modelUsage);
-                  if (modelNames.length > 0) {
-                    const usage = resultMessage.modelUsage[modelNames[0]];
-                    // Use 1 decimal place precision to avoid 0% for small percentages
-                    const contextPercentage = Number(((usage.inputTokens / usage.contextWindow) * 100).toFixed(1));
+                  // Get usage for the current model (not first alphabetically!)
+                  const usage = resultMessage.modelUsage[apiModelId] as {
+                    inputTokens: number;
+                    outputTokens: number;
+                    contextWindow: number;
+                    cacheReadInputTokens?: number;
+                    cacheCreationInputTokens?: number;
+                  };
+                  if (usage) {
+                    // inputTokens already includes the full context size
+                    // cacheReadInputTokens and cacheCreationInputTokens are subsets for billing breakdown
+                    const totalInputTokens = usage.inputTokens;
 
-                    console.log(`📊 Context usage: ${usage.inputTokens.toLocaleString()}/${usage.contextWindow.toLocaleString()} tokens (${contextPercentage}%)`);
+                    const contextPercentage = Number(((totalInputTokens / usage.contextWindow) * 100).toFixed(1));
+
+                    console.log(`📊 Context usage: ${totalInputTokens.toLocaleString()}/${usage.contextWindow.toLocaleString()} tokens (${contextPercentage}%) [input: ${usage.inputTokens}, cache_read: ${usage.cacheReadInputTokens || 0}, cache_creation: ${usage.cacheCreationInputTokens || 0}]`);
 
                     // Save context usage to database for persistence
                     sessionDb.updateContextUsage(
                       sessionId as string,
-                      usage.inputTokens,
+                      totalInputTokens,
                       usage.contextWindow,
                       contextPercentage
                     );
@@ -837,7 +874,7 @@ Run bash commands with the understanding that this is your current working direc
                       sessionId as string,
                       JSON.stringify({
                         type: 'context_usage',
-                        inputTokens: usage.inputTokens,
+                        inputTokens: totalInputTokens,
                         outputTokens: usage.outputTokens,
                         contextWindow: usage.contextWindow,
                         contextPercentage: contextPercentage,
@@ -895,6 +932,7 @@ Run bash commands with the understanding that this is your current working direc
                 totalCharCount = 0;
                 currentMessageId = null; // Reset message ID for next turn
                 exitPlanModeSentThisTurn = false; // Reset plan mode flag for next turn
+                toolUseCount = 0; // Reset tool counter for next turn
 
                 // Continue loop - wait for next message from stream
                 continue;
@@ -1022,6 +1060,15 @@ Run bash commands with the understanding that this is your current working direc
           // Handle tool use from complete assistant message
           for (const block of content) {
             if (block.type === 'tool_use') {
+              // IMPORTANT: Reset timeout on tool use to prevent timeouts during long tool executions
+              // GLM models may not output text for several minutes during tool/agent execution
+              timeoutController.reset();
+
+              // Hang detection logging (especially useful for GLM debugging)
+              toolUseCount++;
+              const toolTimestamp = new Date().toISOString();
+              console.log(`🔧 [${toolTimestamp}] Tool #${toolUseCount}: ${block.name}`);
+
               // Check if this is ExitPlanMode tool (deduplicate - only send first one per turn)
               if (block.name === 'ExitPlanMode' && !exitPlanModeSentThisTurn) {
                 exitPlanModeSentThisTurn = true; // Mark as sent

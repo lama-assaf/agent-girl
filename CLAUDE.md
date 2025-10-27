@@ -1,24 +1,26 @@
-# CLAUDE.md
+# Claude Development Instructions
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## CRITICAL: Post-Edit Workflow
 
-## Project Overview
+After EVERY file edit, update, or code change, you MUST:
 
-Agent Girl is a modern chat interface powered by the Claude Agent SDK. It's built with React, Bun, and TypeScript, featuring real-time streaming responses via WebSocket and persistent session storage with SQLite.
+1. **Run TypeScript type checking:**
+   ```bash
+   bunx tsc --noEmit
+   ```
 
-## Development Commands
+2. **Run ESLint:**
+   ```bash
+   bunx eslint .
+   ```
 
-### Start Development Server
-```bash
-bun run dev
-```
-Starts the server at `http://localhost:3001` with hot reload enabled. The server watches for changes in `.tsx`, `.ts`, `.css`, and `.html` files in the `client/` directory.
+3. **Fix ALL warnings and errors** - Zero tolerance
 
-### Build Client Bundle
-```bash
-bun run build
-```
-Builds the client bundle to `./dist` with minification.
+4. **Restart the dev server:**
+   ```bash
+   lsof -ti:3001 | xargs kill -9 2>/dev/null; bun run dev
+   ```
+   (Use Bash tool with `run_in_background: true`)
 
 ### OAuth Authentication (Claude Pro/Max)
 ```bash
@@ -368,3 +370,4 @@ CREATE INDEX idx_messages_session_id ON messages(session_id)
 6. **MCP tools**: Z.AI models use `mcp__web-search-prime__search`, not `WebSearch` or `WebFetch`
 7. **Custom agents**: Agent names must match exactly in `AGENT_REGISTRY` for Task tool spawning to work
 8. **Node.js requirement**: The Claude SDK subprocess requires Node.js v18+. Server runs on Bun, but SDK spawns Node processes. Auto-installed by launcher scripts if missing.
+Never skip these steps. Always complete them before ending your turn.

@@ -200,7 +200,7 @@ export class BackgroundProcessManager {
     }
 
     const timeout = options.timeout || 600000; // 10 minutes default
-    const hangTimeout = options.hangTimeout || 120000; // 2 minutes default
+    const hangTimeout = options.hangTimeout || 300000; // 5 minutes default (increased for slower hardware)
     const startTime = Date.now();
 
     let lastOutputTime = Date.now();

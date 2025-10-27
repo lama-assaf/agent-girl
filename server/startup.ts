@@ -160,6 +160,21 @@ export async function checkNodeAvailability(): Promise<void> {
     }
 
     debugLog(`✅ Node.js ${version} available for SDK subprocess`);
+
+    // Check for architecture mismatch on ARM Macs (Rosetta emulation causes 40-70% slowdown)
+    if (process.platform === 'darwin' && process.arch === 'arm64') {
+      try {
+        const nodeArch = execSync('node -e "console.log(process.arch)"', { encoding: 'utf8' }).trim();
+        if (nodeArch === 'x64') {
+          console.warn('⚠️  WARNING: Node.js is running in x86_64 mode on ARM Mac (Rosetta emulation)');
+          console.warn('   This causes 40-70% performance penalty for SDK subprocess spawning');
+          console.warn('   Install native arm64 Node.js for better performance:');
+          console.warn('   brew uninstall node && brew install node');
+        }
+      } catch {
+        // Ignore errors checking architecture
+      }
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 

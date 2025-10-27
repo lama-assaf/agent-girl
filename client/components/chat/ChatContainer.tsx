@@ -384,6 +384,35 @@ export function ChatContainer() {
       if (message.sessionId && message.sessionId !== currentSessionId) {
         console.log(`[Session Filter] Ignoring message from session ${message.sessionId} (current: ${currentSessionId})`);
 
+        // Allow certain message types through for background session updates
+        if (message.type === 'context_usage') {
+          // Process context_usage for any session
+          const usageMsg = message as {
+            type: 'context_usage';
+            inputTokens: number;
+            outputTokens: number;
+            contextWindow: number;
+            contextPercentage: number;
+            sessionId?: string;
+          };
+
+          const targetSessionId = usageMsg.sessionId || currentSessionId;
+          if (targetSessionId) {
+            setContextUsage(prev => {
+              const newMap = new Map(prev);
+              newMap.set(targetSessionId, {
+                inputTokens: usageMsg.inputTokens,
+                contextWindow: usageMsg.contextWindow,
+                contextPercentage: usageMsg.contextPercentage,
+              });
+              return newMap;
+            });
+
+            console.log(`📊 Context usage updated for session ${targetSessionId.substring(0, 8)}: ${usageMsg.contextPercentage}%`);
+          }
+          return;
+        }
+
         // Clear loading state for filtered session if it's a completion message
         if ((message.type === 'result' || message.type === 'error') && message.sessionId) {
           setSessionLoading(message.sessionId, false);
@@ -900,7 +929,7 @@ export function ChatContainer() {
           setMessages((prev) => [...prev, dividerMessage]);
         }
       } else if (message.type === 'context_usage' && 'inputTokens' in message && 'contextWindow' in message && 'contextPercentage' in message) {
-        // Handle context usage update
+        // Handle context usage update (for current session)
         const usageMsg = message as {
           type: 'context_usage';
           inputTokens: number;
