@@ -3,7 +3,7 @@
  * Handles directory validation and picker endpoints
  */
 
-import { validateDirectory } from "../directoryUtils";
+import { validateDirectory, getDirectoryAccessGuidance } from "../directoryUtils";
 import { openDirectoryPicker } from "../directoryPicker";
 
 /**
@@ -23,7 +23,8 @@ export async function handleDirectoryRoutes(req: Request, url: URL): Promise<Res
     return new Response(JSON.stringify({
       valid: validation.valid,
       expanded: validation.expanded,
-      error: validation.error
+      error: validation.error,
+      suggestion: validation.suggestion
     }), {
       headers: { 'Content-Type': 'application/json' },
     });
@@ -56,6 +57,32 @@ export async function handleDirectoryRoutes(req: Request, url: URL): Promise<Res
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('❌ Directory picker error:', errorMessage);
+      return new Response(JSON.stringify({
+        success: false,
+        error: errorMessage
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // GET /api/directory-guidance - Get directory access guidance
+  if (url.pathname === '/api/directory-guidance' && req.method === 'GET') {
+    console.log('💡 API: Getting directory access guidance...');
+
+    try {
+      const guidance = getDirectoryAccessGuidance();
+
+      return new Response(JSON.stringify({
+        success: true,
+        ...guidance
+      }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Directory guidance error:', errorMessage);
       return new Response(JSON.stringify({
         success: false,
         error: errorMessage

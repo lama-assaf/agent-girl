@@ -52,7 +52,7 @@ export function ChatContainer() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [_isLoadingSessions, setIsLoadingSessions] = useState(true);
-  const [currentSessionMode, setCurrentSessionMode] = useState<'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist'>('general');
+  const [currentSessionMode, setCurrentSessionMode] = useState<'general' | 'intense-research' | 'spark' | 'instagram-strategist'>('general');
 
   // Slash commands available for current session
   const [availableCommands, setAvailableCommands] = useState<SlashCommand[]>([]);
@@ -980,7 +980,7 @@ export function ChatContainer() {
     });
   };
 
-  const handleSubmit = async (files?: import('../message/types').FileAttachment[], mode?: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist', messageOverride?: string) => {
+  const handleSubmit = async (files?: import('../message/types').FileAttachment[], mode?: 'general' | 'intense-research' | 'spark' | 'instagram-strategist', messageOverride?: string) => {
     const messageText = messageOverride || inputValue;
     if (!messageText.trim()) return;
 
@@ -1124,14 +1124,14 @@ export function ChatContainer() {
     // Close wizard
     setIsBuildWizardOpen(false);
 
-    // Clear current session to force creation of new session with Coder mode
+    // Clear current session to force creation of new session with general mode
     setCurrentSessionId(null);
-    setCurrentSessionMode('coder');
+    setCurrentSessionMode('general');
     setMessages([]);
 
     // Auto-submit immediately with prompt override (no need to wait for state)
     setTimeout(() => {
-      handleSubmit(undefined, 'coder', prompt);
+      handleSubmit(undefined, 'general', prompt);
     }, 100);
   };
 

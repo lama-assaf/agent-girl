@@ -342,6 +342,9 @@ class SessionDatabase {
 
       if (!validation.valid) {
         console.warn('⚠️  Invalid working directory provided:', validation.error);
+        if (validation.suggestion) {
+          console.warn('💡 Suggestion:', validation.suggestion);
+        }
         // Fall back to auto-generated chat folder
         finalWorkingDir = this.createChatDirectory(id);
       } else {

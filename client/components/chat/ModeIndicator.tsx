@@ -19,10 +19,10 @@
  */
 
 import React, { useRef, useEffect } from 'react';
-import { MessageCircle, Code, Target, Zap, TrendingUp } from 'lucide-react';
+import { MessageCircle, Target, Zap, TrendingUp } from 'lucide-react';
 
 interface ModeIndicatorProps {
-  mode: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist';
+  mode: 'general' | 'intense-research' | 'spark' | 'instagram-strategist';
   onWidthChange?: (width: number) => void;
 }
 
@@ -33,12 +33,6 @@ const MODE_CONFIGS = {
     gradient: 'linear-gradient(90deg, #A8FAC7 0%, #DAFFEE 25%, #ffffff 50%, #DAFFEE 75%, #A8FAC7 100%)',
     textColor: '#000000',
   },
-  coder: {
-    name: 'Coder',
-    icon: Code,
-    gradient: 'linear-gradient(90deg, #FAC7A8 0%, #FFDAAE 25%, #ffffff 50%, #FFDAAE 75%, #FAC7A8 100%)',
-    textColor: '#000000',
-  },
   'intense-research': {
     name: 'Intense Research',
     icon: Target,
@@ -46,7 +40,7 @@ const MODE_CONFIGS = {
     textColor: '#000000',
   },
   'spark': {
-    name: 'Spark',
+    name: 'Brainstorm',
     icon: Zap,
     gradient: 'linear-gradient(90deg, #FAE9A8 0%, #FFF4DA 25%, #ffffff 50%, #FFF4DA 75%, #FAE9A8 100%)',
     textColor: '#000000',

@@ -19,10 +19,10 @@
  */
 
 import React, { useState } from 'react';
-import { MessageCircle, Code, Target, Zap, Hammer, TrendingUp } from 'lucide-react';
+import { MessageCircle, Target, Zap, Hammer, TrendingUp } from 'lucide-react';
 
 interface ModeOption {
-  id: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist' | 'build';
+  id: 'general' | 'intense-research' | 'spark' | 'instagram-strategist' | 'build';
   name: string;
   description: string;
   icon: React.ReactNode;
@@ -39,11 +39,11 @@ const MODES: ModeOption[] = [
     gradient: 'linear-gradient(90deg, #A8FAC7 0%, #DAFFEE 25%, #ffffff 50%, #DAFFEE 75%, #A8FAC7 100%)',
   },
   {
-    id: 'coder',
-    name: 'Coder',
-    description: 'Build & debug apps',
-    icon: <Code className="size-4" />,
-    gradient: 'linear-gradient(90deg, #FAC7A8 0%, #FFDAAE 25%, #ffffff 50%, #FFDAAE 75%, #FAC7A8 100%)',
+    id: 'spark',
+    name: 'Brainstorm',
+    description: 'Brainstorm ideas interactively',
+    icon: <Zap className="size-4" />,
+    gradient: 'linear-gradient(90deg, #FAE9A8 0%, #FFF4DA 25%, #ffffff 50%, #FFF4DA 75%, #FAE9A8 100%)',
   },
   {
     id: 'intense-research',
@@ -51,13 +51,6 @@ const MODES: ModeOption[] = [
     description: '5 agents deep research',
     icon: <Target className="size-4" />,
     gradient: 'linear-gradient(90deg, #C7A8FA 0%, #DAAEEE 25%, #ffffff 50%, #DAAEEE 75%, #C7A8FA 100%)',
-  },
-  {
-    id: 'spark',
-    name: 'Spark',
-    description: 'Brainstorm ideas interactively',
-    icon: <Zap className="size-4" />,
-    gradient: 'linear-gradient(90deg, #FAE9A8 0%, #FFF4DA 25%, #ffffff 50%, #FFF4DA 75%, #FAE9A8 100%)',
   },
   {
     id: 'instagram-strategist',
@@ -77,8 +70,8 @@ const MODES: ModeOption[] = [
 ];
 
 interface ModeSelectorProps {
-  selectedMode: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist';
-  onSelectMode: (mode: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist') => void;
+  selectedMode: 'general' | 'intense-research' | 'spark' | 'instagram-strategist';
+  onSelectMode: (mode: 'general' | 'intense-research' | 'spark' | 'instagram-strategist') => void;
   onOpenBuildWizard?: () => void;
 }
 
@@ -99,7 +92,7 @@ export function ModeSelector({ selectedMode, onSelectMode, onOpenBuildWizard }: 
     if (mode.isBuildMode) {
       onOpenBuildWizard?.();
     } else {
-      onSelectMode(mode.id as 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist');
+      onSelectMode(mode.id as 'general' | 'intense-research' | 'spark' | 'instagram-strategist');
     }
   };
 

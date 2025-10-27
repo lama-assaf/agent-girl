@@ -29,7 +29,7 @@ import { CommandTextRenderer } from '../message/CommandTextRenderer';
 interface NewChatWelcomeProps {
   inputValue: string;
   onInputChange: (value: string) => void;
-  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist') => void;
+  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'intense-research' | 'spark' | 'instagram-strategist') => void;
   onStop?: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
@@ -37,7 +37,7 @@ interface NewChatWelcomeProps {
   onTogglePlanMode?: () => void;
   availableCommands?: SlashCommand[];
   onOpenBuildWizard?: () => void;
-  mode?: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist';
+  mode?: 'general' | 'intense-research' | 'spark' | 'instagram-strategist';
 }
 
 const CAPABILITIES = [
@@ -55,7 +55,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
   const [_isDraggingOver, setIsDraggingOver] = useState(false);
 
   // Mode selection state (synchronized with parent via props)
-  const [selectedMode, setSelectedMode] = useState<'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist'>(mode || 'general');
+  const [selectedMode, setSelectedMode] = useState<'general' | 'intense-research' | 'spark' | 'instagram-strategist'>(mode || 'general');
 
   // Sync local mode state with prop when it changes
   useEffect(() => {

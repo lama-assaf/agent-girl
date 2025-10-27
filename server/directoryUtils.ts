@@ -25,28 +25,84 @@ import * as fs from 'fs';
 /**
  * Get the default working directory for agent operations
  * Cross-platform: ~/Documents/agent-girl (Mac/Linux) or C:\Users\{user}\Documents\agent-girl (Windows)
+ * Falls back to accessible alternatives if Documents folder is restricted
  */
 export function getDefaultWorkingDirectory(): string {
   const homeDir = os.homedir();
-  const defaultDir = path.join(homeDir, 'Documents', 'agent-girl');
-
-  // Startup logs are now consolidated in server.ts
-  // console.log('🏠 Platform:', os.platform());
-  // console.log('🏠 Home directory:', homeDir);
-  // console.log('🏠 Default working directory:', defaultDir);
-
-  return defaultDir;
+  const documentsDir = path.join(homeDir, 'Documents', 'agent-girl');
+  
+  // Check if Documents directory is accessible
+  try {
+    fs.accessSync(path.join(homeDir, 'Documents'), fs.constants.R_OK | fs.constants.W_OK);
+    return documentsDir;
+  } catch (error) {
+    // Documents folder is not accessible (likely due to macOS privacy permissions)
+    console.warn('⚠️  Documents folder not accessible, using alternative directory');
+    
+    // Try alternative locations in order of preference
+    const alternatives = [
+      path.join(homeDir, 'agent-girl'), // Direct in home directory
+      path.join(homeDir, 'Desktop', 'agent-girl'), // Desktop folder
+      path.join('/tmp', 'agent-girl'), // Temporary directory
+    ];
+    
+    for (const altDir of alternatives) {
+      try {
+        // Check if parent directory exists and is accessible
+        const parentDir = path.dirname(altDir);
+        fs.accessSync(parentDir, fs.constants.R_OK | fs.constants.W_OK);
+        console.log('✅ Using alternative working directory:', altDir);
+        return altDir;
+      } catch {
+        continue; // Try next alternative
+      }
+    }
+    
+    // Last resort: use current directory
+    console.warn('⚠️  No accessible directories found, using current directory');
+    return process.cwd();
+  }
 }
 
 /**
  * Get the app data directory for storing database and app files
  * Cross-platform: ~/Documents/agent-girl-app
+ * Falls back to accessible alternatives if Documents folder is restricted
  */
 export function getAppDataDirectory(): string {
   const homeDir = os.homedir();
-  const appDataDir = path.join(homeDir, 'Documents', 'agent-girl-app');
-
-  return appDataDir;
+  const documentsAppDir = path.join(homeDir, 'Documents', 'agent-girl-app');
+  
+  // Check if Documents directory is accessible
+  try {
+    fs.accessSync(path.join(homeDir, 'Documents'), fs.constants.R_OK | fs.constants.W_OK);
+    return documentsAppDir;
+  } catch (error) {
+    // Documents folder is not accessible, use alternative
+    console.warn('⚠️  Documents folder not accessible for app data, using alternative');
+    
+    // Try alternative locations
+    const alternatives = [
+      path.join(homeDir, '.agent-girl'), // Hidden directory in home
+      path.join(homeDir, 'agent-girl-app'), // Direct in home directory
+      path.join('/tmp', 'agent-girl-app'), // Temporary directory
+    ];
+    
+    for (const altDir of alternatives) {
+      try {
+        const parentDir = path.dirname(altDir);
+        fs.accessSync(parentDir, fs.constants.R_OK | fs.constants.W_OK);
+        console.log('✅ Using alternative app data directory:', altDir);
+        return altDir;
+      } catch {
+        continue;
+      }
+    }
+    
+    // Last resort: use current directory
+    console.warn('⚠️  No accessible directories found for app data, using current directory');
+    return process.cwd();
+  }
 }
 
 /**
@@ -77,8 +133,9 @@ export function expandPath(dirPath: string): string {
 
 /**
  * Validate that a directory exists and is accessible
+ * Provides helpful error messages for common macOS permission issues
  */
-export function validateDirectory(dirPath: string): { valid: boolean; error?: string; expanded?: string } {
+export function validateDirectory(dirPath: string): { valid: boolean; error?: string; expanded?: string; suggestion?: string } {
   try {
     // Expand path first
     const expanded = expandPath(dirPath);
@@ -89,7 +146,8 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
       return {
         valid: false,
         error: 'Directory does not exist',
-        expanded
+        expanded,
+        suggestion: 'The directory path may be incorrect or the folder may have been moved.'
       };
     }
 
@@ -100,7 +158,8 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
       return {
         valid: false,
         error: 'Path is not a directory',
-        expanded
+        expanded,
+        suggestion: 'The specified path points to a file, not a directory.'
       };
     }
 
@@ -114,24 +173,47 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
     // Check read/write permissions by attempting to access
     try {
       fs.accessSync(expanded, fs.constants.R_OK | fs.constants.W_OK);
-    } catch {
+    } catch (accessError) {
       console.warn('⚠️  No read/write permissions:', expanded);
+      
+      // Check if this is a macOS privacy permission issue
+      const isDocumentsFolder = expanded.includes('/Documents/');
+      const isPermissionError = accessError instanceof Error && 
+        (accessError.message.includes('Operation not permitted') || 
+         accessError.message.includes('EACCES'));
+      
+      let suggestion = 'Check file permissions or try running with appropriate privileges.';
+      
+      if (isDocumentsFolder && isPermissionError) {
+        suggestion = 'This appears to be a macOS privacy permission issue. Go to System Preferences > Security & Privacy > Privacy > Files and Folders, and grant access to Documents folder for your terminal application.';
+      }
+      
       return {
         valid: false,
         error: 'No read/write permissions',
-        expanded
+        expanded,
+        suggestion
       };
     }
 
     // Additional safety check: ensure directory is accessible
     try {
       fs.readdirSync(expanded);
-    } catch {
+    } catch (readError) {
       console.warn('⚠️  Directory not accessible:', expanded);
+      
+      let suggestion = 'The directory may have been deleted, moved, or become inaccessible.';
+      
+      // Check for specific macOS permission issues
+      if (readError instanceof Error && readError.message.includes('Operation not permitted')) {
+        suggestion = 'This appears to be a macOS privacy permission issue. Check System Preferences > Security & Privacy > Privacy > Files and Folders.';
+      }
+      
       return {
         valid: false,
         error: 'Directory not accessible (may be deleted or moved)',
-        expanded
+        expanded,
+        suggestion
       };
     }
 
@@ -144,9 +226,18 @@ export function validateDirectory(dirPath: string): { valid: boolean; error?: st
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('❌ Directory validation error:', errorMessage);
+    
+    let suggestion = 'An unexpected error occurred while validating the directory.';
+    
+    // Provide specific guidance for common macOS issues
+    if (errorMessage.includes('Operation not permitted')) {
+      suggestion = 'This appears to be a macOS privacy permission issue. Check System Preferences > Security & Privacy > Privacy > Files and Folders to grant access to the required directories.';
+    }
+    
     return {
       valid: false,
-      error: errorMessage
+      error: errorMessage,
+      suggestion
     };
   }
 }
@@ -196,4 +287,70 @@ export function getPlatformInfo(): {
   // Startup logs are now consolidated in server.ts
   // console.log('💻 Platform info:', info);
   return info;
+}
+
+/**
+ * Get directory access guidance for users experiencing permission issues
+ */
+export function getDirectoryAccessGuidance(): {
+  isMacOS: boolean;
+  hasDocumentsAccess: boolean;
+  suggestions: string[];
+  alternativeDirectories: string[];
+} {
+  const homeDir = os.homedir();
+  const platform = os.platform();
+  const isMacOS = platform === 'darwin';
+  
+  // Check Documents folder access
+  let hasDocumentsAccess = false;
+  try {
+    fs.accessSync(path.join(homeDir, 'Documents'), fs.constants.R_OK | fs.constants.W_OK);
+    hasDocumentsAccess = true;
+  } catch {
+    hasDocumentsAccess = false;
+  }
+  
+  const suggestions: string[] = [];
+  const alternativeDirectories: string[] = [];
+  
+  if (isMacOS && !hasDocumentsAccess) {
+    suggestions.push(
+      'This appears to be a macOS privacy permission issue.',
+      'To fix this, go to: System Preferences > Security & Privacy > Privacy > Files and Folders',
+      'Find your terminal application (Terminal, iTerm2, etc.) and grant access to Documents folder.',
+      'Alternatively, you can use one of the alternative directories listed below.'
+    );
+    
+    // Suggest alternative directories
+    const alternatives = [
+      path.join(homeDir, 'agent-girl'),
+      path.join(homeDir, 'Desktop', 'agent-girl'),
+      path.join('/tmp', 'agent-girl'),
+      process.cwd()
+    ];
+    
+    for (const altDir of alternatives) {
+      try {
+        const parentDir = path.dirname(altDir);
+        fs.accessSync(parentDir, fs.constants.R_OK | fs.constants.W_OK);
+        alternativeDirectories.push(altDir);
+      } catch {
+        continue;
+      }
+    }
+  } else if (!hasDocumentsAccess) {
+    suggestions.push(
+      'The Documents folder is not accessible.',
+      'Check file permissions or try running with appropriate privileges.',
+      'Consider using an alternative directory.'
+    );
+  }
+  
+  return {
+    isMacOS,
+    hasDocumentsAccess,
+    suggestions,
+    alternativeDirectories
+  };
 }

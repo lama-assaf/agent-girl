@@ -19,7 +19,7 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, Plus, X, Square, Palette, List } from 'lucide-react';
+import { Send, Plus, X, Square } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 import type { BackgroundProcess } from '../process/BackgroundProcessMonitor';
 import { ModeIndicator } from './ModeIndicator';
@@ -31,7 +31,7 @@ import { FeaturesModal } from './FeaturesModal';
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist') => void;
+  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'intense-research' | 'spark' | 'instagram-strategist') => void;
   onStop?: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
@@ -40,7 +40,7 @@ interface ChatInputProps {
   onTogglePlanMode?: () => void;
   backgroundProcesses?: BackgroundProcess[];
   onKillProcess?: (bashId: string) => void;
-  mode?: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist';
+  mode?: 'general' | 'intense-research' | 'spark' | 'instagram-strategist';
   availableCommands?: SlashCommand[];
   contextUsage?: {
     inputTokens: number;
@@ -473,29 +473,8 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                   </button>
                 )}
 
-                {/* Style Configuration button - only in Coder mode */}
-                {mode === 'coder' && (
-                  <button
-                    onClick={() => setIsStyleConfigOpen(true)}
-                    className="btn-icon rounded-lg"
-                    title="Configure styling & design system"
-                    type="button"
-                  >
-                    <Palette size={20} />
-                  </button>
-                )}
-
-                {/* Features button - only in Coder mode */}
-                {mode === 'coder' && (
-                  <button
-                    onClick={() => setIsFeaturesModalOpen(true)}
-                    className="btn-icon rounded-lg"
-                    title="Define features to build"
-                    type="button"
-                  >
-                    <List size={20} />
-                  </button>
-                )}
+                {/* Style Configuration button - removed (coder mode removed) */}
+                {/* Features button - removed (coder mode removed) */}
 
                 {/* Background Process Monitor */}
                 {/* TODO: Fix background process display - temporarily disabled */}
