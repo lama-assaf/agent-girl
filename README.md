@@ -1,6 +1,6 @@
 <div align="center">
 
-# Agent Girl
+# Agent Llama
 
 **A modern chat interface powered by the Claude Agent SDK**
 
@@ -10,7 +10,7 @@
 [![Bun](https://img.shields.io/badge/Bun-Latest-black?logo=bun)](https://bun.sh/)
 [![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://www.anthropic.com/claude)
 
-<img src="agentgirl.png" alt="Agent Girl" width="600" />
+<img src="agentgirl.png" alt="Agent Llama" width="600" />
 
 
 Seamless AI conversations with real-time streaming, session management, and specialized sub-agents. Built with React, TypeScript, and Bun for blazing-fast performance.
@@ -39,7 +39,7 @@ Seamless AI conversations with real-time streaming, session management, and spec
 
 ## 🌟 Overview
 
-Agent Girl is a **desktop-first chat interface** that brings the power of Anthropic's Claude Agent SDK to your local machine. Unlike web-based alternatives, Agent Girl runs entirely on your computer with full file system access, persistent sessions, and no data leaving your machine except API calls to Claude.
+Agent Llama is a **desktop-first chat interface** that brings the power of Anthropic's Claude Agent SDK to your local machine. Unlike web-based alternatives, Agent Llama runs entirely on your computer with full file system access, persistent sessions, and no data leaving your machine except API calls to Claude.
 
 **Perfect for:**
 - 🔧 Developers needing AI assistance with code
@@ -463,7 +463,7 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 
 See the [LICENSE](LICENSE) file for full terms.
 
-**TL;DR:** You can use, modify, and distribute Agent Girl freely, but if you modify it and run it as a public service, you must share your source code under the same license.
+**TL;DR:** You can use, modify, and distribute Agent Llama freely, but if you modify it and run it as a public service, you must share your source code under the same license.
 
 ---
 

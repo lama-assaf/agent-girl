@@ -2,7 +2,7 @@
 set -e
 
 # =============================================================================
-# Agent Girl Installer - Production Grade
+# Agent Llama Installer - Production Grade
 # =============================================================================
 # Handles all edge cases, validates dependencies, verifies downloads,
 # and provides comprehensive error handling with rollback support.
@@ -255,7 +255,7 @@ check_existing_installation() {
     # Check if there's a running process
     if [[ "$OS_PREFIX" == "macos" || "$OS_PREFIX" == "linux" ]]; then
       if lsof -ti:3001 > /dev/null 2>&1; then
-        log_warning "Agent Girl appears to be running (port 3001 in use)"
+        log_warning "Agent Llama appears to be running (port 3001 in use)"
         echo ""
         read -p "Stop the running instance and upgrade? [y/N]: " stop_running < /dev/tty
 
@@ -265,7 +265,7 @@ check_existing_installation() {
           log_success "Stopped running instance"
         else
           fatal_error "Installation cancelled" \
-            "Stop Agent Girl manually and try again"
+            "Stop Agent Llama manually and try again"
         fi
       fi
     fi
@@ -341,7 +341,7 @@ fetch_release_info() {
 # =============================================================================
 
 download_release() {
-  log_section "Downloading Agent Girl $VERSION"
+  log_section "Downloading Agent Llama $VERSION"
 
   DOWNLOAD_PATH="/tmp/$APP_NAME-$PLATFORM-$$.zip"
   TEMP_FILES+=("$DOWNLOAD_PATH")
@@ -415,7 +415,7 @@ download_release() {
 # =============================================================================
 
 extract_and_install() {
-  log_section "Installing Agent Girl"
+  log_section "Installing Agent Llama"
 
   # Create install directory
   log_info "Creating installation directory..."
@@ -485,7 +485,7 @@ validate_and_rebuild_dependencies() {
   if ! command -v node &> /dev/null; then
     log_warning "Node.js not found!"
     echo ""
-    echo "Agent Girl requires Node.js v18+ for the Claude SDK subprocess."
+    echo "Agent Llama requires Node.js v18+ for the Claude SDK subprocess."
     echo ""
     echo "Installation instructions:"
     case "$OS_PREFIX" in
@@ -522,7 +522,7 @@ validate_and_rebuild_dependencies() {
   if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
     log_warning "Detected Windows Node.js in WSL environment!"
     echo ""
-    echo "You have Windows Node.js in your PATH, but Agent Girl needs native WSL Node."
+    echo "You have Windows Node.js in your PATH, but Agent Llama needs native WSL Node."
     echo ""
 
     # Check if we can auto-install
@@ -704,7 +704,7 @@ configure_api_keys() {
       4)
         echo ""
         log_warning "Skipping API configuration"
-        echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agent Girl"
+        echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agent Llama"
         return
         ;;
       *)
@@ -753,7 +753,7 @@ configure_personalization() {
 
   log_section "Personalization (Optional)"
 
-  echo "Agent Girl can personalize your experience with your name."
+  echo "Agent Llama can personalize your experience with your name."
   echo ""
   read -p "Enter your name (or press Enter to skip): " user_name < /dev/tty
 
@@ -890,14 +890,14 @@ cd \"$INSTALL_DIR\" && ./$APP_NAME \"\$@\"
 show_success_message() {
   log_section "Installation Successful! 🎉"
 
-  echo -e "${GREEN}Agent Girl $VERSION has been installed successfully!${NC}"
+  echo -e "${GREEN}Agent Llama $VERSION has been installed successfully!${NC}"
   echo ""
   echo -e "${BLUE}📍 Installation Location:${NC}"
   echo -e "   $INSTALL_DIR"
   echo ""
 
   # Platform-specific launch instructions
-  echo -e "${BLUE}🚀 How to Start Agent Girl:${NC}"
+  echo -e "${BLUE}🚀 How to Start Agent Llama:${NC}"
   echo ""
 
   if [[ "$OS_PREFIX" == "windows" ]]; then
@@ -949,7 +949,7 @@ main() {
   # Print banner
   echo ""
   echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${CYAN}   Agent Girl Installer${NC}"
+  echo -e "${CYAN}   Agent Llama Installer${NC}"
   echo -e "${CYAN}   Production-Grade Installation Script${NC}"
   echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""

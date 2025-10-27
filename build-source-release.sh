@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🔨 Building Agent Girl (Source Distribution)"
+echo "🔨 Building Agent Llama (Source Distribution)"
 echo
 
 # Detect platform
@@ -82,7 +82,7 @@ cd "$SCRIPT_DIR"
 if ! command -v node &> /dev/null; then
     echo "❌ Node.js not found!"
     echo ""
-    echo "Agent Girl requires Node.js v18+ for the Claude SDK."
+    echo "Agent Llama requires Node.js v18+ for the Claude SDK."
     echo "Install from: https://nodejs.org"
     echo ""
     exit 1
@@ -102,7 +102,7 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
     if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
         echo "❌ Windows Node.js detected in WSL!"
         echo ""
-        echo "You have Windows Node in your PATH, but Agent Girl needs native WSL Node."
+        echo "You have Windows Node in your PATH, but Agent Llama needs native WSL Node."
         echo "Please install Node.js for WSL:"
         echo "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
         echo "  sudo apt-get install -y nodejs"
@@ -149,7 +149,7 @@ if [ ! -f "node_modules/@anthropic-ai/claude-agent-sdk/cli.js" ]; then
 fi
 
 # Start the server
-echo "🚀 Starting Agent Girl..."
+echo "🚀 Starting Agent Llama..."
 echo
 exec bun run server/server.ts "$@"
 EOF
@@ -158,7 +158,7 @@ chmod +x release/agent-girl-$PLATFORM/agent-girl
 
 # Create README
 cat > release/agent-girl-$PLATFORM/README.txt << 'EOF'
-Agent Girl Application - macOS
+Agent Llama Application - macOS
 ==============================
 
 Authentication Setup (Choose ONE):

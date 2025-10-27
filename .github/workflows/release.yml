@@ -80,7 +80,7 @@ jobs:
           if ! command -v node &> /dev/null; then
               echo "❌ Node.js not found!"
               echo ""
-              echo "Agent Girl requires Node.js v18+ for the Claude SDK."
+              echo "Agent Llama requires Node.js v18+ for the Claude SDK."
               echo "Install from: https://nodejs.org"
               echo ""
               exit 1
@@ -100,7 +100,7 @@ jobs:
               if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
                   echo "❌ Windows Node.js detected in WSL!"
                   echo ""
-                  echo "You have Windows Node in your PATH, but Agent Girl needs native WSL Node."
+                  echo "You have Windows Node in your PATH, but Agent Llama needs native WSL Node."
                   echo "Please install Node.js for WSL:"
                   echo "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
                   echo "  sudo apt-get install -y nodejs"
@@ -147,7 +147,7 @@ jobs:
           fi
 
           # Start the server
-          echo "🚀 Starting Agent Girl..."
+          echo "🚀 Starting Agent Llama..."
           echo
           export STANDALONE_BUILD=true
           exec bun run server/server.ts "$@"
@@ -174,7 +174,7 @@ jobs:
       - name: Create README
         run: |
           cat > release/agent-girl-${{ matrix.platform }}/README.txt << 'EOF'
-          Agent Girl Application - macOS
+          Agent Llama Application - macOS
           ==============================
 
           Setup (First Time):
@@ -378,7 +378,7 @@ jobs:
           echo.
 
           :: Start the server in production mode
-          echo 🚀 Starting Agent Girl...
+          echo 🚀 Starting Agent Llama...
           echo.
           set STANDALONE_BUILD=true
           bun run server\server.ts %*
@@ -404,7 +404,7 @@ jobs:
       - name: Create README
         run: |
           @"
-          Agent Girl Application - Windows
+          Agent Llama Application - Windows
           =================================
 
           Setup (First Time):
@@ -509,7 +509,7 @@ jobs:
           if ! command -v node &> /dev/null; then
               echo "❌ Node.js not found!"
               echo ""
-              echo "Agent Girl requires Node.js v18+ for the Claude SDK."
+              echo "Agent Llama requires Node.js v18+ for the Claude SDK."
               echo "Install from: https://nodejs.org"
               echo ""
               exit 1
@@ -529,7 +529,7 @@ jobs:
               if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
                   echo "❌ Windows Node.js detected in WSL!"
                   echo ""
-                  echo "You have Windows Node in your PATH, but Agent Girl needs native WSL Node."
+                  echo "You have Windows Node in your PATH, but Agent Llama needs native WSL Node."
                   echo "Please install Node.js for WSL:"
                   echo "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
                   echo "  sudo apt-get install -y nodejs"
@@ -576,7 +576,7 @@ jobs:
           fi
 
           # Start the server
-          echo "🚀 Starting Agent Girl..."
+          echo "🚀 Starting Agent Llama..."
           echo
           export STANDALONE_BUILD=true
           exec bun run server/server.ts "$@"
@@ -603,7 +603,7 @@ jobs:
       - name: Create README
         run: |
           cat > release/agent-girl-linux-x64/README.txt << 'EOF'
-          Agent Girl Application - Linux
+          Agent Llama Application - Linux
           ===============================
 
           Setup (First Time):
@@ -684,7 +684,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
-          name: Agent Girl ${{ steps.version.outputs.VERSION }}
+          name: Agent Llama ${{ steps.version.outputs.VERSION }}
           draft: false
           prerelease: false
           generate_release_notes: true

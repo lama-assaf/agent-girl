@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Agent Girl - User Setup CLI
+ * Agent Llama - User Setup CLI
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -27,7 +27,7 @@ function colorize(text: string, color: keyof typeof colors): string {
 function printBanner() {
   console.log('');
   console.log(colorize('╔═══════════════════════════════════════╗', 'cyan'));
-  console.log(colorize('║     Agent Girl - User Setup          ║', 'cyan'));
+  console.log(colorize('║     Agent Llama - User Setup          ║', 'cyan'));
   console.log(colorize('╚═══════════════════════════════════════╝', 'cyan'));
   console.log('');
 }
@@ -60,7 +60,7 @@ export async function runSetup() {
   }
 
   // Ask for name
-  console.log(colorize('Let\'s personalize Agent Girl for you!', 'bright'));
+  console.log(colorize('Let\'s personalize Agent Llama for you!', 'bright'));
   console.log('');
 
   const nameInput = await question(colorize('What is your name? (first and/or last name): ', 'cyan'));

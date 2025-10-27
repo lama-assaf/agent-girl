@@ -1,5 +1,5 @@
 /**
- * Agent Girl - User Configuration Management
+ * Agent Llama - User Configuration Management
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
