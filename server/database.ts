@@ -34,7 +34,7 @@ export interface Session {
   message_count: number;
   working_directory: string;
   permission_mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
-  mode: 'general' | 'coder' | 'intense-research' | 'spark';
+  mode: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist';
   sdk_session_id?: string; // SDK's internal session ID for resume functionality
   context_input_tokens?: number;
   context_window?: number;
@@ -291,7 +291,7 @@ class SessionDatabase {
   }
 
   // Session operations
-  createSession(title: string = "New Chat", workingDirectory?: string, mode: 'general' | 'coder' | 'intense-research' | 'spark' = 'general'): Session {
+  createSession(title: string = "New Chat", workingDirectory?: string, mode: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist' = 'general'): Session {
     const id = randomUUID();
     const now = new Date().toISOString();
 

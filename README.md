@@ -164,7 +164,7 @@ agent-girl
 1. Navigate to install directory
 2. Double-click the `agent-girl` executable
 
-The app starts at **http://localhost:4000** and opens automatically in your browser.
+The app starts at **http://localhost:3001** and opens automatically in your browser.
 
 ### 3. Start Chatting
 
@@ -248,13 +248,14 @@ bun install
 cat > .env << EOF
 API_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-your-key-here
+RAPIDAPI_KEY=your-rapidapi-key-here
 EOF
 
 # Start development server
 bun run dev
 ```
 
-Development server runs at **http://localhost:4000** with hot reload.
+Development server runs at **http://localhost:3001** with hot reload.
 
 ### Build from Source
 
@@ -341,6 +342,9 @@ ANTHROPIC_API_KEY=sk-ant-your-key-here
 
 # Z.AI (GLM models, optional)
 ZAI_API_KEY=your-zai-key-here
+
+# Instagram MCP Server (optional)
+RAPIDAPI_KEY=your-rapidapi-key-here
 ```
 
 ### Advanced Configuration

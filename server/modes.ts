@@ -49,6 +49,11 @@ const MODE_CONFIGS: Record<string, ModeConfig> = {
     name: 'Spark',
     description: 'Interactive brainstorming with research',
   },
+  'instagram-strategist': {
+    id: 'instagram-strategist',
+    name: 'Instagram Strategist',
+    description: '5 agents, Instagram data + strategy research',
+  },
 };
 
 const modePromptCache = new Map<string, string>();

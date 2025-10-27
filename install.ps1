@@ -674,7 +674,7 @@ function Show-SuccessMessage {
 
     Write-Host ""
     Write-ColorMessage "🌐 The app will start at: " "Cyan" -NoNewline
-    Write-ColorMessage "http://localhost:4000" "Blue"
+    Write-ColorMessage "http://localhost:3001" "Blue"
     Write-Host ""
 
     Write-ColorMessage "📄 License: " "Cyan" -NoNewline

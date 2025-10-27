@@ -186,7 +186,7 @@ jobs:
           To Run:
           - Double-click the 'agent-girl' file
           - Or run from terminal: ./agent-girl
-          - The app will start at http://localhost:4000
+          - The app will start at http://localhost:3001
           - Your browser should open automatically
 
           First Run:
@@ -416,7 +416,7 @@ jobs:
           To Run:
           - Double-click the 'agent-girl.bat' file
           - Or run from command prompt: agent-girl.bat
-          - The app will start at http://localhost:4000
+          - The app will start at http://localhost:3001
           - Your browser should open automatically
 
           First Run:
@@ -616,7 +616,7 @@ jobs:
           - Right-click 'agent-girl' → Properties → Permissions → Check "Allow executing file as program"
           - Then double-click the 'agent-girl' file
           - Or run from terminal: ./agent-girl
-          - The app will start at http://localhost:4000
+          - The app will start at http://localhost:3001
           - Your browser should open automatically
 
           First Run:

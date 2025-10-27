@@ -31,7 +31,7 @@ import { FeaturesModal } from './FeaturesModal';
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'coder' | 'intense-research' | 'spark') => void;
+  onSubmit: (files?: FileAttachment[], mode?: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist') => void;
   onStop?: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
@@ -40,7 +40,7 @@ interface ChatInputProps {
   onTogglePlanMode?: () => void;
   backgroundProcesses?: BackgroundProcess[];
   onKillProcess?: (bashId: string) => void;
-  mode?: 'general' | 'coder' | 'intense-research' | 'spark';
+  mode?: 'general' | 'coder' | 'intense-research' | 'spark' | 'instagram-strategist';
   availableCommands?: SlashCommand[];
   contextUsage?: {
     inputTokens: number;

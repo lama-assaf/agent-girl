@@ -178,7 +178,7 @@ OPTION 2: API Key
 To Run:
 - Run from terminal: agent-girl
 - Or double-click the 'agent-girl' file
-- The app will start at http://localhost:4000
+- The app will start at http://localhost:3001
 - Your browser should open automatically
 
 OAuth Commands:

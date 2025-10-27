@@ -12,7 +12,7 @@ Agent Girl is a modern chat interface powered by the Claude Agent SDK. It's buil
 ```bash
 bun run dev
 ```
-Starts the server at `http://localhost:4000` with hot reload enabled. The server watches for changes in `.tsx`, `.ts`, `.css`, and `.html` files in the `client/` directory.
+Starts the server at `http://localhost:3001` with hot reload enabled. The server watches for changes in `.tsx`, `.ts`, `.css`, and `.html` files in the `client/` directory.
 
 ### Build Client Bundle
 ```bash
@@ -179,6 +179,14 @@ ZAI_API_KEY=your-zai-key-here
 - Includes MCP server for web search (`mcp__web-search-prime__search`)
 - Best for: GLM 4.6 and other Z.AI models
 
+### Instagram MCP Server (Optional)
+```env
+RAPIDAPI_KEY=your-rapidapi-key-here
+```
+- Provides Instagram data and analytics tools
+- Available to all providers (Anthropic and Z.AI)
+- Requires RapidAPI key for Instagram API access
+
 **Provider Configuration**: The `configureProvider()` function in `server/providers.ts` dynamically sets `ANTHROPIC_BASE_URL` and `ANTHROPIC_API_KEY` environment variables based on the selected model's provider.
 
 ## Adding New Models
@@ -206,11 +214,14 @@ The application supports **Model Context Protocol (MCP) servers** on a per-provi
 
 ### Provider-specific MCP Servers
 
-- **Anthropic**: No MCP servers (uses built-in Claude Code tools like `WebSearch`, `WebFetch`, etc.)
-- **Z.AI**: Includes `web-search-prime` MCP server for web search capabilities
-  - Tool: `mcp__web-search-prime__search`
-  - HTTP-based MCP server at `https://api.z.ai/api/mcp/web_search_prime/mcp`
-  - Requires `ZAI_API_KEY` for authentication
+- **Anthropic**: Includes `grep` and `instagram` MCP servers
+  - `grep`: GitHub code search (`mcp__grep__searchGitHub`)
+  - `instagram`: Instagram data and analytics (26 tools for user analysis, content strategy, etc.)
+- **Z.AI**: Includes `grep`, `instagram`, `web-search-prime`, and `zai-mcp-server` MCP servers
+  - `grep`: GitHub code search (`mcp__grep__searchGitHub`)
+  - `instagram`: Instagram data and analytics (26 tools for user analysis, content strategy, etc.)
+  - `web-search-prime`: Web search capabilities (`mcp__web-search-prime__search`)
+  - `zai-mcp-server`: Image and video analysis tools
 
 ### Adding New MCP Servers
 

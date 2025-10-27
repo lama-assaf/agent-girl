@@ -929,7 +929,7 @@ show_success_message() {
   fi
 
   echo ""
-  echo -e "${BLUE}🌐 The app will start at:${NC} ${CYAN}http://localhost:4000${NC}"
+  echo -e "${BLUE}🌐 The app will start at:${NC} ${CYAN}http://localhost:3001${NC}"
   echo ""
 
   # License info

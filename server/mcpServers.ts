@@ -47,12 +47,30 @@ export const MCP_SERVERS_BY_PROVIDER: Record<ProviderType, Record<string, McpSer
       type: 'http',
       url: 'https://mcp.grep.app',
     },
+    // Instagram MCP - Instagram data and analytics
+    'instagram': {
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', 'instagram-mcp'],
+      env: {
+        'RAPIDAPI_KEY': process.env.RAPIDAPI_KEY || '',
+      },
+    },
   },
   'z-ai': {
     // Grep.app MCP - code search across public GitHub repositories
     'grep': {
       type: 'http',
       url: 'https://mcp.grep.app',
+    },
+    // Instagram MCP - Instagram data and analytics
+    'instagram': {
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', 'instagram-mcp'],
+      env: {
+        'RAPIDAPI_KEY': process.env.RAPIDAPI_KEY || '',
+      },
     },
     // GLM models use Z.AI MCP servers
     'web-search-prime': {
@@ -97,15 +115,47 @@ export function getAllowedMcpTools(provider: ProviderType, _modelId?: string): s
     'mcp__grep__searchGitHub',
   ];
 
+  // Instagram MCP tools - available to all providers
+  const instagramTools = [
+    'mcp__instagram__search_user',
+    'mcp__instagram__get_user_posts',
+    'mcp__instagram__get_user_followers',
+    'mcp__instagram__get_user_followings',
+    'mcp__instagram__get_user_reels',
+    'mcp__instagram__get_user_stories',
+    'mcp__instagram__get_user_tagged_posts',
+    'mcp__instagram__get_user_highlights',
+    'mcp__instagram__get_user_about',
+    'mcp__instagram__get_similar_accounts',
+    'mcp__instagram__get_basic_profile',
+    'mcp__instagram__search_hashtag',
+    'mcp__instagram__get_highlight_stories',
+    'mcp__instagram__get_media_data',
+    'mcp__instagram__get_post_comments',
+    'mcp__instagram__get_comment_replies',
+    'mcp__instagram__get_post_likers',
+    'mcp__instagram__get_reel_title',
+    'mcp__instagram__get_media_id',
+    'mcp__instagram__analyze_content_strategy',
+    'mcp__instagram__compare_competitors',
+    'mcp__instagram__discover_trending_content',
+    'mcp__instagram__analyze_hashtag_performance',
+    'mcp__instagram__audit_content_quality',
+    'mcp__instagram__identify_growth_opportunities',
+    'mcp__instagram__engagement_deep_dive',
+  ];
+
   if (provider === 'anthropic') {
     return [
       ...grepTools,
+      ...instagramTools,
     ];
   }
 
   if (provider === 'z-ai') {
     return [
       ...grepTools,
+      ...instagramTools,
       'mcp__web-search-prime__search',
       'mcp__zai-mcp-server__image_analysis',
       'mcp__zai-mcp-server__video_analysis',
