@@ -1786,11 +1786,11 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
             <img
               src="/client/agent-boy.svg"
               className="message-assistant-avatar"
-              alt="Llama Girl"
+              alt="Agent Llama"
             />
             <div className="message-assistant-name-container">
               <span className="message-assistant-name">
-                {message.metadata?.model || 'Llama Girl'}
+                {message.metadata?.model || 'Agent Llama'}
               </span>
               <span className="message-assistant-timestamp invisible group-hover:visible">
                 {formatTimestamp(message.timestamp)}
@@ -1807,7 +1807,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                 } else if (block.type === 'tool_use') {
                   return <ToolUseComponent key={index} toolUse={block} />;
                 } else if (block.type === 'thinking') {
-                  return <ThinkingBlock key={index} title="Llama Girl's thoughts..." content={block.thinking} />;
+                  return <ThinkingBlock key={index} title="Agent Llama's thoughts..." content={block.thinking} />;
                 } else if (block.type === 'long_running_command') {
                   return <LongRunningCommandComponent key={index} command={block} />;
                 }

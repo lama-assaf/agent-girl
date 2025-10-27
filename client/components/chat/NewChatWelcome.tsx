@@ -344,7 +344,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
         <div className="flex flex-col gap-1 justify-center items-center mb-8">
           <div className="flex flex-row justify-center gap-3 w-fit px-5">
             <div className="text-[40px] font-semibold line-clamp-1 text-gradient">
-              {userName ? `Hi, ${userName}. I'm Llama girl` : "Hi. I'm Llama girl"}
+              {userName ? `Hi, ${userName}. I'm Agent Llama` : "Hi. I'm Agent Llama"}
             </div>
           </div>
 
