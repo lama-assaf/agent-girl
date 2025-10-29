@@ -19,7 +19,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Edit3, Search, Trash2, Edit } from 'lucide-react';
+import { Menu, Edit3, Search, Trash2, Edit, FolderOpen } from 'lucide-react';
 import { toast } from '../../utils/toast';
 
 interface Chat {
@@ -148,6 +148,30 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
     onChatDelete?.(chatId);
   };
 
+  const handleOpenChatFolder = async () => {
+    try {
+      const response = await fetch('/api/open-chat-folder', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Opened chat folder', {
+          description: data.path
+        });
+      } else {
+        toast.error('Failed to open chat folder', {
+          description: data.error || 'Unknown error'
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to open chat folder', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
   return (
     <div className={`sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="sidebar-container">
@@ -165,6 +189,12 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
         <button className="sidebar-new-chat-btn" onClick={onNewChat}>
           <Edit3 size={20} opacity={0.8} />
           <span>New Chat</span>
+        </button>
+
+        {/* Open Chat Folder Button */}
+        <button className="sidebar-new-chat-btn" onClick={handleOpenChatFolder} style={{ marginTop: '0.5rem' }}>
+          <FolderOpen size={20} opacity={0.8} />
+          <span>Open Chat Folder</span>
         </button>
 
         {/* Search */}
