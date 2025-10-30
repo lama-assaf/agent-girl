@@ -27,6 +27,7 @@ import { Sidebar } from '../sidebar/Sidebar';
 import { ModelSelector } from '../header/ModelSelector';
 import { WorkingDirectoryDisplay } from '../header/WorkingDirectoryDisplay';
 import { AboutButton } from '../header/AboutButton';
+import { RadioPlayer } from '../header/RadioPlayer';
 import { PlanApprovalModal } from '../plan/PlanApprovalModal';
 import { BuildWizard } from '../build-wizard/BuildWizard';
 import { ScrollButton } from './ScrollButton';
@@ -1218,6 +1219,8 @@ export function ChatContainer() {
 
             {/* Right side */}
             <div className="header-right">
+              {/* Radio Player */}
+              <RadioPlayer />
               {/* Working Directory Display */}
               {currentSessionId && sessions.find(s => s.id === currentSessionId)?.working_directory && (
                 <WorkingDirectoryDisplay
